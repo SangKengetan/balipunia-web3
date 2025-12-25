@@ -1,0 +1,48 @@
+/* Tailwind v4 */
+@import "tailwindcss";
+@tailwind utilities;
+
+:root {
+  --punia-yellow: #feeaa5;
+
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* WAJIB: jadikan layout full-width */
+html,
+body,
+#root {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* HAPUS flex bawaan Vite */
+body {
+  margin: 0;
+  display: block;
+  background-color: #ffffff;
+}
+
+/* Matikan pembatas lebar Vite */
+#root {
+  max-width: none;
+  margin: 0;
+}
+
+/* Link default */
+a {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+/* Button dasar (tidak mengganggu Tailwind) */
+button {
+  cursor: pointer;
+}
