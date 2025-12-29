@@ -10,6 +10,9 @@ import AdminPuraDashboard from "./pages/admin/AdminPuraDashboard";
 import TrusteesDashboard from "./pages/admin/TrusteesDashboard";
 import CampaignList from "./pages/admin/CampaignList";
 import CreateCampaign from "./pages/admin/CreateCampaign";
+import CampaignDetail from "./pages/admin/CampaignDetail";
+import PublicCampaignList from "./pages/public/PublicCampaignList";
+import PublicCampaignDetail from "./pages/public/PublicCampaignDetail";
 
 // Route guard
 import AdminProtectedRoute from "./components/ProtectedAdminRoute";
@@ -23,6 +26,10 @@ function App() {
         ====================== */}
         <Route path="/" element={<Home />} />
         <Route path="/register" element={<RegisterPura />} />
+        <Route path="/public/campaigns" element={<PublicCampaignList />} />
+        <Route path="/campaigns/:id" element={<PublicCampaignDetail />}
+/>
+
 
         {/* =====================
             ADMIN AUTH

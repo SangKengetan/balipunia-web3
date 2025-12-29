@@ -15,12 +15,13 @@ async function adminAuth(req, res) {
   }
 
   const token = jwt.sign(
-    { address: admin.address, role: admin.role },
+    { id: admin.id, address: admin.address, role: admin.role },
     process.env.JWT_SECRET,
     { expiresIn: "2h" }
   );
 
   res.json({
+    id: admin.id,
     address: admin.address,
     role: admin.role,
     token,
@@ -78,7 +79,7 @@ async function verifySignature(req, res) {
   await clearAdminNonce(address);
 
   const token = jwt.sign(
-    { address: admin.address, role: admin.role },
+    { id: admin.id, address: admin.address, role: admin.role },
     process.env.JWT_SECRET,
     { expiresIn: "2h" }
   );

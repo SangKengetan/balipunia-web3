@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createCampaign } from "../../services/campaignAPI";
+import { createCampaign } from "../../services/campaignApi";
 
 export default function CreateCampaign() {
   const [form, setForm] = useState({
@@ -8,6 +8,7 @@ export default function CreateCampaign() {
     purpose: "UPACARA_ADAT",
     is_onchain_enabled: true,
     is_offchain_enabled: true,
+    deadline: "", // ⬅ TAMBAHKAN
   });
 
   const [loading, setLoading] = useState(false);
@@ -22,17 +23,27 @@ export default function CreateCampaign() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+
+    if (!form.deadline) {
+      alert("Deadline wajib diisi!");
+      return;
+    }
+
     try {
       setLoading(true);
       await createCampaign(form);
       alert("Campaign berhasil dibuat");
+
+      // Reset form setelah submit
       setForm({
         title: "",
         description: "",
         purpose: "UPACARA_ADAT",
         is_onchain_enabled: true,
         is_offchain_enabled: true,
+        deadline: "",
       });
+
     } catch (err) {
       alert(err.response?.data?.message || "Gagal membuat campaign");
     } finally {
@@ -45,6 +56,7 @@ export default function CreateCampaign() {
       <h2 className="text-xl font-semibold mb-4">Buat Campaign Baru</h2>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+
         <div>
           <label className="text-sm font-medium">Judul Campaign</label>
           <input
@@ -80,6 +92,22 @@ export default function CreateCampaign() {
             <option value="PEMBANGUNAN">Pembangunan</option>
             <option value="LAINNYA">Lainnya</option>
           </select>
+        </div>
+
+        {/* NEW FIELD DEADLINE */}
+        <div>
+          <label className="text-sm font-medium">Deadline Campaign</label>
+          <input
+            type="datetime-local"
+            name="deadline"
+            value={form.deadline}
+            onChange={handleChange}
+            required
+            className="w-full border rounded px-3 py-2 mt-1"
+          />
+          <p className="text-xs text-gray-500 mt-1">
+            Campaign otomatis berubah menjadi EXPIRED jika melewati waktu ini.
+          </p>
         </div>
 
         <div className="flex gap-4">

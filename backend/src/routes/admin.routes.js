@@ -15,6 +15,7 @@ router.post("/verify", verifySignature);
 
 router.get("/me", authenticateAdmin, (req, res) => {
   res.json({
+    id: req.admin.id,
     address: req.admin.address,
     role: req.admin.role,
   });

@@ -2,7 +2,7 @@ const pool = require("../db/pool");
 
 async function findAdminByAddress(address) {
   const query = `
-    SELECT address, role, is_active, nonce
+    SELECT id, address, role, is_active, nonce
     FROM admins
     WHERE LOWER(address) = LOWER($1)
     LIMIT 1

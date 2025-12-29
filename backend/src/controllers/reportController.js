@@ -83,13 +83,13 @@ async function approveReport(req, res) {
 
   try {
     const reportId = req.params.id;
-    const reviewerAddress = req.admin.address_pengaju;
+    const reviewerAddress = req.admin?.address; // pakai req.admin.address (bukan address_pengaju)
 
     await client.query('BEGIN');
 
-    // 1. Ambil data laporan (PASTI PENDING)
+    // 1. Ambil seluruh data dari report (diperluas agar dapat nama_pura)
     const reportQuery = `
-      SELECT address_pengaju
+      SELECT id, nama_pura, address_pengaju
       FROM reports
       WHERE id = $1 AND status = 'PENDING'
       FOR UPDATE
@@ -103,9 +103,9 @@ async function approveReport(req, res) {
       });
     }
 
-    const addressPengaju = reportResult.rows[0].address_pengaju;
+    const { address_pengaju, nama_pura } = reportResult.rows[0];
 
-    // 2. Update status laporan
+    // 2. Update report
     await client.query(
       `
       UPDATE reports
@@ -117,28 +117,49 @@ async function approveReport(req, res) {
       [reviewerAddress, reportId]
     );
 
-    // 3. Cek apakah sudah jadi admin (safety)
+    // 3. Cek apakah wallet sudah terdaftar sebagai admin
+    let adminId;
     const adminCheck = await client.query(
-      `SELECT id FROM admins WHERE address = $1`,
-      [addressPengaju]
+      `SELECT id FROM admins WHERE address = $1 LIMIT 1`,
+      [address_pengaju]
     );
 
     if (adminCheck.rowCount === 0) {
-      // 4. Insert ADMIN_PURA
-      await client.query(
+      const insertAdmin = await client.query(
         `
         INSERT INTO admins (address, role, is_active)
         VALUES ($1, 'ADMIN_PURA', true)
+        RETURNING id
         `,
-        [addressPengaju]
+        [address_pengaju]
+      );
+      adminId = insertAdmin.rows[0].id;
+    } else {
+      adminId = adminCheck.rows[0].id;
+    }
+
+    // 4. Insert ke tabel admin_pura hanya jika belum ada
+    const checkPura = await client.query(
+      `SELECT id FROM admin_pura WHERE admin_id = $1 LIMIT 1`,
+      [adminId]
+    );
+
+    if (checkPura.rowCount === 0) {
+      await client.query(
+        `
+        INSERT INTO admin_pura (admin_id, nama_pura)
+        VALUES ($1, $2)
+        `,
+        [adminId, nama_pura]
       );
     }
 
     await client.query('COMMIT');
 
     res.json({
-      message: 'Pengajuan disetujui, admin pura berhasil dibuat',
-      wallet_address: addressPengaju
+      message: 'Pengajuan disetujui & admin pura berhasil dibuat',
+      wallet_address: address_pengaju,
+      admin_id: adminId
     });
 
   } catch (error) {
@@ -152,6 +173,7 @@ async function approveReport(req, res) {
     client.release();
   }
 }
+
 
 
 async function rejectReport(req, res) {

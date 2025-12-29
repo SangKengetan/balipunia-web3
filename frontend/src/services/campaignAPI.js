@@ -7,12 +7,24 @@ const campaignApi = axios.create({
   baseURL: "http://localhost:5000",
 });
 
+export async function getPublicCampaigns() {
+  const res = await campaignApi.get(`/public/campaigns`);
+  return res.data;
+}
+
+export async function getPublicCampaignDetail(id) {
+  const res = await campaignApi.get(`/public/campaigns/${id}`);
+  return res.data;
+}
+
+
+
 /**
  * Interceptor: inject admin token otomatis
  */
 campaignApi.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("admin_token");
+    const token = sessionStorage.getItem("admin_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
