@@ -1,23 +1,25 @@
-// const API_BASE = import.meta.env.VITE_API_BASE_URL;
 const API_BASE = "http://localhost:5000";
 
-// 📋 List pengajuan
-export async function getPengajuanList(token, status = "PENDING") {
-  const res = await fetch(`${API_BASE}/reports?status=${status}`, {
+export async function getReports(token, status) {
+  const url = status
+    ? `${API_BASE}/reports?status=${status}`
+    : `${API_BASE}/reports`;
+
+  const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
   });
 
   if (!res.ok) {
-    throw new Error("Gagal mengambil daftar pengajuan");
+    const text = await res.text();
+    throw new Error(text || "Gagal mengambil data laporan");
   }
 
   return res.json(); // { total, data }
 }
 
-// ✅ Approve
-export async function approvePengajuan(id, token) {
+export async function approveReport(id, token) {
   const res = await fetch(`${API_BASE}/reports/${id}/approve`, {
     method: "POST",
     headers: {
@@ -27,14 +29,13 @@ export async function approvePengajuan(id, token) {
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.message || "Gagal approve pengajuan");
+    throw new Error(err.message || "Gagal approve");
   }
 
   return res.json();
 }
 
-// ❌ Reject
-export async function rejectPengajuan(id, note, token) {
+export async function rejectReport(id, note, token) {
   const res = await fetch(`${API_BASE}/reports/${id}/reject`, {
     method: "POST",
     headers: {
@@ -46,7 +47,7 @@ export async function rejectPengajuan(id, note, token) {
 
   if (!res.ok) {
     const err = await res.json();
-    throw new Error(err.message || "Gagal reject pengajuan");
+    throw new Error(err.message || "Gagal reject");
   }
 
   return res.json();

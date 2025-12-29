@@ -83,7 +83,7 @@ async function approveReport(req, res) {
 
   try {
     const reportId = req.params.id;
-    const reviewerAddress = req.admin.wallet_address;
+    const reviewerAddress = req.admin.address_pengaju;
 
     await client.query('BEGIN');
 
@@ -119,7 +119,7 @@ async function approveReport(req, res) {
 
     // 3. Cek apakah sudah jadi admin (safety)
     const adminCheck = await client.query(
-      `SELECT id FROM admins WHERE wallet_address = $1`,
+      `SELECT id FROM admins WHERE address = $1`,
       [addressPengaju]
     );
 
@@ -127,7 +127,7 @@ async function approveReport(req, res) {
       // 4. Insert ADMIN_PURA
       await client.query(
         `
-        INSERT INTO admins (wallet_address, role, is_active)
+        INSERT INTO admins (address, role, is_active)
         VALUES ($1, 'ADMIN_PURA', true)
         `,
         [addressPengaju]

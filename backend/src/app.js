@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const adminRoutes = require("./routes/admin.routes");
 const reportRoutes = require("./routes/report.routes");
+const campaignRotes = require("./routes/campaign.routes");
+const publicCampaignRoutes = require("./routes/publicCampaign.routes");
 
 const app = express();
 
@@ -10,5 +12,9 @@ app.use(express.json());
 
 app.use("/admin", adminRoutes);
 app.use("/reports", reportRoutes);
+app.use("/campaigns", campaignRotes);
+app.use("/public", publicCampaignRoutes);
+
+
 
 module.exports = app;

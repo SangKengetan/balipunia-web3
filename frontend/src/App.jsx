@@ -8,6 +8,8 @@ import AdminRedirect from "./pages/admin/AdminRedirect";
 import SuperAdminDashboard from "./pages/admin/SuperAdminDashboard";
 import AdminPuraDashboard from "./pages/admin/AdminPuraDashboard";
 import TrusteesDashboard from "./pages/admin/TrusteesDashboard";
+import CampaignList from "./pages/admin/CampaignList";
+import CreateCampaign from "./pages/admin/CreateCampaign";
 
 // Route guard
 import AdminProtectedRoute from "./components/ProtectedAdminRoute";
@@ -59,6 +61,34 @@ function App() {
             </AdminProtectedRoute>
           }
         />
+
+        <Route
+          path="/admin/pura/campaigns"
+          element={
+            <AdminProtectedRoute allowed={["ADMIN_PURA"]}>
+              <CampaignList />
+            </AdminProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/pura/campaigns/create"
+          element={
+            <AdminProtectedRoute allowed={["ADMIN_PURA"]}>
+              <CreateCampaign />
+            </AdminProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/pura/campaigns/:id"
+          element={
+            <AdminProtectedRoute allowed={["ADMIN_PURA"]}>
+              <CampaignDetail />
+            </AdminProtectedRoute>
+          }
+        />
+
 
         <Route
           path="/admin/trustees"
