@@ -1,10 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getPublicCampaignDetail } from "../../services/campaignApi";
+import { getPublicCampaignDetail } from "../../services/campaignAPI.js";
+import OnchainDonateBox from "../../components/OnchainDonateBox";
+import DonationHistory from "../../components/DonationHistory";
+
 
 export default function PublicCampaignDetail() {
   const { id } = useParams();
   const [campaign, setCampaign] = useState(null);
+  const [showOnchain, setShowOnchain] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -56,8 +60,11 @@ export default function PublicCampaignDetail() {
         {/* DONATION ACTION */}
         <div className="pt-4 border-t flex gap-3">
           {campaign.is_onchain_enabled && (
-            <button className="px-4 py-2 bg-blue-600 text-white rounded">
-              Donasi Crypto (On-Chain)
+            <button
+              onClick={() => setShowOnchain((v) => !v)}
+              className="px-4 py-2 bg-blue-600 text-white rounded"
+            >
+              {showOnchain ? "Tutup Donasi Crypto" : "Donasi Crypto (On-Chain)"}
             </button>
           )}
 
@@ -67,6 +74,10 @@ export default function PublicCampaignDetail() {
             </button>
           )}
         </div>
+        {showOnchain && (
+          <OnchainDonateBox onchainCampaignId={campaign.onchain_campaign_id} />
+        )}
+        <DonationHistory campaignId={campaign.id} />
       </div>
     </div>
   );

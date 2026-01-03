@@ -3,13 +3,13 @@ const pool = require("../db/pool");
 async function createCampaign(req, res) {
   try {
     console.log("ADMIN LOGGED IN:", req.admin);
-    const admin = req.admin; // hasil authenticateAdmin → berasal dari tabel admins
+    const admin = req.admin;
 
     const {
       title,
       description,
       purpose,
-      deadline, // deadline wajib dimasukkan agar bisa auto-expire
+      deadline,
       is_onchain_enabled = true,
       is_offchain_enabled = true
     } = req.body;
@@ -25,25 +25,20 @@ async function createCampaign(req, res) {
       return res.status(400).json({ message: "Purpose tidak valid" });
     }
 
-    // 🔍 ambil admin_pura_id berdasarkan admin login
-    const getPuraQuery = `
-      SELECT id 
-      FROM admin_pura 
-      WHERE admin_id = $1
-      LIMIT 1
-    `;
-
+    // 🔍 cek admin_pura
+    const getPuraQuery = `SELECT id FROM admin_pura WHERE admin_id = $1 LIMIT 1`;
     const puraResult = await pool.query(getPuraQuery, [admin.id]);
-
     if (puraResult.rowCount === 0) {
-      return res.status(403).json({
-        message: "Anda tidak terdaftar sebagai admin pura"
-      });
+      return res.status(403).json({ message: "Anda tidak terdaftar sebagai admin pura" });
     }
-
     const admin_pura_id = puraResult.rows[0].id;
 
-    // 🟢 buat campaign baru
+    // 🆕 Generate onchain_campaign_id numeric berurutan
+    const lastIdQuery = `SELECT MAX(onchain_campaign_id) AS max_id FROM campaigns`;
+    const lastIdResult = await pool.query(lastIdQuery);
+    const nextOnchainId = (lastIdResult.rows[0].max_id || 0) + 1;
+
+    // 🟢 Insert campaign baru dengan onchain_campaign_id
     const insertQuery = `
       INSERT INTO campaigns (
         title,
@@ -52,9 +47,10 @@ async function createCampaign(req, res) {
         is_onchain_enabled,
         is_offchain_enabled,
         admin_pura_id,
-        deadline
+        deadline,
+        onchain_campaign_id
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
       RETURNING *
     `;
 
@@ -65,7 +61,8 @@ async function createCampaign(req, res) {
       is_onchain_enabled,
       is_offchain_enabled,
       admin_pura_id,
-      deadline
+      deadline,
+      nextOnchainId
     ];
 
     const { rows } = await pool.query(insertQuery, values);
@@ -80,6 +77,7 @@ async function createCampaign(req, res) {
     res.status(500).json({ message: "Gagal membuat campaign" });
   }
 }
+
 
 
 async function getMyCampaigns(req, res) {
@@ -107,6 +105,7 @@ async function getMyCampaigns(req, res) {
         is_onchain_enabled,
         is_offchain_enabled,
         status,
+        onchain_campaign_id,
         created_at
       FROM campaigns
       WHERE admin_pura_id = $1
@@ -152,6 +151,7 @@ async function getCampaignById(req, res) {
         is_onchain_enabled,
         is_offchain_enabled,
         status,
+        onchain_campaign_id,
         created_at,
         updated_at
       FROM campaigns

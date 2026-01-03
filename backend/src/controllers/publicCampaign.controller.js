@@ -6,6 +6,7 @@ async function getPublicCampaigns(req, res) {
     const query = `
       SELECT
         c.id,
+        c.onchain_campaign_id,
         c.title AS campaign_title,
         c.description,
         c.purpose,
@@ -13,6 +14,7 @@ async function getPublicCampaigns(req, res) {
         c.is_onchain_enabled,
         c.is_offchain_enabled,
         c.created_at,
+        c.onchain_campaign_id,
         ap.nama_pura
       FROM campaigns c
       JOIN admin_pura ap
@@ -51,7 +53,8 @@ async function getPublicCampaignDetail(req, res) {
         c.created_at,
         ap.nama_pura,
         ap.alamat_pura,
-        ap.kontak_pura
+        ap.kontak_pura,
+        c.onchain_campaign_id
       FROM campaigns c
       JOIN admin_pura ap
         ON c.admin_pura_id = ap.id
@@ -80,9 +83,50 @@ async function getPublicCampaignDetail(req, res) {
   }
 }
 
+// controllers/campaignController.js
+async function getCampaignDonations(req, res) {
+  try {
+    const { id } = req.params;
+
+    // 1. ambil onchain_campaign_id dari UUID
+    const campaignRes = await pool.query(
+      `SELECT onchain_campaign_id FROM campaigns WHERE id = $1`,
+      [id]
+    );
+
+    if (!campaignRes.rowCount) {
+      return res.status(404).json({ message: "Campaign tidak ditemukan" });
+    }
+
+    const onchainId = campaignRes.rows[0].onchain_campaign_id;
+
+    // 2. ambil history donasi
+    const donations = await pool.query(
+      `
+      SELECT
+        donor_address,
+        token_address,
+        amount,
+        tx_hash,
+        created_at
+      FROM donations_onchain
+      WHERE onchain_campaign_id = $1
+      ORDER BY created_at DESC
+      `,
+      [onchainId]
+    );
+
+    res.json(donations.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Gagal mengambil data donasi" });
+  }
+}
+
 
 module.exports = {
   getPublicCampaigns,
   getPublicCampaignDetail,
+  getCampaignDonations,
 };
 

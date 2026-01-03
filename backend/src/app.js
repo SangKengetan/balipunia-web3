@@ -16,5 +16,12 @@ app.use("/campaigns", campaignRotes);
 app.use("/public", publicCampaignRoutes);
 
 
+const startDonationListener = require(
+  "./blockchain/listeners/donationListener"
+);
+startDonationListener();
+
+
+
 
 module.exports = app;

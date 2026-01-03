@@ -12,9 +12,10 @@ export default function Home() {
    * - Tidak wajib wallet
    * - Wallet diminta nanti jika pilih on-chain
    */
-  const handleDonate = () => {
+  const handlePublic = () => {
     // contoh: nanti redirect ke /donate
-    alert("Menuju halaman donasi (tanpa wajib wallet)");
+    
+    navigate("/public/campaigns");
   };
 
   /**
@@ -74,7 +75,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4">
               {/* DONASI: TANPA WALLET */}
               <button
-                onClick={handleDonate}
+                onClick={handlePublic}
                 className="
                   bg-(--punia-yellow)
                   text-black

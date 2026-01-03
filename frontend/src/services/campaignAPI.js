@@ -17,6 +17,13 @@ export async function getPublicCampaignDetail(id) {
   return res.data;
 }
 
+export async function getCampaignDonations(id) {
+  const res = await campaignApi.get(
+    `/public/${id}/donations`
+  );
+  return res.data;
+}
+
 
 
 /**
