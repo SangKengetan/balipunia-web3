@@ -1,27 +1,65 @@
 const express = require("express");
 const cors = require("cors");
-const adminRoutes = require("./routes/admin.routes");
+
+const authRoutes = require("./routes/auth.routes");
 const reportRoutes = require("./routes/report.routes");
-const campaignRotes = require("./routes/campaign.routes");
-const publicCampaignRoutes = require("./routes/publicCampaign.routes");
+const offchainWithdrawalRoutes = require("./routes/offchainWithdrawal.routes");
+const publicRoutes = require("./routes/public.routes");
+// const midtransRoutes = require("./routes/midtrans.routes");
+const paymentRoutes = require("./routes/payment.routes");
+const superadminRoutes = require("./routes/superadmin.routes");
+const adminPuraRoutes = require("./routes/adminpura");
+const webhookRoutes = require("./routes/midtrans.routes");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-app.use("/admin", adminRoutes);
+/**
+ * AUTH
+ */
+app.use("/auth", authRoutes);
+
+/**
+ * PUBLIC
+ */
+app.use("/public", publicRoutes);
 app.use("/reports", reportRoutes);
-app.use("/campaigns", campaignRotes);
-app.use("/public", publicCampaignRoutes);
 
 
-const startDonationListener = require(
-  "./blockchain/listeners/donationListener"
+
+
+/**
+ * ADMIN PURA (DASHBOARD)
+ */
+app.use("/adminpura", adminPuraRoutes);
+
+/**
+ * SUPERADMIN
+ */
+app.use("/superadmin", superadminRoutes);
+app.use(
+  "/superadmin/offchain-withdrawals",
+  offchainWithdrawalRoutes
 );
-startDonationListener();
+
+/**
+ * PAYMENT
+ */
+// app.use("/api/midtrans", midtransRoutes);
+app.use("/api/payments", paymentRoutes);
+
+app.use(express.json()); // ⬅️ WAJIB
+app.use("/webhook", webhookRoutes);
 
 
-
+/**
+ * OPTIONAL: LISTENER (DEV / DEMO ONLY)
+ */
+// const startDonationListener = require(
+//   "./blockchain/listeners/donationListener"
+// );
+// startDonationListener();
 
 module.exports = app;

@@ -1,4 +1,5 @@
 require("@nomiclabs/hardhat-ethers");
+// require("@nomicfoundation/hardhat-chai-matchers");
 require("dotenv").config();
 
 module.exports = {
@@ -7,7 +8,8 @@ module.exports = {
     bscTestnet: {
       url: "https://bsc-testnet-rpc.publicnode.com",
       chainId: 97,
-      accounts: [process.env.PRIVATE_KEY]
+      accounts: [process.env.SUPERADMIN_PRIVATE_KEY] 
+      // accounts: [process.env.PRIVATE_KEY2] 
     }
   }
 };

@@ -1,4 +1,4 @@
-import Sidebar from "./Sidebar";
+import Sidebar from "./adminpura/Sidebar";
 
 export default function DashboardShell({ title, children }) {
   return (

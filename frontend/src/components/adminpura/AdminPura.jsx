@@ -1,0 +1,14 @@
+import { Outlet } from "react-router-dom";
+import Sidebar from "./Sidebar";
+
+export default function AdminPuraLayout() {
+  return (
+    <div className="flex min-h-screen">
+      <Sidebar /> {/* sidebar kamu */}
+
+      <main className="flex-1 p-6">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

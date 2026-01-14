@@ -40,3 +40,15 @@
 .read-the-docs {
   color: #888;
 }
+
+.btn-primary {
+  @apply rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply rounded-lg border px-3 py-1.5 text-xs hover:bg-gray-100;
+}
+
+.btn-danger {
+  @apply rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700;
+}

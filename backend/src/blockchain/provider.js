@@ -1,6 +1,6 @@
-const { ethers } = require("ethers");
+const { JsonRpcProvider } = require("ethers");
 
-const provider = new ethers.WebSocketProvider(
+const provider = new JsonRpcProvider(
   process.env.BSC_TESTNET_RPC
 );
 

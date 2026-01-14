@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import useWallet from "../../hooks/useWallet";
 import useAdminAuth from "../../hooks/useAdminAuth";
-import { requestNonce, verifySignature } from "../../services/adminApi";
+import { requestNonce, verifySignature } from "../../services/authApi";
 import { ethers } from "ethers";
 
 export default function AdminLogin() {
@@ -29,6 +29,7 @@ export default function AdminLogin() {
 
       // 4️⃣ Verify signature ke backend
       const res = await verifySignature(walletAddress, signature);
+      localStorage.setItem("token", res.token);
 
       // 5️⃣ Simpan session admin
       loginAdmin({
@@ -38,6 +39,7 @@ export default function AdminLogin() {
       });
 
       // 6️⃣ Redirect ke dashboard
+      
       navigate("/admin");
     } catch (err) {
       console.error(err);

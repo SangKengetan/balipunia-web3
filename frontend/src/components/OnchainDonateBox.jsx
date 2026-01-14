@@ -1,34 +1,52 @@
 import { useState } from "react";
-import { donateOnChain } from "../services/blockchain/onchainDonation";
-import { TOKENS } from "../services/blockchain/constants";
+import {
+  donateOnChain,
+  CAMPAIGN_TYPE,
+} from "../services/blockchain/onchainDonation";
 
-export default function OnchainDonateBox({ onchainCampaignId }) {
+
+export default function OnchainDonateBox({
+  onchainCampaignId,
+  campaignType, // "HYBRID" | "SC_ONLY"
+}) {
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDT");
   const [loading, setLoading] = useState(false);
+  
+  
+  console.log("Donate params:", {
+  campaignId: onchainCampaignId,
+  campaignType: CAMPAIGN_TYPE[campaignType],
+  token,
+  amount});
+
 
   async function handleDonate() {
-    console.log("onchainCampaignId:", onchainCampaignId, typeof onchainCampaignId);
+    try {
+      setLoading(true);
+      const campaignTypeValue = CAMPAIGN_TYPE[campaignType];
 
-  try {
-    setLoading(true);
+      // 🔒 GUARD WAJIB
+      if (campaignTypeValue === undefined) {
+        throw new Error(`Campaign type tidak valid: ${campaignType}`);
+      }
 
-    const txHash = await donateOnChain({
-      campaignId: onchainCampaignId,
-      token: TOKENS[token],
-      amount,
-    });
+      const txHash = await donateOnChain({
+        campaignId: Number(onchainCampaignId), // ⬅️ PASTIKAN INI ADA
+        campaignType: 1, // ⬅️ mapping enum
+        tokenKey: token,
+        amount,
+      });
 
-    alert("Donasi berhasil!\nTx Hash:\n" + txHash);
-    setAmount("");
-  } catch (err) {
-    console.error(err);
-    alert(err?.message || "Donasi gagal");
-  } finally {
-    setLoading(false);
+      alert("Donasi berhasil!\nTx Hash:\n" + txHash);
+      setAmount("");
+    } catch (err) {
+      console.error(err);
+      alert(err?.message || "Donasi gagal");
+    } finally {
+      setLoading(false);
+    }
   }
-}
-
 
   return (
     <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-3">
@@ -59,7 +77,7 @@ export default function OnchainDonateBox({ onchainCampaignId }) {
 
       <button
         onClick={handleDonate}
-        disabled={loading}
+        disabled={loading || !amount}
         className="w-full px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
       >
         {loading ? "Memproses..." : "Donasi Sekarang"}

@@ -11,29 +11,46 @@ async function authenticateAdmin(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    // Decode JWT
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Validasi admin di database
+    // 🔑 JOIN admins + admin_pura
     const result = await pool.query(
-      "SELECT id, address, role, is_active FROM admins WHERE id = $1 LIMIT 1",
+      `
+      SELECT
+        a.id           AS admin_id,
+        a.address,
+        a.role,
+        a.is_active,
+        ap.id          AS admin_pura_id,
+        ap.wallet_address
+      FROM admins a
+      LEFT JOIN admin_pura ap ON ap.admin_id = a.id
+      WHERE a.id = $1
+      LIMIT 1
+      `,
       [decoded.id]
     );
+    
 
-    // Jika admin tidak ada atau dinonaktifkan
     if (result.rowCount === 0 || !result.rows[0].is_active) {
       return res.status(403).json({ message: "Admin not authorized" });
     }
 
-    // Simpan admin ke req untuk digunakan di controller
-    req.admin = result.rows[0];
+    // ✅ STRUCTURE YANG KONSISTEN & AMAN
+    req.admin = {
+      id: result.rows[0].admin_id,          // admins.id
+      role: result.rows[0].role,
+      address: result.rows[0].address,
+      admin_pura_id: result.rows[0].admin_pura_id, // admin_pura.id (bisa null)
+      wallet_address: result.rows[0].wallet_address,
+    };
 
     next();
-
   } catch (err) {
     console.error(err);
     return res.status(401).json({ message: "Invalid or expired token" });
   }
+  
 }
 
 module.exports = {

@@ -6,7 +6,7 @@ export default function ProtectedAdminRoute({ children, allowed }) {
 
   // 1️⃣ Belum login → ke login admin
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // 2️⃣ Login tapi role tidak sesuai

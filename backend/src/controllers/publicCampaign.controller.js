@@ -1,132 +1,54 @@
-const pool = require("../db/pool");
+const {
+  getCampaignDetailFullPublicService,
+} = require("../services/campaignDetail.service");
 
+const {
+ getScCampaign
+} = require('../services/vault.service');
 
-async function getPublicCampaigns(req, res) {
+async function getCampaignDetailFullPublic(req, res) {
+  const { id } = req.params;
+
   try {
-    const query = `
-      SELECT
-        c.id,
-        c.onchain_campaign_id,
-        c.title AS campaign_title,
-        c.description,
-        c.purpose,
-        c.deadline,
-        c.is_onchain_enabled,
-        c.is_offchain_enabled,
-        c.created_at,
-        c.onchain_campaign_id,
-        ap.nama_pura
-      FROM campaigns c
-      JOIN admin_pura ap
-        ON c.admin_pura_id = ap.id
-      WHERE c.status = 'ACTIVE'
-      ORDER BY c.created_at DESC
-    `;
-
-    const { rows } = await pool.query(query);
-
-    res.status(200).json({
-      message: "Public campaign list",
-      data: rows,
+    const data = await getCampaignDetailFullPublicService({
+      campaignId: id,
     });
+
+    res.json(data);
   } catch (err) {
+    if (err.message === "CAMPAIGN_NOT_FOUND") {
+      return res.status(404).json({ message: "Campaign not found" });
+    }
+
     console.error(err);
-    res.status(500).json({
-      message: "Gagal mengambil campaign publik",
-    });
+    res.status(500).json({ message: "Internal server error" });
   }
 }
 
-async function getPublicCampaignDetail(req, res) {
+async function getPublicSCCampaignDetail(req, res) {
   try {
-    const { id } = req.params;
+    const { campaignId } = req.params;
 
-    const query = `
-      SELECT
-        c.id,
-        c.title AS campaign_title,
-        c.description,
-        c.purpose,
-        c.deadline,
-        c.is_onchain_enabled,
-        c.is_offchain_enabled,
-        c.created_at,
-        ap.nama_pura,
-        ap.alamat_pura,
-        ap.kontak_pura,
-        c.onchain_campaign_id
-      FROM campaigns c
-      JOIN admin_pura ap
-        ON c.admin_pura_id = ap.id
-      WHERE c.id = $1
-        AND c.status = 'ACTIVE'
-      LIMIT 1
-    `;
+    const data = await getSCCampaignDetail(
+      Number(campaignId)
+    );
 
-    const { rows } = await pool.query(query, [id]);
+    return res.json(data);
+  } catch (err) {
+    console.error("[GET SC CAMPAIGN DETAIL ERROR]", err);
 
-    if (!rows.length) {
+    if (err.message === "SC_CAMPAIGN_NOT_FOUND") {
       return res.status(404).json({
-        message: "Campaign tidak ditemukan",
+        message: "Campaign SC tidak ditemukan",
       });
     }
 
-    res.status(200).json({
-      message: "Detail campaign publik",
-      data: rows[0],
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      message: "Gagal mengambil detail campaign",
+    return res.status(500).json({
+      message: "Gagal mengambil detail campaign SC",
     });
   }
 }
-
-// controllers/campaignController.js
-async function getCampaignDonations(req, res) {
-  try {
-    const { id } = req.params;
-
-    // 1. ambil onchain_campaign_id dari UUID
-    const campaignRes = await pool.query(
-      `SELECT onchain_campaign_id FROM campaigns WHERE id = $1`,
-      [id]
-    );
-
-    if (!campaignRes.rowCount) {
-      return res.status(404).json({ message: "Campaign tidak ditemukan" });
-    }
-
-    const onchainId = campaignRes.rows[0].onchain_campaign_id;
-
-    // 2. ambil history donasi
-    const donations = await pool.query(
-      `
-      SELECT
-        donor_address,
-        token_address,
-        amount,
-        tx_hash,
-        created_at
-      FROM donations_onchain
-      WHERE onchain_campaign_id = $1
-      ORDER BY created_at DESC
-      `,
-      [onchainId]
-    );
-
-    res.json(donations.rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Gagal mengambil data donasi" });
-  }
-}
-
 
 module.exports = {
-  getPublicCampaigns,
-  getPublicCampaignDetail,
-  getCampaignDonations,
+  getCampaignDetailFullPublic, getPublicSCCampaignDetail
 };
-

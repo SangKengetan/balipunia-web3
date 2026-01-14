@@ -27,22 +27,22 @@
     },
     {
       "inputs": [],
-      "name": "CampaignAlreadyWithdrawn",
+      "name": "CampaignExpired",
       "type": "error"
     },
     {
       "inputs": [],
-      "name": "GovernanceAlreadySet",
-      "type": "error"
-    },
-    {
-      "inputs": [],
-      "name": "NotGovernance",
+      "name": "CampaignNotFound",
       "type": "error"
     },
     {
       "inputs": [],
       "name": "NotOwner",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotVoting",
       "type": "error"
     },
     {
@@ -64,43 +64,6 @@
       "inputs": [],
       "name": "ZeroAddress",
       "type": "error"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "uint256",
-          "name": "campaignId",
-          "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "adminPuraWallet",
-          "type": "address"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "usdtAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "usdcAmount",
-          "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
-        }
-      ],
-      "name": "CampaignWithdrawn",
-      "type": "event"
     },
     {
       "anonymous": false,
@@ -140,6 +103,74 @@
       "type": "event"
     },
     {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "titleHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "deadline",
+          "type": "uint64"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "creator",
+          "type": "address"
+        }
+      ],
+      "name": "ScCampaignRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "adminPuraWallet",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "usdtAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "usdcAmount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "name": "Withdrawn",
+      "type": "event"
+    },
+    {
       "inputs": [],
       "name": "USDC",
       "outputs": [
@@ -173,6 +204,11 @@
           "type": "uint256"
         },
         {
+          "internalType": "enum DonationVaultV3.CampaignType",
+          "name": "campaignType",
+          "type": "uint8"
+        },
+        {
           "internalType": "address",
           "name": "token",
           "type": "address"
@@ -201,44 +237,12 @@
           "type": "address"
         }
       ],
-      "name": "getCampaignBalance",
+      "name": "getBalance",
       "outputs": [
         {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "token",
-          "type": "address"
-        }
-      ],
-      "name": "getVaultBalance",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "governance",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
         }
       ],
       "stateMutability": "view",
@@ -252,11 +256,26 @@
           "type": "uint256"
         }
       ],
-      "name": "isWithdrawn",
+      "name": "getScCampaign",
       "outputs": [
         {
+          "internalType": "bytes32",
+          "name": "titleHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "deadline",
+          "type": "uint64"
+        },
+        {
+          "internalType": "address",
+          "name": "creator",
+          "type": "address"
+        },
+        {
           "internalType": "bool",
-          "name": "",
+          "name": "withdrawn",
           "type": "bool"
         }
       ],
@@ -279,14 +298,55 @@
     {
       "inputs": [
         {
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "titleHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "deadline",
+          "type": "uint64"
+        },
+        {
           "internalType": "address",
-          "name": "_governance",
+          "name": "creator",
           "type": "address"
         }
       ],
-      "name": "setGovernance",
+      "name": "registerScCampaign",
       "outputs": [],
       "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_voting",
+          "type": "address"
+        }
+      ],
+      "name": "setVoting",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "voting",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -302,7 +362,7 @@
           "type": "address"
         }
       ],
-      "name": "withdrawCampaign",
+      "name": "withdraw",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

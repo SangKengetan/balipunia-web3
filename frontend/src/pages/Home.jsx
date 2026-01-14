@@ -15,7 +15,7 @@ export default function Home() {
   const handlePublic = () => {
     // contoh: nanti redirect ke /donate
     
-    navigate("/public/campaigns");
+    navigate("/pura");
   };
 
   /**
