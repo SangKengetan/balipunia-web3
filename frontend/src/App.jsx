@@ -7,7 +7,6 @@ import AdminLogin from "./pages/admin/AdminLogin";
 import AdminRedirect from "./pages/admin/AdminRedirect";
 import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import AdminPuraLayout from "./components/adminpura/AdminPura";
-import TrusteesDashboard from "./pages/admin/TrusteesDashboard";
 import Dashboard from "./pages/super-admin/Dashboard";
 import AdminManagement from "./pages/super-admin/AdminManagement";
 import Reports from "./pages/super-admin/Report";
@@ -23,16 +22,19 @@ import PuraList from "./pages/public/PuraList";
 import PuraDetail from "./pages/public/PuraDetail";
 import CampaignDetailPublic from "./pages/public/CampaignDetail";
 import PuraFinancialReports from "./pages/public/PuraFinancialReport";
-import CampaignSCDetail from "./pages/public/CampaignSCDetail";
-import WithdrawCampaignList from "./pages/adminpura/WithdrawCampaignList";
+// import CampaignSCDetail from "./pages/public/CampaignSCDetail";
+import WithdrawCampaignList from "./pages/adminpura/WithdrawList";
 import WithdrawRequestForm from "./pages/adminpura/WithdrawRequestForm";
 import WithdrawList from "./pages/adminpura/WithdrawList";
+import TrusteeWithdrawDashboard from "./pages/trustee/TrusteesDashboard";
+import TrusteeWithdrawDetail from "./pages/trustee/WithdrawDetail";
 
 
 
 
 // Route guard
 import AdminProtectedRoute from "./components/ProtectedAdminRoute";
+
 
 function App() {
   return (
@@ -47,7 +49,7 @@ function App() {
         <Route path="/pura/:id" element={<PuraDetail />} />
         <Route path="/campaign/:id" element={<CampaignDetailPublic />} />
         <Route path="/pura/:puraId/financial-reports" element={<PuraFinancialReports />} />
-        <Route path="/campaigns/sc/:id_campaign_onchain" element={<CampaignSCDetail />} />
+        {/* <Route path="/campaigns/sc/:id_campaign_onchain" element={<CampaignSCDetail />} /> */}
 
         {/* <Route path="/public/campaigns" element={<PublicCampaignList />} />
         <Route path="/campaigns/:id" element={<PublicCampaignDetail />}/> */}
@@ -111,15 +113,26 @@ function App() {
         </Route>
 
 
-
         <Route
-          path="/admin/trustees"
+          path="/admin/trustee"
           element={
-            <AdminProtectedRoute allowed={["TRUSTEES"]}>
-              <TrusteesDashboard />
+            <AdminProtectedRoute allowed={["TRUSTEE"]}>
+              <TrusteeWithdrawDashboard />
             </AdminProtectedRoute>
           }
         />
+
+        <Route
+          path="/admin/trustee/withdraw/:id"
+          element={
+            <AdminProtectedRoute allowed={["TRUSTEE"]}>
+              <TrusteeWithdrawDetail />
+            </AdminProtectedRoute>
+          }
+        />
+
+
+
       </Routes>
     </BrowserRouter>
   );

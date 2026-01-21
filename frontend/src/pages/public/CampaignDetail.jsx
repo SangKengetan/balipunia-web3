@@ -5,6 +5,30 @@ import OnchainDonateBox from "../../components/OnchainDonateBox";
 import OffchainDonateBox from "../../components/OffchainDonateBox";
 import OffchainDonationHistory from "../../components/OffchainDonationHistory";
 import CampaignTimeline from "../../components/public/CampaignTimeline";
+import { ethers } from "ethers";
+
+const TOKEN_MAP = {
+  "0x337610d27c682e347c9cd60bd4b3b107c9d34ddd": {
+    symbol: "USDT",
+    decimals: 6,
+  },
+  "0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d": {
+    symbol: "USDC",
+    decimals: 6,
+  },
+};
+
+function getTokenMeta(address = "") {
+  return TOKEN_MAP[address.toLowerCase()] ?? {
+    symbol: "UNKNOWN",
+    decimals: 18,
+  };
+}
+
+function formatAmount(rawAmount, tokenAddress) {
+  const meta = getTokenMeta(tokenAddress);
+  return ethers.formatUnits(rawAmount, meta.decimals);
+}
 
 
 
@@ -16,6 +40,7 @@ export default function CampaignDetail() {
   const [loading, setLoading] = useState(true);
   const [showOnchainDonate, setShowOnchainDonate] = useState(false);
   const [showOffchainDonate, setShowOffchainDonate] = useState(false);
+  
 
   useEffect(() => {
     const fetchDetail = async () => {
@@ -97,14 +122,20 @@ export default function CampaignDetail() {
           <TransactionTable
             headers={["Donor", "Token", "Amount", "Timestamp"]}
             rows={onchain.transactions || []}
-            renderRow={(tx, i) => (
-              <tr key={i} className="border-t">
-                <td>{short(tx.donor)}</td>
-                <td>{tx.token}</td>
-                <td>{tx.amount}</td>
-                <td>{new Date(tx.timestamp * 1000).toLocaleString()}</td>
-              </tr>
-            )}
+            renderRow={(tx, i) => {
+              const tokenMeta = getTokenMeta(tx.token);
+
+              return (
+                <tr key={i} className="border-t">
+                  <td>{short(tx.donor)}</td>
+                  <td>{tokenMeta.symbol}</td>
+                  <td>
+                    {formatAmount(tx.amount, tx.token)} {tokenMeta.symbol}
+                  </td>
+                  <td>{new Date(tx.timestamp * 1000).toLocaleString()}</td>
+                </tr>
+              );
+            }}
           />
         </Section>
       )}

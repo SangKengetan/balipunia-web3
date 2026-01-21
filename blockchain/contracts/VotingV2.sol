@@ -1,30 +1,36 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+/*//////////////////////////////////////////////////////////////
+                        INTERFACE
+//////////////////////////////////////////////////////////////*/
+interface IDonationVaultV4 {
+    function executeWithdrawScOnly(uint256 campaignId) external;
+}
+
+/*//////////////////////////////////////////////////////////////
+                            VOTING
+//////////////////////////////////////////////////////////////*/
 contract VotingV2 {
-    struct Proposal {
-        uint256 campaignKey;        // SC_ONLY: scCampaignId | HYBRID: hybridKey
-        address adminPuraWallet;
-        uint256 yesVotes;
-        uint256 noVotes;
-        uint256 votesCount;
-        bool finalized;
-        bool executed;
-    }
+    /*//////////////////////////////////////////////////////////////
+                                ERRORS
+    //////////////////////////////////////////////////////////////*/
+    error NotTrustee();
+    error InvalidProposal();
+    error AlreadyVoted();
+    error ProposalAlreadyFinalized();
 
-    uint256 public proposalCount;
-    mapping(uint256 => Proposal) public proposals;
-    mapping(uint256 => mapping(address => bool)) public hasVoted;
-
+    /*//////////////////////////////////////////////////////////////
+                                EVENTS
+    //////////////////////////////////////////////////////////////*/
     event WithdrawProposed(
         uint256 indexed proposalId,
-        uint256 indexed campaignKey,
-        address adminPuraWallet
+        uint256 indexed campaignId
     );
 
-    event Voted(
+    event VoteCast(
         uint256 indexed proposalId,
-        address voter,
+        address indexed trustee,
         bool support
     );
 
@@ -33,96 +39,167 @@ contract VotingV2 {
         bool approved
     );
 
-    /* =========================
-       EXISTING BEHAVIOR (KEEP)
-    ========================= */
+    event WithdrawExecuted(
+        uint256 indexed proposalId,
+        uint256 indexed campaignId
+    );
 
+    /*//////////////////////////////////////////////////////////////
+                                STATE
+    //////////////////////////////////////////////////////////////*/
+    IDonationVaultV4 public immutable donationVault;
+
+    address[3] public trustees;
+    mapping(address => bool) public isTrustee;
+
+    uint256 public proposalCount;
+
+    enum ProposalStatus {
+        PENDING,
+        APPROVED,
+        REJECTED
+    }
+
+    struct Proposal {
+        uint256 campaignId;
+
+        uint8 yesVotes;
+        uint8 noVotes;
+        uint8 votesCount;
+
+        ProposalStatus status;
+        bool executed;
+
+        mapping(address => bool) hasVoted;
+    }
+
+    mapping(uint256 => Proposal) private proposals;
+
+    /*//////////////////////////////////////////////////////////////
+                                MODIFIERS
+    //////////////////////////////////////////////////////////////*/
+    modifier onlyTrustee() {
+        if (!isTrustee[msg.sender]) revert NotTrustee();
+        _;
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
+    constructor(
+        address _donationVault,
+        address[3] memory _trustees
+    ) {
+        require(_donationVault != address(0), "Invalid vault address");
+
+        donationVault = IDonationVaultV4(_donationVault);
+        trustees = _trustees;
+
+        for (uint256 i = 0; i < 3; i++) {
+            isTrustee[_trustees[i]] = true;
+        }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                        PROPOSE WITHDRAW
+    //////////////////////////////////////////////////////////////*/
     function proposeWithdraw(
-        uint256 campaignKey,
-        address adminPuraWallet
-    ) external returns (uint256) {
-        proposalCount++;
+        uint256 campaignId
+    ) external onlyTrustee returns (uint256 proposalId) {
+        proposalId = ++proposalCount;
 
-        proposals[proposalCount] = Proposal({
-            campaignKey: campaignKey,
-            adminPuraWallet: adminPuraWallet,
-            yesVotes: 0,
-            noVotes: 0,
-            votesCount: 0,
-            finalized: false,
-            executed: false
-        });
+        Proposal storage p = proposals[proposalId];
+        p.campaignId = campaignId;
+        p.status = ProposalStatus.PENDING;
 
         emit WithdrawProposed(
-            proposalCount,
-            campaignKey,
-            adminPuraWallet
+            proposalId,
+            campaignId
         );
-
-        return proposalCount;
     }
 
-    function vote(uint256 proposalId, bool support) external {
+    /*//////////////////////////////////////////////////////////////
+                                VOTE
+    //////////////////////////////////////////////////////////////*/
+    function vote(
+        uint256 proposalId,
+        bool support
+    ) external onlyTrustee {
         Proposal storage p = proposals[proposalId];
-        require(!p.finalized, "FINALIZED");
-        require(!hasVoted[proposalId][msg.sender], "ALREADY_VOTED");
 
-        hasVoted[proposalId][msg.sender] = true;
+        if (p.status != ProposalStatus.PENDING)
+            revert ProposalAlreadyFinalized();
+        if (p.hasVoted[msg.sender]) revert AlreadyVoted();
+
+        p.hasVoted[msg.sender] = true;
         p.votesCount++;
 
-        if (support) p.yesVotes++;
-        else p.noVotes++;
+        if (support) {
+            p.yesVotes++;
+        } else {
+            p.noVotes++;
+        }
 
-        emit Voted(proposalId, msg.sender, support);
+        emit VoteCast(proposalId, msg.sender, support);
+
+        if (p.votesCount == 3) {
+            _finalizeProposal(proposalId);
+        }
     }
 
-    /* =========================
-       ADDITIONS (NEW)
-    ========================= */
-
-    function finalizeProposal(uint256 proposalId) external {
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL FINALIZE
+    //////////////////////////////////////////////////////////////*/
+    function _finalizeProposal(uint256 proposalId) internal {
         Proposal storage p = proposals[proposalId];
-        require(!p.finalized, "ALREADY_FINALIZED");
 
-        bool approved = p.yesVotes > p.noVotes;
-        p.finalized = true;
+        bool approved = p.yesVotes >= 2;
+
+        if (approved) {
+            p.status = ProposalStatus.APPROVED;
+
+            // 🔐 HANYA SC_ONLY withdraw dieksekusi
+            donationVault.executeWithdrawScOnly(p.campaignId);
+            p.executed = true;
+
+            emit WithdrawExecuted(
+                proposalId,
+                p.campaignId
+            );
+        } else {
+            p.status = ProposalStatus.REJECTED;
+        }
 
         emit ProposalFinalized(proposalId, approved);
     }
 
-    function markExecuted(uint256 proposalId) external {
-        Proposal storage p = proposals[proposalId];
-        require(p.finalized, "NOT_FINALIZED");
-        require(!p.executed, "ALREADY_EXECUTED");
-
-        p.executed = true;
-    }
-
-    /* =========================
-       READ HELPERS (OPTIONAL)
-    ========================= */
-
-    function getProposal(uint256 proposalId)
+    /*//////////////////////////////////////////////////////////////
+                                VIEW
+    //////////////////////////////////////////////////////////////*/
+    function getProposal(
+        uint256 proposalId
+    )
         external
         view
         returns (
-            uint256 campaignKey,
-            address adminPuraWallet,
-            uint256 yesVotes,
-            uint256 noVotes,
-            uint256 votesCount,
-            bool finalized,
+            uint256 campaignId,
+            uint8 yesVotes,
+            uint8 noVotes,
+            uint8 votesCount,
+            ProposalStatus status,
             bool executed
         )
     {
         Proposal storage p = proposals[proposalId];
+        if (p.status == ProposalStatus.PENDING && p.campaignId == 0)
+            revert InvalidProposal();
+
         return (
-            p.campaignKey,
-            p.adminPuraWallet,
+            p.campaignId,
             p.yesVotes,
             p.noVotes,
             p.votesCount,
-            p.finalized,
+            p.status,
             p.executed
         );
     }

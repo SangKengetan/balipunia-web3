@@ -1,9 +1,8 @@
-const campaignService = require("../../services/campaign.service");
+const campaignService = require("../../services/adminpura/campaign.service");
 const vault = require("../../blockchain/vault.contract");
 const vaultService = require("../../services/vault.service");
 const { ethers } = require("ethers");
 const pool = require("../../db/pool");
-const { ownerSigner } = require("../../blockchain/signer")
 
 const USDT = process.env.USDT_ADDRESS;
 const USDC = process.env.USDC_ADDRESS;
@@ -39,86 +38,81 @@ async function createCampaign(req, res) {
 }
 
 /**
- * POST /api/adminpura/campaigns/sc-only
+ * POST /api/adminpura/sync sc only
  */
-async function createScOnlyCampaign(req, res) {
+async function syncScOnlyCampaign(req, res) {
   try {
     const admin = req.admin;
-    const { title, description, purpose, deadline } = req.body;
+    const {
+      id_campaign_onchain,
+      tx_hash,
+      title,
+      description,
+      purpose,
+      deadline,
+    } = req.body;
 
     if (!admin || !admin.admin_pura_id) {
-      return res.status(403).json({
-        message: "Admin belum terdaftar sebagai admin pura",
-      });
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const onchainCampaignId = Date.now();
-    const titleHash = ethers.keccak256(ethers.toUtf8Bytes(title));
-    const deadlineUnix = Math.floor(new Date(deadline).getTime() / 1000);
+    // cek duplikasi
+    const exists = await pool.query(
+      `SELECT 1 FROM campaigns WHERE id_campaign_onchain = $1 LIMIT 1`,
+      [id_campaign_onchain]
+    );
 
-    // LOGGING UNTUK DEBUGGING
-    console.log("🚀 Creating SC Campaign...");
-    console.log("   - Signer Address:", ownerSigner.address); // Harus 0xF075...
-    console.log("   - Deadline Unix:", deadlineUnix);
-
-    // 1️⃣ REGISTER KE SMART CONTRACT
-    // Gunakan 'ownerSigner' karena fungsi ini ada modifier onlyOwner
-    try {
-      const tx = await vault
-        .connect(ownerSigner) 
-        .registerScCampaign(
-          onchainCampaignId,
-          titleHash,
-          deadlineUnix,
-          admin.wallet_address
-        );
-
-      console.log("   - Tx Hash:", tx.hash);
-      await tx.wait(); // Tunggu transaksi selesai block
-      console.log("✅ Transaction Confirmed");
-
-    } catch (txError) {
-      // 🔍 DETEKSI ERROR SMART CONTRACT
-      console.error("❌ Blockchain Transaction Failed:", txError);
-      
-      let errorMessage = "Blockchain Transaction Failed";
-      
-      // Coba decode error jika ABI tersedia di instance 'vault'
-      if (txError.data && vault.interface) {
-        try {
-            const decoded = vault.interface.parseError(txError.data);
-            errorMessage = `Smart Contract Error: ${decoded.name}`;
-            console.error("   Reason:", decoded.name);
-        } catch (e) {
-            console.log("   Could not parse error data");
-        }
-      }
-
-      return res.status(400).json({
-        message: errorMessage,
-        details: txError.message
-      });
+    if (exists.rowCount > 0) {
+      return res.status(409).json({ message: "Campaign already synced" });
     }
 
-    // 2️⃣ SIMPAN KE DATABASE
-    const campaign = await campaignService.createScOnlyCampaign(
-      admin.admin_pura_id,
-      {
+    // Query INSERT yang sudah diperbaiki (onchain_status dihapus)
+    const { rows } = await pool.query(
+      `
+      INSERT INTO campaigns (
+        admin_pura_id,
+        title,
+        description,
+        purpose,
+        campaign_type,
+        is_sc_registered,
+        is_onchain_enabled,
+        is_offchain_enabled,
+        deadline,
+        id_campaign_onchain,
+        tx_hash,
+        status
+      )
+      VALUES (
+        $1, $2, $3, $4,
+        'SC-ONLY',
+        true,
+        true,
+        false,
+        $5,
+        $6,
+        $7,
+        'ACTIVE'
+      )
+      RETURNING *
+      `,
+      [
+        admin.admin_pura_id,
         title,
         description,
         purpose,
         deadline,
-        id_campaign_onchain: onchainCampaignId,
-      }
+        id_campaign_onchain,
+        tx_hash,
+      ]
     );
 
-    res.status(201).json({
-      message: "SC-only campaign created successfully",
-      campaign,
+    res.json({
+      message: "Campaign synced successfully",
+      campaign: rows[0],
     });
-
   } catch (err) {
-    console.error("CREATE SC-ONLY CAMPAIGN SERVER ERROR:", err);
+    console.error("SYNC CAMPAIGN ERROR:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 }
@@ -283,8 +277,8 @@ async function getCampaignDetailFull(req, res) {
 
 module.exports = {
   createCampaign,
-  createScOnlyCampaign,
   getMyCampaigns,
   getCampaignById,
   getCampaignDetailFull,
+  syncScOnlyCampaign
 };

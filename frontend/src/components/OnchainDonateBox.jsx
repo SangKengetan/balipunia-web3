@@ -1,13 +1,11 @@
 import { useState } from "react";
 import {
-  donateOnChain,
-  CAMPAIGN_TYPE,
+  donateOnChain
 } from "../services/blockchain/onchainDonation";
 
 
 export default function OnchainDonateBox({
   onchainCampaignId,
-  campaignType, // "HYBRID" | "SC_ONLY"
 }) {
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDT");
@@ -16,7 +14,7 @@ export default function OnchainDonateBox({
   
   console.log("Donate params:", {
   campaignId: onchainCampaignId,
-  campaignType: CAMPAIGN_TYPE[campaignType],
+  
   token,
   amount});
 
@@ -24,16 +22,9 @@ export default function OnchainDonateBox({
   async function handleDonate() {
     try {
       setLoading(true);
-      const campaignTypeValue = CAMPAIGN_TYPE[campaignType];
-
-      // 🔒 GUARD WAJIB
-      if (campaignTypeValue === undefined) {
-        throw new Error(`Campaign type tidak valid: ${campaignType}`);
-      }
 
       const txHash = await donateOnChain({
-        campaignId: Number(onchainCampaignId), // ⬅️ PASTIKAN INI ADA
-        campaignType: 1, // ⬅️ mapping enum
+        campaignId: onchainCampaignId,
         tokenKey: token,
         amount,
       });
@@ -47,6 +38,7 @@ export default function OnchainDonateBox({
       setLoading(false);
     }
   }
+
 
   return (
     <div className="mt-4 p-4 border rounded-lg bg-slate-50 space-y-3">

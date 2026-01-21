@@ -15,33 +15,41 @@ async function main() {
     "0x844E109DefeBe587F1f6e07923AE022442e58FDF",
   ];
 
+  // OPTIONAL: admin pura awal (bisa deployer dulu)
+  const INITIAL_ADMIN_PURA = "0xC90e153198B209507E20ED3eEea8CE2120D9Bb92";
+
   // ===== DEPLOY VAULT =====
-  const Vault = await hre.ethers.getContractFactory("DonationVaultV3");
+  const Vault = await hre.ethers.getContractFactory("DonationVaultV5");
   const vault = await Vault.deploy(USDT, USDC);
   await vault.deployed();
 
-  // FIX 1: Use .address instead of .getAddress()
-  const vaultAddress = vault.address; 
-  console.log("✅ DonationVaultV3 deployed:", vaultAddress);
+  const vaultAddress = vault.address;
+  console.log("✅ DonationVaultV5 deployed:", vaultAddress);
 
   // ===== DEPLOY VOTING =====
-  const Voting = await hre.ethers.getContractFactory("Voting");
+  const Voting = await hre.ethers.getContractFactory("VotingV2");
   const voting = await Voting.deploy(vaultAddress, TRUSTEES);
   await voting.deployed();
 
-  // FIX 2: Use .address here as well
   const votingAddress = voting.address;
-  console.log("✅ Voting deployed:", votingAddress);
+  console.log("✅ VotingV2 deployed:", votingAddress);
 
   // ===== SET VOTING =====
-  const tx = await vault.setVoting(votingAddress);
-  await tx.wait();
-
+  const txSetVoting = await vault.setVoting(votingAddress);
+  await txSetVoting.wait();
   console.log("🔐 Voting address set in Vault");
 
+  // ===== SET INITIAL ADMIN PURA =====
+  const txAdmin = await vault.addAdminPura(INITIAL_ADMIN_PURA);
+  await txAdmin.wait();
+  console.log("🏛️ Initial Admin Pura set:", INITIAL_ADMIN_PURA);
+
   console.log("\n🎉 DEPLOYMENT COMPLETE");
-  console.log("Vault  :", vaultAddress);
-  console.log("Voting :", votingAddress);
+  console.log("Super Admin :", deployer.address);
+  console.log("Admin Pura  :", INITIAL_ADMIN_PURA);
+  console.log("Trustees    :", TRUSTEES.join(", "));
+  console.log("Vault       :", vaultAddress);
+  console.log("Voting      :", votingAddress);
 }
 
 main().catch((error) => {

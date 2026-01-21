@@ -1,5 +1,5 @@
 // services/campaign.service.js
-const pool = require("../db/pool");
+const pool = require("../../db/pool");
 
 /**
  * CREATE CAMPAIGN (HYBRID DEFAULT)

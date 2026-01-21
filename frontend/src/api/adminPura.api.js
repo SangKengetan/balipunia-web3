@@ -14,8 +14,9 @@ export const createCampaign = (payload) =>
   api.post("/adminpura/campaigns", payload);
 export const getCampaignDetailFull = (id) =>
   api.get(`/adminpura/campaign/${id}/detail-full`);
-export const createScOnlyCampaign = (payload) =>
-  api.post("/adminpura/campaigns/sc-only", payload);
+export const syncScOnlyCampaign = (payload) =>
+  api.post("/adminpura/campaigns/sync-sc-only", payload);
+
 export const getScOnlyCampaigns = () =>
   api.get("/adminpura/campaigns/sc-only");
 export const getCampaignById = (id) =>
@@ -25,8 +26,10 @@ export const requestWithdraw = (formData) =>
 
 export const getWithdraws = () =>
   api.get("/adminpura/withdraws");
-export const syncWithdraws = () =>
-  api.post("/adminpura/withdraws/sync");
+export const syncVotingResult = (withdrawRequestId) =>
+  api.post("/adminpura/withdraws/sync", {
+    withdrawRequestId,
+  });
 
 
 /* Financial Reports */

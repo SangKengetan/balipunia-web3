@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import useWallet from "../../hooks/useWallet";
-import useAdminAuth from "../../hooks/useAdminAuth";
+import useAdminAuth from "../../hooks/useAdminAuth";;
 import { requestNonce, verifySignature } from "../../services/authApi";
 import { ethers } from "ethers";
 

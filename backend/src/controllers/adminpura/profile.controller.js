@@ -1,7 +1,7 @@
 const {
   getAdminPuraProfile,
   updateAdminPuraProfile
-} = require("../../services/adminPuraProfile.service");
+} = require("../../services/adminpura/adminPuraProfile.service");
 
 async function getProfileHandler(req, res) {
   try {

@@ -13,13 +13,14 @@ async function uploadReport(req, res) {
       deskripsi,
       kontak_telepon,
       wallet_address,
+      saldo_operasional
     } = req.body;
 
     const file = req.file;
 
-    if (!file || !nama_pura || !kontak_telepon || !wallet_address) {
+    if (!file || !nama_pura || !kontak_telepon || !wallet_address || !saldo_operasional) {
       return res.status(400).json({
-        message: "Nama pura, kontak, wallet address, dan file wajib diisi",
+        message: "Nama pura, kontak, wallet address, saldo operasional, dan file wajib diisi",
       });
     }
 
@@ -44,8 +45,8 @@ async function uploadReport(req, res) {
     const { rows } = await pool.query(
       `
       INSERT INTO reports
-      (nama_pura, deskripsi, ipfs_hash, file_name, kontak_telepon, address_pengaju, status)
-      VALUES ($1, $2, $3, $4, $5, $6, 'PENDING')
+      (nama_pura, deskripsi, ipfs_hash, file_name, kontak_telepon, address_pengaju, saldo_operasional, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'PENDING')
       RETURNING *
       `,
       [
@@ -55,6 +56,7 @@ async function uploadReport(req, res) {
         file.originalname,
         kontak_telepon,
         wallet_address,
+        saldo_operasional
       ]
     );
 

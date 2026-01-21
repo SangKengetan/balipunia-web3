@@ -10,6 +10,7 @@ const paymentRoutes = require("./routes/payment.routes");
 const superadminRoutes = require("./routes/superadmin.routes");
 const adminPuraRoutes = require("./routes/adminpura");
 const webhookRoutes = require("./routes/midtrans.routes");
+const trusteeRoutes = require("./routes/trustee/withdraw.routes");
 
 const app = express();
 
@@ -39,10 +40,8 @@ app.use("/adminpura", adminPuraRoutes);
  * SUPERADMIN
  */
 app.use("/superadmin", superadminRoutes);
-app.use(
-  "/superadmin/offchain-withdrawals",
-  offchainWithdrawalRoutes
-);
+app.use("/superadmin/offchain-withdrawals", offchainWithdrawalRoutes);
+app.use("/trustee", trusteeRoutes);
 
 /**
  * PAYMENT

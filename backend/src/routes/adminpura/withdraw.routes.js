@@ -3,7 +3,7 @@ const router = express.Router();
 const {
   requestWithdraw, listWithdrawRequests
 } = require("../../controllers/adminpura/withdraw.controller");
-const { syncWithdraws } = require("../../controllers/adminpura/withdraw.sync.controller");
+const { syncVotingResult } = require("../../controllers/adminpura/withdraw.sync.controller");
 const { authenticateAdmin } = require("../../middlewares/auth.middleware");
 const upload = require("../../middlewares/upload");;
 
@@ -21,7 +21,7 @@ router.get(
 router.post(
   "/sync",
   authenticateAdmin,
-  syncWithdraws
+  syncVotingResult
 );
 
 

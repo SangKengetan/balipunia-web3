@@ -93,12 +93,6 @@
           "internalType": "uint256",
           "name": "campaignId",
           "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "address",
-          "name": "adminPuraWallet",
-          "type": "address"
         }
       ],
       "name": "WithdrawExecuted",
@@ -118,12 +112,6 @@
           "internalType": "uint256",
           "name": "campaignId",
           "type": "uint256"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "adminPuraWallet",
-          "type": "address"
         }
       ],
       "name": "WithdrawProposed",
@@ -134,7 +122,7 @@
       "name": "donationVault",
       "outputs": [
         {
-          "internalType": "contract IDonationVaultV3",
+          "internalType": "contract IDonationVaultV4",
           "name": "",
           "type": "address"
         }
@@ -158,11 +146,6 @@
           "type": "uint256"
         },
         {
-          "internalType": "address",
-          "name": "adminPuraWallet",
-          "type": "address"
-        },
-        {
           "internalType": "uint8",
           "name": "yesVotes",
           "type": "uint8"
@@ -178,9 +161,9 @@
           "type": "uint8"
         },
         {
-          "internalType": "bool",
-          "name": "finalized",
-          "type": "bool"
+          "internalType": "enum VotingV2.ProposalStatus",
+          "name": "status",
+          "type": "uint8"
         },
         {
           "internalType": "bool",
@@ -229,11 +212,6 @@
           "internalType": "uint256",
           "name": "campaignId",
           "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "adminPuraWallet",
-          "type": "address"
         }
       ],
       "name": "proposeWithdraw",

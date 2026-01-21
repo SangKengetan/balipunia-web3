@@ -1,6 +1,6 @@
-const pool = require("../db/pool");
-const { uploadToIPFS } = require("./ipfsService");
-const financialAnchor = require("../blockchain/financialAnchor.contract");
+const pool = require("../../db/pool");
+const { uploadToIPFS } = require("../ipfsService");
+const financialAnchor = require("../../blockchain/financialAnchor.contract");
 
 async function createFinancialReport({ admin, payload, file }) {
   if (!file) {

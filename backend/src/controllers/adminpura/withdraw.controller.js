@@ -85,13 +85,37 @@ async function requestWithdraw(req, res) {
 async function listWithdrawRequests(req, res) {
   try {
     const admin = req.admin;
-    const withdraws = await withdrawService.getWithdrawRequestsByAdmin(admin.id);
+
+    // 1️⃣ Ambil admin_pura.id berdasarkan admin.id
+    const { rows } = await pool.query(
+      `
+      SELECT id
+      FROM admin_pura
+      WHERE admin_id = $1
+      LIMIT 1
+      `,
+      [admin.id]
+    );
+
+    if (!rows.length) {
+      return res.status(403).json({
+        message: "Admin belum terdaftar sebagai admin pura",
+      });
+    }
+
+    const adminPuraId = rows[0].id;
+
+    // 2️⃣ Query withdraw berdasarkan admin_pura_id (BENAR)
+    const withdraws =
+      await withdrawService.getWithdrawRequestsByAdmin(adminPuraId);
+
     res.json(withdraws);
   } catch (error) {
-    console.error(error);
+    console.error("List Withdraw Error:", error);
     res.status(500).json({ message: "Gagal mengambil daftar withdraw" });
   }
 }
+
 
 module.exports = {
   requestWithdraw,

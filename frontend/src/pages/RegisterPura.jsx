@@ -12,6 +12,7 @@ export default function RegisterPura() {
     deskripsi: "",
     kontak_telepon: "",
     file: null,
+    saldo_operasional: "",
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function RegisterPura() {
     formData.append("deskripsi", form.deskripsi);
     formData.append("kontak_telepon", form.kontak_telepon);
     formData.append("wallet_address", wallet);
+    formData.append("saldo_operasional", form.saldo_operasional);
     formData.append("file", form.file);
 
     try {
@@ -148,6 +150,28 @@ export default function RegisterPura() {
                 value={form.kontak_telepon}
                 onChange={handleChange}
                 required
+                className="
+                  w-full border border-slate-300 rounded-lg
+                  px-4 py-2 text-sm
+                  focus:outline-none focus:ring-2 focus:ring-amber-300
+                  focus:border-amber-300
+                "
+              />
+            </div>
+
+            {/* Saldo Operasional */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Saldo Operasional Awal (IDR)
+              </label>
+              <input
+                name="saldo_operasional"
+                type="number" // Gunakan type number
+                min="0"
+                value={form.saldo_operasional}
+                onChange={handleChange}
+                required // Wajib diisi sesuai request Anda
+                placeholder="Rp 0"
                 className="
                   w-full border border-slate-300 rounded-lg
                   px-4 py-2 text-sm

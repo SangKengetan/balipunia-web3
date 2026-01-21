@@ -1,4 +1,7 @@
 const pool = require("../db/pool");
+const vault = require("../blockchain/vault.contract");
+const { ownerSigner } = require("../blockchain/signer");
+
 
 /**
  * SUPER ADMIN
@@ -61,9 +64,17 @@ async function approveReport(req, res) {
 
     await client.query("BEGIN");
 
+    // =========================
+    // 1️⃣ LOCK & AMBIL DATA REPORT
+    // =========================
     const reportResult = await client.query(
       `
-      SELECT id, nama_pura, address_pengaju
+      SELECT
+        id,
+        nama_pura,
+        kontak_telepon,
+        address_pengaju,
+        saldo_operasional
       FROM reports
       WHERE id = $1 AND status = 'PENDING'
       FOR UPDATE
@@ -78,8 +89,16 @@ async function approveReport(req, res) {
       });
     }
 
-    const { address_pengaju, nama_pura } = reportResult.rows[0];
+    const {
+      nama_pura,
+      kontak_telepon,
+      address_pengaju,
+      saldo_operasional,
+    } = reportResult.rows[0];
 
+    // =========================
+    // 2️⃣ UPDATE STATUS REPORT
+    // =========================
     await client.query(
       `
       UPDATE reports
@@ -91,7 +110,9 @@ async function approveReport(req, res) {
       [reviewerAddress, reportId]
     );
 
-    // Create / get admin
+    // =========================
+    // 3️⃣ CREATE / GET ADMIN
+    // =========================
     let adminId;
     const adminCheck = await client.query(
       `SELECT id FROM admins WHERE address = $1 LIMIT 1`,
@@ -112,7 +133,9 @@ async function approveReport(req, res) {
       adminId = adminCheck.rows[0].id;
     }
 
-    // Insert admin_pura (idempotent)
+    // =========================
+    // 4️⃣ INSERT / UPDATE admin_pura
+    // =========================
     const puraCheck = await client.query(
       `SELECT id FROM admin_pura WHERE admin_id = $1 LIMIT 1`,
       [adminId]
@@ -121,30 +144,95 @@ async function approveReport(req, res) {
     if (puraCheck.rowCount === 0) {
       await client.query(
         `
-        INSERT INTO admin_pura (admin_id, nama_pura, wallet_address)
-        VALUES ($1, $2, $3)
+        INSERT INTO admin_pura (
+          admin_id,
+          nama_pura,
+          kontak_pura,
+          wallet_address,
+          saldo_operasional,
+          onchain_registered
+        )
+        VALUES ($1, $2, $3, $4, $5, false)
         `,
-        [adminId, nama_pura, address_pengaju]
+        [
+          adminId,
+          nama_pura,
+          kontak_telepon,
+          address_pengaju,
+          saldo_operasional || 0,
+        ]
+      );
+    } else {
+      await client.query(
+        `
+        UPDATE admin_pura
+        SET
+          nama_pura = $1,
+          kontak_pura = $2,
+          wallet_address = $3,
+          saldo_operasional = $4
+        WHERE admin_id = $5
+        `,
+        [
+          nama_pura,
+          kontak_telepon,
+          address_pengaju,
+          saldo_operasional || 0,
+          adminId,
+        ]
       );
     }
 
+    // =========================
+    // 5️⃣ COMMIT DB
+    // =========================
     await client.query("COMMIT");
 
+    // =========================
+    // 6️⃣ REGISTER ADMIN PURA ON-CHAIN
+    // =========================
+    let onchainRegistered = false;
+
+    try {
+      const tx = await vault
+        .connect(ownerSigner)
+        .addAdminPura(address_pengaju);
+
+      await tx.wait();
+      onchainRegistered = true;
+
+      await pool.query(
+        `
+        UPDATE admin_pura
+        SET onchain_registered = true
+        WHERE wallet_address = $1
+        `,
+        [address_pengaju]
+      );
+    } catch (chainError) {
+      console.error("❌ On-chain register failed:", chainError.message);
+    }
+
+    // =========================
+    // 7️⃣ RESPONSE
+    // =========================
     res.json({
       message: "Pengajuan disetujui & admin pura berhasil dibuat",
-      admin_id: adminId,
+      nama_pura,
       wallet_address: address_pengaju,
+      saldo_operasional,
+      onchain_registered: onchainRegistered,
     });
+
   } catch (error) {
     await client.query("ROLLBACK");
-    console.error(error);
-    res.status(500).json({
-      message: "Gagal memproses persetujuan",
-    });
+    console.error("APPROVE REPORT ERROR:", error);
+    res.status(500).json({ message: "Gagal memproses persetujuan" });
   } finally {
     client.release();
   }
 }
+
 
 /**
  * SUPER ADMIN

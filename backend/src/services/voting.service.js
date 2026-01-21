@@ -7,33 +7,24 @@ const { votingSigner } = require("../blockchain/signer");
  * PROPOSE WITHDRAW
  * =========================
  */
+async function proposeWithdraw(campaignId) {
+  if (!voting) {
+    throw new Error("VOTING_CONTRACT_UNDEFINED");
+  }
 
-async function proposeWithdraw(campaignId, adminPuraWallet) {
-    if (!voting) {
-      throw new Error("VOTING_CONTRACT_UNDEFINED");
-    }
+  if (!votingSigner || !votingSigner.address) {
+    throw new Error("SIGNER_NOT_INITIALIZED");
+  }
 
-    if (!votingSigner || !votingSigner.address) {
-      throw new Error("SIGNER_NOT_INITIALIZED");
-    }
+  const contract = voting.connect(votingSigner);
 
-    const contract = voting.connect(votingSigner);
+  if (!contract.proposeWithdraw) {
+    throw new Error("PROPOSE_WITHDRAW_NOT_FOUND_IN_ABI");
+  }
 
-    if (!contract.proposeWithdraw) {
-      throw new Error("PROPOSE_WITHDRAW_NOT_FOUND_IN_ABI");
-    }
-
-    const tx = await contract.proposeWithdraw(
-      campaignId,
-      adminPuraWallet
-    );
-
-    if (!tx || !tx.wait) {
-      throw new Error("TX_OBJECT_INVALID");
-    }
+  const tx = await contract.proposeWithdraw(campaignId);
   const receipt = await tx.wait();
 
-  // ambil proposalId dari event
   const event = receipt.logs
     .map((log) => {
       try {
@@ -43,6 +34,10 @@ async function proposeWithdraw(campaignId, adminPuraWallet) {
       }
     })
     .find((e) => e && e.name === "WithdrawProposed");
+
+  if (!event) {
+    throw new Error("WITHDRAW_PROPOSED_EVENT_NOT_FOUND");
+  }
 
   return {
     txHash: receipt.hash,
@@ -56,7 +51,6 @@ async function proposeWithdraw(campaignId, adminPuraWallet) {
  * VOTE
  * =========================
  */
-
 async function voteProposal(proposalId, support) {
   const tx = await voting
     .connect(votingSigner)
@@ -66,7 +60,7 @@ async function voteProposal(proposalId, support) {
 
   return {
     txHash: receipt.hash,
-    proposalId,
+    proposalId: proposalId.toString(),
     support,
   };
 }
@@ -76,26 +70,29 @@ async function voteProposal(proposalId, support) {
  * READ PROPOSAL STATUS
  * =========================
  */
-
 async function getProposal(proposalId) {
   const [
     campaignId,
-    adminPuraWallet,
     yesVotes,
     noVotes,
     votesCount,
-    finalized,
+    status,
     executed,
   ] = await voting.getProposal(proposalId);
 
+  const statusMap = {
+    0: "PENDING",
+    1: "APPROVED",
+    2: "REJECTED",
+  };
+
   return {
-    proposalId,
+    proposalId: proposalId.toString(),
     campaignId: campaignId.toString(),
-    adminPuraWallet,
     yesVotes: Number(yesVotes),
     noVotes: Number(noVotes),
     votesCount: Number(votesCount),
-    finalized,
+    status: statusMap[Number(status)] ?? "UNKNOWN",
     executed,
   };
 }

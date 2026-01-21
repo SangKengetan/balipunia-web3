@@ -1,4 +1,4 @@
-const service = require("../../services/financialReport.services");
+const service = require("../../services/adminpura/financialReport.services");
 
 
 async function createReport(req, res, next) {

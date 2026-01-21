@@ -11,8 +11,8 @@ export default function AdminRedirect() {
       return <Navigate to="/admin/super" replace />;
     case "ADMIN_PURA":
       return <Navigate to="/admin/pura" replace />;
-    case "TRUSTEES":
-      return <Navigate to="/admin/trustees" replace />;
+    case "TRUSTEE":
+      return <Navigate to="/admin/trustee" replace />;
     default:
       return <Navigate to="/admin/login" replace />;
   }

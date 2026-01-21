@@ -6,23 +6,23 @@ const { uploadToIPFS } = require("./ipfsService");
  * CREATE WITHDRAW REQUEST (ONCHAIN)
  * Melakukan validasi campaign, insert DB, dan call Blockchain.
  */
+
 async function createOnchainWithdrawRequest({
   adminPuraId,
   campaignId,
   payload,
-  file, // ← dari multer
+  file,
 }) {
   const { amount, reason } = payload;
 
   /* =====================================================
-     0. Ambil ADMIN PURA (UNTUK WALLET)
+     0. Ambil Wallet Admin Pura
   ===================================================== */
   const { rows: adminRows } = await pool.query(
     `
     SELECT wallet_address
     FROM admin_pura
     WHERE id = $1
-
     LIMIT 1
     `,
     [adminPuraId]
@@ -35,13 +35,14 @@ async function createOnchainWithdrawRequest({
   const walletAddress = adminRows[0].wallet_address;
 
   /* =====================================================
-     1. Validasi Campaign & Ownership
+     1. Ambil Campaign & Ownership
   ===================================================== */
   const { rows: campaignRows } = await pool.query(
     `
     SELECT *
     FROM campaigns
-    WHERE id = $1 AND admin_pura_id = $2
+    WHERE id = $1
+      AND admin_pura_id = $2
     LIMIT 1
     `,
     [campaignId, adminPuraId]
@@ -54,7 +55,14 @@ async function createOnchainWithdrawRequest({
   const campaign = campaignRows[0];
 
   /* =====================================================
-     2. Validasi Deadline
+     2. Validasi SC-ONLY
+  ===================================================== */
+  if (!campaign.id_campaign_onchain) {
+    throw new Error("ONLY_SC_ONLY_ALLOWED");
+  }
+
+  /* =====================================================
+     3. Validasi Deadline
   ===================================================== */
   const now = new Date();
   const deadline = new Date(campaign.deadline);
@@ -64,28 +72,14 @@ async function createOnchainWithdrawRequest({
   }
 
   /* =====================================================
-     3. Cegah Double Withdraw
+     4. Cegah Double Withdraw
   ===================================================== */
   if (campaign.status === "REQUEST WITHDRAW") {
     throw new Error("WITHDRAW_ALREADY_REQUESTED");
   }
 
   /* =====================================================
-     4. Validasi Onchain (MVP)
-     HANYA SC_ONLY YANG BOLEH EKSEKUSI
-  ===================================================== */
-  if (!campaign.is_onchain_enabled) {
-    throw new Error("ONCHAIN_DISABLED");
-  }
-
-  if (!campaign.is_sc_registered) {
-    // untuk MVP: hybrid boleh request,
-    // tapi eksekusi tidak akan dilakukan
-    console.warn("HYBRID CAMPAIGN: execution will be manual");
-  }
-
-  /* =====================================================
-     5. Upload File ke IPFS (WAJIB)
+     5. Validasi Dokumen
   ===================================================== */
   if (!file) {
     throw new Error("DOCUMENT_REQUIRED");
@@ -104,7 +98,7 @@ async function createOnchainWithdrawRequest({
       onchain_campaign_id,
       campaign_title,
       withdraw_type,
-      amount,
+      amount_snapshot,
       wallet_address,
       reason,
       ipfs_cid,
@@ -120,9 +114,9 @@ async function createOnchainWithdrawRequest({
     [
       adminPuraId,
       campaign.id,
-      campaign.onchain_campaign_id,
+      campaign.id_campaign_onchain, // 🔑 SUMBER BENAR
       campaign.title,
-      amount,
+      amount, // snapshot (string / text)
       walletAddress,
       reason,
       ipfsCid,
@@ -132,36 +126,7 @@ async function createOnchainWithdrawRequest({
   const withdrawRequest = wdRows[0];
 
   /* =====================================================
-     7. Propose Voting (SELALU)
-  ===================================================== */
-  let proposal;
-  try {
-    proposal = await votingService.proposeWithdraw(
-      campaign.onchain_campaign_id,
-      walletAddress
-    );
-  } catch (error) {
-    await pool.query(
-      "DELETE FROM withdraw_requests WHERE id = $1",
-      [withdrawRequest.id]
-    );
-    throw new Error(`BLOCKCHAIN_ERROR: ${error.message}`);
-  }
-
-  /* =====================================================
-     8. Simpan Proposal ID
-  ===================================================== */
-  await pool.query(
-    `
-    UPDATE withdraw_requests
-    SET governance_proposal_id = $1
-    WHERE id = $2
-    `,
-    [proposal.proposalId, withdrawRequest.id]
-  );
-
-  /* =====================================================
-     9. Update Campaign Status
+     7. Update Campaign Status
   ===================================================== */
   await pool.query(
     `
@@ -173,13 +138,20 @@ async function createOnchainWithdrawRequest({
     [campaign.id]
   );
 
+  /* =====================================================
+     8. Return
+  ===================================================== */
   return {
     withdrawRequestId: withdrawRequest.id,
-    proposalId: proposal.proposalId,
+    campaignId: campaign.id,
+    onchainCampaignId: campaign.id_campaign_onchain,
     walletAddress,
     ipfsCid,
+    status: withdrawRequest.status,
   };
 }
+
+
 
 /**
  * UPDATE STATUS AFTER EXECUTION (CALLABLE BY CRON / ADMIN)
@@ -203,8 +175,15 @@ async function markWithdrawExecuted({ proposalId, txHash }) {
 async function getWithdrawRequestsByAdmin(adminPuraId) {
   const { rows } = await pool.query(
     `
-    SELECT
-      wr.*,
+  SELECT
+      wr.id,
+      wr.campaign_id,
+      wr.onchain_campaign_id,
+      wr.campaign_title,
+      wr.amount_snapshot,          -- 🔑 ini yang dipakai
+      wr.status,
+      wr.created_at,
+      wr.governance_proposal_id,
       c.title AS campaign_title_db,
       c.campaign_type
     FROM withdraw_requests wr

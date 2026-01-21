@@ -1,5 +1,5 @@
-const pool = require("../db/pool");
-const vaultService = require("../services/vault.service");
+const pool = require("../../db/pool");
+const vaultService = require("../vault.service");
 
 const USDT = process.env.USDT_ADDRESS;
 const USDC = process.env.USDC_ADDRESS;

@@ -42,29 +42,29 @@ async function getHybridCampaignDetail(campaignId) {
   };
 
   if (campaign.is_onchain_enabled) {
-    const balances = await getOnchainBalances(
-      campaign.id_campaign_onchain
-    );
+    try {
+      const onchainCampaignId = BigInt(campaign.id_campaign_onchain);
 
-    /* Error kena limmit RPC
-    "message": "could not coalesce error (error={ \"code\": -32701, \"message\": 
-    \"exceed maximum block range: 50000\" }, payload={ \"id\": 9, \"jsonrpc\": \"2.0\", 
-    \"method\": \"eth_getLogs\", \"params\": [ { \"address\": 
-    \"0x542b7108768fdec91a0138fb3f2136922b3d7e4b\", \"fromBlock\": \
-    "0x0\", \"toBlock\": \"latest\", \"topics\": [ \
-    "0x6a6e386e51cd750cad0d20fb9051c1f9c15b8c5db2fad1d9ca099cdef0d57ccf\", 
-    \"0x0000000000000000000000000000000000000000000000000000000000000001\" ] } ] }, 
-    code=UNKNOWN_ERROR, version=6.16.0)"
-    
-    // const transactions = await getOnchainDonations(
-    //   campaign.id_campaign_onchain
-    // );*/
+      const balances = await getOnchainBalances(onchainCampaignId);
 
-    onchain = {
-      balances,
-      transactions: [],
-    };
+      // ✅ AMAN: storage-based, bukan event-based
+      const transactions = await getOnchainDonations(onchainCampaignId);
+
+      onchain = {
+        balances,
+        transactions,
+      };
+    } catch (err) {
+      // ❗ Error on-chain TIDAK BOLEH bikin API gagal
+      console.error("On-chain fetch failed:", err.message);
+
+      onchain = {
+        balances: { USDT: "0", USDC: "0" },
+        transactions: [],
+      };
+    }
   }
+
 
   /**
    * 3) OFFCHAIN SECTION (MIDTRANS → DB)
@@ -118,6 +118,96 @@ async function getHybridCampaignDetail(campaignId) {
   };
 }
 
+async function getScCampaignDetail(campaignId) {
+  /**
+   * 1) METADATA CAMPAIGN (DB)
+   * =========================
+   */
+  const campaignQuery = `
+    SELECT
+      id,
+      title,
+      description,
+      purpose,
+      campaign_type,
+      status,
+      deadline,
+      id_campaign_onchain,
+      payout_wallet,
+      is_onchain_enabled,
+      is_sc_registered,
+      is_withdrawn
+    FROM campaigns
+    WHERE id = $1
+  `;
+
+  const { rows } = await db.query(campaignQuery, [campaignId]);
+  const campaign = rows[0];
+
+  if (!campaign) throw new Error("CAMPAIGN_NOT_FOUND");
+
+  // ⛔ wajib SC-ONLY
+  if (campaign.campaign_type !== "SC-ONLY") {
+    throw new Error("FORBIDDEN_NON_SC_ONLY");
+  }
+
+  // ⛔ SC-ONLY wajib terdaftar on-chain
+  if (!campaign.is_sc_registered || !campaign.id_campaign_onchain) {
+    throw new Error("SC_NOT_REGISTERED_ONCHAIN");
+  }
+
+  /**
+   * 2) ONCHAIN SECTION (SOURCE OF TRUTH)
+   * ===================================
+   */
+  let onchain = {
+    balances: { USDT: "0", USDC: "0" },
+    transactions: [],
+  };
+
+  try {
+    const onchainCampaignId = BigInt(campaign.id_campaign_onchain);
+
+    // saldo on-chain
+    const balances = await getOnchainBalances(onchainCampaignId);
+
+    // riwayat donasi (storage-based, AMAN)
+    const transactions = await getOnchainDonations(onchainCampaignId);
+
+    onchain = {
+      balances,
+      transactions,
+    };
+  } catch (err) {
+    // ❗ gagal on-chain TIDAK boleh bikin API mati
+    console.error("SC on-chain fetch failed:", err.message);
+  }
+
+  /**
+   * 3) FINAL RESPONSE (TIDAK ADA OFFCHAIN)
+   * =====================================
+   */
+  return {
+    campaign,
+    onchain,
+    offchain: null, // ⛔ memang tidak ada untuk SC-ONLY
+  };
+}
+
+async function getCampaignType(campaignId) {
+  const { rows } = await db.query(
+    `SELECT campaign_type FROM campaigns WHERE id = $1`,
+    [campaignId]
+  );
+
+  if (!rows.length) {
+    throw new Error('CAMPAIGN_NOT_FOUND');
+  }
+
+  return rows[0];
+}
+
+
 module.exports = {
-  getHybridCampaignDetail
+  getHybridCampaignDetail, getScCampaignDetail, getCampaignType
 };

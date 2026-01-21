@@ -1,20 +1,29 @@
-const syncService = require("../../services/withdraw.sync.service");
+// controllers/withdraw.sync.controller.js
+const withdrawSyncService = require("../../services/withdraw.sync.service");
 
-/**
- * POST /admin/withdraws/sync
- * Bisa dipanggil:
- * - saat admin buka dashboard
- * - manual oleh admin
- */
-async function syncWithdraws(req, res) {
-  const results = await syncService.syncPendingWithdraws();
+async function syncVotingResult(req, res) {
+  try {
+    const { withdrawRequestId } = req.body;
 
-  res.json({
-    message: "Withdraw sync completed",
-    updated: results,
-  });
+    if (!withdrawRequestId) {
+      return res.status(400).json({
+        message: "withdrawRequestId wajib dikirim",
+      });
+    }
+
+    const result =
+      await withdrawSyncService.syncVotingResult(withdrawRequestId);
+
+    res.json({
+      message: "Sync voting berhasil",
+      ...result,
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 }
 
+
 module.exports = {
-  syncWithdraws,
+  syncVotingResult,
 };

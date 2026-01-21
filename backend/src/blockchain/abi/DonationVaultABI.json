@@ -37,7 +37,17 @@
     },
     {
       "inputs": [],
-      "name": "NotOwner",
+      "name": "InvalidCampaignType",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotAdminPura",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotSuperAdmin",
       "type": "error"
     },
     {
@@ -64,6 +74,63 @@
       "inputs": [],
       "name": "ZeroAddress",
       "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminPuraRegistered",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminPuraRemoved",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "adminPura",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "enum DonationVaultV5.CampaignType",
+          "name": "campaignType",
+          "type": "uint8"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "deadline",
+          "type": "uint64"
+        }
+      ],
+      "name": "CampaignCreated",
+      "type": "event"
     },
     {
       "anonymous": false,
@@ -112,25 +179,19 @@
           "type": "uint256"
         },
         {
-          "indexed": false,
-          "internalType": "bytes32",
-          "name": "titleHash",
-          "type": "bytes32"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint64",
-          "name": "deadline",
-          "type": "uint64"
-        },
-        {
           "indexed": true,
           "internalType": "address",
-          "name": "creator",
+          "name": "adminPura",
           "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
         }
       ],
-      "name": "ScCampaignRegistered",
+      "name": "HybridWithdrawFinalized",
       "type": "event"
     },
     {
@@ -145,7 +206,7 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "adminPuraWallet",
+          "name": "payoutWallet",
           "type": "address"
         },
         {
@@ -159,15 +220,9 @@
           "internalType": "uint256",
           "name": "usdcAmount",
           "type": "uint256"
-        },
-        {
-          "indexed": false,
-          "internalType": "uint256",
-          "name": "timestamp",
-          "type": "uint256"
         }
       ],
-      "name": "Withdrawn",
+      "name": "WithdrawExecutedScOnly",
       "type": "event"
     },
     {
@@ -199,14 +254,69 @@
     {
       "inputs": [
         {
+          "internalType": "address",
+          "name": "_admin",
+          "type": "address"
+        }
+      ],
+      "name": "addAdminPura",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "adminPura",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "uint256",
           "name": "campaignId",
           "type": "uint256"
         },
         {
-          "internalType": "enum DonationVaultV3.CampaignType",
+          "internalType": "enum DonationVaultV5.CampaignType",
           "name": "campaignType",
           "type": "uint8"
+        },
+        {
+          "internalType": "address",
+          "name": "payoutWallet",
+          "type": "address"
+        },
+        {
+          "internalType": "uint64",
+          "name": "deadline",
+          "type": "uint64"
+        }
+      ],
+      "name": "createCampaign",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
         },
         {
           "internalType": "address",
@@ -220,6 +330,32 @@
         }
       ],
       "name": "donate",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        }
+      ],
+      "name": "executeWithdrawScOnly",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        }
+      ],
+      "name": "finalizeHybridWithdraw",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -256,22 +392,27 @@
           "type": "uint256"
         }
       ],
-      "name": "getScCampaign",
+      "name": "getCampaign",
       "outputs": [
         {
-          "internalType": "bytes32",
-          "name": "titleHash",
-          "type": "bytes32"
+          "internalType": "enum DonationVaultV5.CampaignType",
+          "name": "campaignType",
+          "type": "uint8"
+        },
+        {
+          "internalType": "address",
+          "name": "adminPuraWallet",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "payoutWallet",
+          "type": "address"
         },
         {
           "internalType": "uint64",
           "name": "deadline",
           "type": "uint64"
-        },
-        {
-          "internalType": "address",
-          "name": "creator",
-          "type": "address"
         },
         {
           "internalType": "bool",
@@ -283,13 +424,19 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "owner",
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "campaignId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDonationCount",
       "outputs": [
         {
-          "internalType": "address",
+          "internalType": "uint256",
           "name": "",
-          "type": "address"
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",
@@ -303,22 +450,46 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32",
-          "name": "titleHash",
-          "type": "bytes32"
-        },
+          "internalType": "uint256",
+          "name": "index",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDonationHistory",
+      "outputs": [
         {
-          "internalType": "uint64",
-          "name": "deadline",
-          "type": "uint64"
+          "internalType": "address",
+          "name": "donor",
+          "type": "address"
         },
         {
           "internalType": "address",
-          "name": "creator",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "timestamp",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_admin",
           "type": "address"
         }
       ],
-      "name": "registerScCampaign",
+      "name": "removeAdminPura",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
@@ -338,7 +509,7 @@
     },
     {
       "inputs": [],
-      "name": "voting",
+      "name": "superAdmin",
       "outputs": [
         {
           "internalType": "address",
@@ -350,21 +521,16 @@
       "type": "function"
     },
     {
-      "inputs": [
-        {
-          "internalType": "uint256",
-          "name": "campaignId",
-          "type": "uint256"
-        },
+      "inputs": [],
+      "name": "voting",
+      "outputs": [
         {
           "internalType": "address",
-          "name": "adminPuraWallet",
+          "name": "",
           "type": "address"
         }
       ],
-      "name": "withdraw",
-      "outputs": [],
-      "stateMutability": "nonpayable",
+      "stateMutability": "view",
       "type": "function"
     }
   ]

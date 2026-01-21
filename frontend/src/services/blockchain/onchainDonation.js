@@ -2,11 +2,6 @@ import { ethers } from "ethers";
 import DonationVaultABI from "./abi/DonationVaultABI.json";
 import { DONATION_VAULT_ADDRESS, TOKENS } from "./constants";
 
-export const CAMPAIGN_TYPE = {
-  HYBRID: 1,
-  "SC-ONLY": 0,
-};
-
 
 function getProvider() {
   if (!window.ethereum) {
@@ -29,7 +24,6 @@ async function ensureBscTestnet() {
 
 export async function donateOnChain({
   campaignId,
-  campaignType, // ⬅️ BARU
   tokenKey,
   amount,
 }) {
@@ -72,31 +66,13 @@ export async function donateOnChain({
     await approveTx.wait();
   }
 
-  // ✅ URUTAN SESUAI SC
+  // ✅ SESUAI SMART CONTRACT TERBARU
   const donateTx = await vault.donate(
-    campaignId,
-    campaignType,      // ⬅️ WAJIB
+    BigInt(campaignId),
     token.address,
     parsedAmount
   );
-  console.log("donateTx:", donateTx);
 
-  // ethers v6 defensive handling
-  if (!donateTx) {
-    throw new Error("Transaksi tidak terbentuk (ABI mismatch)");
-  }
-
-  // Jika tx punya wait()
-  if (typeof donateTx.wait === "function") {
-    const receipt = await donateTx.wait();
-    return receipt.hash;
-  }
-
-  // fallback (sangat jarang, tapi aman)
-  if (donateTx.hash) {
-    return donateTx.hash;
-  }
-
-  throw new Error("Gagal mendapatkan hash transaksi");
-  
+  const receipt = await donateTx.wait();
+  return receipt.hash;
 }

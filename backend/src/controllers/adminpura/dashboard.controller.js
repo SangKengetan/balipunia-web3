@@ -1,6 +1,6 @@
 const {
   getAdminPuraDashboardSummary
-} = require("../../services/adminDashboard.service");
+} = require("../../services/adminpura/adminDashboard.service");
 
 async function getAdminPuraDashboardSummaryHandler(req, res) {
   try {

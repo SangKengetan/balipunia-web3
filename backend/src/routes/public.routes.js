@@ -4,9 +4,9 @@ const router = express.Router();
 const puraController = require('../controllers/public/pura.controller');
 const financialReportController = require('../controllers/public/financialReport.controller');
 const offchainDonationController = require('../controllers/public/offchainDonation.controller');
-const campaignController = require('../controllers/public/campaign.controller');
 const campaignTimelineController = require('../controllers/public/campaignTimeline.controller');
-const {getPublicSCCampaignDetail} = require("../controllers/public/campaign.controller");
+const campaignController = require("../controllers/public/campaign.controller");
+
 
 router.get('/pura', puraController.listPura);
 router.get('/pura/:puraId', puraController.getPuraDetail);
@@ -31,13 +31,8 @@ router.get(
 
 // Detail campaign (HYBRID)
 router.get(
-  '/campaigns/:id',
-  campaignController.getHybridCampaignDetail
-);
-
-router.get(
-  "/campaigns/sc/:id_campaign_onchain",
-  getPublicSCCampaignDetail
+  "/campaigns/:id",
+  campaignController.getPublicCampaignDetail
 );
 
 // Timeline campaign

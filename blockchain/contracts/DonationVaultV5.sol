@@ -13,7 +13,7 @@ interface IERC20 {
 /*//////////////////////////////////////////////////////////////
                     DONATION VAULT V3 (FINAL)
 //////////////////////////////////////////////////////////////*/
-contract DonationVaultV4 {
+contract DonationVaultV5 {
     /*//////////////////////////////////////////////////////////////
                                 ERRORS
     //////////////////////////////////////////////////////////////*/
@@ -186,13 +186,17 @@ contract DonationVaultV4 {
         if (amount == 0) revert AmountZero();
         if (token != USDT && token != USDC) revert TokenNotWhitelisted();
 
+        // === SC-ONLY VALIDATION (ONLY IF REGISTERED) ===
         Campaign memory c = campaigns[campaignId];
-        if (!c.exists) revert CampaignNotFound();
-
-        if (
-            c.campaignType == CampaignType.SC_ONLY &&
-            block.timestamp > c.deadline
-        ) revert CampaignExpired();
+        if (c.exists) {
+            if (
+                c.campaignType == CampaignType.SC_ONLY &&
+                block.timestamp > c.deadline
+            ) revert CampaignExpired();
+        }
+        // NOTE:
+        // - Jika campaign tidak exists → diasumsikan HYBRID (V3 behavior)
+        // - Tidak dilakukan revert CampaignNotFound()
 
         if (!IERC20(token).transferFrom(msg.sender, address(this), amount))
             revert TransferFailed();
@@ -205,6 +209,7 @@ contract DonationVaultV4 {
 
         emit Donated(campaignId, msg.sender, token, amount, block.timestamp);
     }
+
 
     /*//////////////////////////////////////////////////////////////
                     WITHDRAW — SC ONLY
