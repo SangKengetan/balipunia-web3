@@ -2,25 +2,39 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { requestWithdraw } from "../../api/adminPura.api";
 import { fetchPublicCampaignDetail } from "../../api/public.api";
+import { 
+  ArrowLeft, 
+  Wallet, 
+  AlertTriangle, 
+  Calendar, 
+  Lock, 
+  FileText, 
+  UploadCloud, 
+  CheckCircle2, 
+  Loader2, 
+  Info,
+  Send
+} from "lucide-react";
 
 export default function WithdrawRequestForm() {
   const navigate = useNavigate();
   const { campaignId } = useParams();
 
-  // State Data
+  // --- State Data ---
   const [onchain, setOnchain] = useState({ balances: { USDT: "0", USDC: "0" } });
-  const [campaign, setCampaign] = useState(null); // Butuh data campaign untuk cek deadline
+  const [campaign, setCampaign] = useState(null);
   
-  // State UI
+  // --- State UI ---
   const [isFetching, setIsFetching] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // Form Inputs
+  // --- Form Inputs ---
   const [reason, setReason] = useState("");
   const [file, setFile] = useState(null);
+  const [fileName, setFileName] = useState("");
 
-  // 1. FETCH DATA (Campaign & Balances)
+  // 1. FETCH DATA
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,15 +56,13 @@ export default function WithdrawRequestForm() {
     if (campaignId) fetchData();
   }, [campaignId]);
 
-  // 2. LOGIC: SNAPSHOT BALANCE
-  // Backend menyimpan ini sebagai Text/String di DB untuk pelaporan
+  // 2. LOGIC HELPERS
   const amountSnapshot = useMemo(() => {
     const usdt = onchain?.balances?.USDT || "0";
     const usdc = onchain?.balances?.USDC || "0";
     return `USDT: ${usdt}, USDC: ${usdc}`;
   }, [onchain]);
 
-  // 3. LOGIC: CEK DEADLINE (Sesuai Backend)
   const isDeadlinePassed = useMemo(() => {
     if (!campaign) return false;
     const deadline = new Date(campaign.deadline);
@@ -58,21 +70,36 @@ export default function WithdrawRequestForm() {
     return now >= deadline;
   }, [campaign]);
 
-  // 4. LOGIC: CEK STATUS (Sesuai Backend)
   const isAlreadyRequested = campaign?.status === "REQUESTED";
+  const isLocked = !isDeadlinePassed || isAlreadyRequested;
 
+  // Helper Format Crypto Display
+  const formatCrypto = (val) => {
+    if (!val) return "0.00";
+    return (parseFloat(val) / 1000000).toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // Helper File Change
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setFileName(selectedFile.name);
+    }
+  };
+
+  // 3. SUBMIT HANDLER
   const submitWithdraw = async (e) => {
     e.preventDefault();
     setError(null);
 
-    // Validasi Frontend sebelum kirim ke Backend
-    if (!isDeadlinePassed) {
-      setError("Campaign belum selesai (Deadline belum terlewati).");
-      return;
-    }
+    if (isLocked) return;
 
     if (!file) {
-      setError("Dokumen pendukung wajib diunggah.");
+      setError("Dokumen pendukung (RAB/Bukti) wajib diunggah.");
       return;
     }
 
@@ -81,17 +108,14 @@ export default function WithdrawRequestForm() {
 
       const formData = new FormData();
       formData.append("campaign_id", campaignId);
-      
-      // Mengirim string snapshot ke backend
-      // Pastikan kolom 'amount' di tabel withdraw_requests tipe-nya TEXT/VARCHAR
       formData.append("amount", amountSnapshot); 
-      
       formData.append("reason", reason || "");
       formData.append("document", file);
 
       await requestWithdraw(formData);
 
-      alert("Permintaan withdraw berhasil diajukan & menunggu verifikasi.");
+      // Feedback visual sebelum redirect
+      alert("Permintaan withdraw berhasil diajukan! Trustee akan segera melakukan voting.");
       navigate("/admin/pura/withdraws");
 
     } catch (err) {
@@ -102,105 +126,193 @@ export default function WithdrawRequestForm() {
     }
   };
 
-  if (isFetching) return <div className="p-6">Loading data...</div>;
-  if (!campaign) return <div className="p-6">Campaign tidak ditemukan.</div>;
+  if (isFetching) {
+    return (
+        <div className="flex items-center justify-center h-screen bg-gray-50">
+            <Loader2 className="animate-spin text-amber-500" size={32} />
+        </div>
+    );
+  }
+
+  if (!campaign) return <div className="p-8 text-center">Campaign tidak ditemukan.</div>;
 
   return (
-    <div className="p-6 max-w-xl">
-      <h1 className="text-xl font-semibold mb-2">Request Withdraw (On-Chain)</h1>
-
-      {/* INFO BOX */}
-      <div className="bg-blue-50 p-4 rounded-lg mb-6 text-sm text-blue-800">
-        <p className="font-semibold mb-1">Informasi Penting:</p>
-        <ul className="list-disc pl-4 space-y-1">
-          <li>Dana di bawah adalah <strong>Snapshot Saldo</strong> saat ini.</li>
-          <li>Withdraw hanya bisa diajukan setelah deadline: <strong>{new Date(campaign.deadline).toLocaleDateString()}</strong>.</li>
-          <li>Request ini akan diverifikasi Trustee sebelum menjadi Proposal On-chain.</li>
-        </ul>
+    <div className="max-w-2xl mx-auto py-8 font-sans px-4">
+      
+      {/* HEADER */}
+      <div className="flex items-center gap-4 mb-6">
+        <button 
+          onClick={() => navigate(-1)} 
+          className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-amber-600 transition-colors shadow-sm text-gray-500"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Request Withdraw</h1>
+          <p className="text-sm text-gray-500">Ajukan pencairan dana dari Smart Contract (On-Chain).</p>
+        </div>
       </div>
 
-      {/* BALANCE PREVIEW */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <StatCard label="Saldo USDT (Snapshot)" value={onchain?.balances?.USDT || "0"} />
-        <StatCard label="Saldo USDC (Snapshot)" value={onchain?.balances?.USDC || "0"} />
-      </div>
-
-      {/* ERROR MESSAGE */}
+      {/* ERROR BANNER */}
       {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-200">
-          {error}
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 flex items-start gap-3">
+          <AlertTriangle className="shrink-0 mt-0.5" size={18} />
+          <p className="text-sm font-medium">{error}</p>
         </div>
       )}
 
-      {/* WARNING DEADLINE */}
-      {!isDeadlinePassed && (
-        <div className="mb-4 p-3 bg-yellow-100 text-yellow-800 rounded border border-yellow-200">
-          ⚠️ <strong>Belum bisa withdraw.</strong> Campaign ini masih berjalan hingga {new Date(campaign.deadline).toLocaleDateString()}.
-        </div>
-      )}
+      {/* STATUS CARDS (LOCKED / WARNING) */}
+      <div className="space-y-4 mb-8">
+        {!isDeadlinePassed && (
+            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl flex items-center gap-3 text-yellow-800 shadow-sm">
+                <div className="p-2 bg-yellow-100 rounded-full">
+                    <Lock size={20} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-sm">Periode Locked</h3>
+                    <p className="text-xs mt-0.5">
+                        Withdraw baru bisa dilakukan setelah deadline: <span className="font-mono font-semibold">{new Date(campaign.deadline).toLocaleDateString('id-ID')}</span>
+                    </p>
+                </div>
+            </div>
+        )}
 
-      {/* WARNING STATUS */}
-      {isAlreadyRequested && (
-        <div className="mb-4 p-3 bg-orange-100 text-orange-800 rounded border border-orange-200">
-          ⚠️ Withdraw sudah diajukan sebelumnya (Status: REQUESTED).
-        </div>
-      )}
+        {isAlreadyRequested && (
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-3 text-blue-800 shadow-sm">
+                <div className="p-2 bg-blue-100 rounded-full">
+                    <Info size={20} />
+                </div>
+                <div>
+                    <h3 className="font-bold text-sm">Sedang Dalam Proses</h3>
+                    <p className="text-xs mt-0.5">
+                        Permintaan withdraw untuk campaign ini sudah diajukan sebelumnya.
+                    </p>
+                </div>
+            </div>
+        )}
+      </div>
 
-      <form onSubmit={submitWithdraw} className="space-y-4">
-        {/* REASON */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Rencana Penggunaan Dana</label>
-          <textarea
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-            rows={3}
-            placeholder="Jelaskan detail penggunaan dana..."
-            disabled={!isDeadlinePassed || isAlreadyRequested}
-          />
+      <form onSubmit={submitWithdraw} className="space-y-6">
+        
+        {/* 1. SNAPSHOT BALANCE CARD */}
+        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden border border-gray-700">
+            {/* Background pattern */}
+            <div className="absolute top-0 right-0 opacity-10">
+                <Wallet size={120} />
+            </div>
+
+            <div className="relative z-10">
+                <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Wallet size={14}/> Snapshot Saldo
+                </h3>
+                
+                <div className="grid grid-cols-2 gap-8">
+                    <div>
+                        <p className="text-xs text-gray-400 mb-1">USDT Balance</p>
+                        <p className="text-2xl font-mono font-bold text-amber-400">
+                            ${formatCrypto(onchain?.balances?.USDT)}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-xs text-gray-400 mb-1">USDC Balance</p>
+                        <p className="text-2xl font-mono font-bold text-blue-400">
+                            ${formatCrypto(onchain?.balances?.USDC)}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-700">
+                    <p className="text-[10px] text-gray-400 flex items-center gap-1.5 bg-gray-800/50 w-fit px-2 py-1 rounded">
+                        <Info size={10} />
+                        Nominal ini akan dikunci dalam proposal voting Trustee.
+                    </p>
+                </div>
+            </div>
         </div>
 
-        {/* FILE */}
-        <div>
-          <label className="block text-sm font-medium mb-1">Dokumen Bukti (PDF/Image)</label>
-          <input
-            type="file"
-            accept=".pdf,image/*"
-            onChange={(e) => setFile(e.target.files[0])}
-            required
-            disabled={!isDeadlinePassed || isAlreadyRequested}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-          />
+        {/* 2. FORM INPUTS */}
+        <div className={`bg-white rounded-2xl border border-gray-200 p-6 shadow-sm transition-opacity ${isLocked ? 'opacity-50 pointer-events-none grayscale-[0.5]' : ''}`}>
+            
+            {/* Reason */}
+            <div className="mb-6">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Rencana Penggunaan Dana
+                </label>
+                <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all placeholder:text-gray-400"
+                    rows={4}
+                    placeholder="Jelaskan secara rinci untuk apa dana ini akan digunakan (cth: Pembelian material semen 50 sak)..."
+                    disabled={isLocked}
+                />
+            </div>
+
+            {/* File Upload */}
+            <div className="mb-2">
+                <label className="block text-sm font-bold text-gray-700 mb-2">
+                    Dokumen Bukti (RAB / Invoice)
+                </label>
+                
+                <div className={`relative border-2 border-dashed rounded-xl p-6 text-center transition-all ${
+                    fileName ? "border-amber-400 bg-amber-50/50" : "border-gray-300 hover:border-amber-400 hover:bg-gray-50"
+                }`}>
+                    <input 
+                        type="file" 
+                        accept=".pdf,image/*"
+                        onChange={handleFileChange}
+                        disabled={isLocked}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    
+                    <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
+                        {fileName ? (
+                            <>
+                                <CheckCircle2 className="text-green-500" size={24} />
+                                <span className="text-sm font-bold text-gray-800">{fileName}</span>
+                            </>
+                        ) : (
+                            <>
+                                <UploadCloud className="text-gray-400" size={24} />
+                                <span className="text-sm text-gray-500">
+                                    <span className="font-bold text-amber-600">Upload File</span> atau drag and drop
+                                </span>
+                                <span className="text-xs text-gray-400">PDF, JPG, PNG (Max 5MB)</span>
+                            </>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
 
-        {/* ACTIONS */}
-        <div className="flex gap-2 pt-2">
-          <button
-            type="submit"
-            disabled={loading || !isDeadlinePassed || isAlreadyRequested}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? "Mengajukan..." : "Ajukan Request"}
-          </button>
+        {/* 3. ACTION BUTTONS */}
+        <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+                Batal
+            </button>
 
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 border rounded hover:bg-gray-50"
-          >
-            Batal
-          </button>
+            <button
+                type="submit"
+                disabled={loading || isLocked}
+                className="flex items-center gap-2 px-6 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-95"
+            >
+                {loading ? (
+                    <>
+                        <Loader2 size={18} className="animate-spin" /> Mengajukan...
+                    </>
+                ) : (
+                    <>
+                        <Send size={18} /> Ajukan Request
+                    </>
+                )}
+            </button>
         </div>
+
       </form>
-    </div>
-  );
-}
-
-function StatCard({ label, value }) {
-  return (
-    <div className="rounded-xl border p-4 bg-white shadow-sm">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-xl font-bold text-gray-800">{value}</p>
     </div>
   );
 }

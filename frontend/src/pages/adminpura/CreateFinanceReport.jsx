@@ -1,19 +1,23 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Asumsi pakai React Router
+import { useNavigate } from "react-router-dom";
 import { createReport } from "../../api/adminPura.api";
 import useToast from "../../hooks/useToast";
-
-// Icons
-const ArrowLeftIcon = () => (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>);
-const CloudUploadIcon = () => (<svg className="w-8 h-8 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>);
-const SaveIcon = () => (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" /></svg>);
+import { 
+  ArrowLeft, 
+  UploadCloud, 
+  Save, 
+  Loader2, 
+  FileText, 
+  CheckCircle2,
+  AlertCircle
+} from "lucide-react";
 
 export default function CreateFinanceReport() {
   const { success, error } = useToast();
   const navigate = useNavigate();
 
   const [submitting, setSubmitting] = useState(false);
-  const [fileName, setFileName] = useState(""); // Untuk preview nama file
+  const [fileName, setFileName] = useState(""); 
   
   const [form, setForm] = useState({
     title: "",
@@ -30,6 +34,11 @@ export default function CreateFinanceReport() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validasi sederhana ukuran file (misal max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        error("Ukuran file terlalu besar (Maks. 5MB)");
+        return;
+      }
       setForm(prev => ({ ...prev, file: file }));
       setFileName(file.name);
     }
@@ -39,181 +48,211 @@ export default function CreateFinanceReport() {
     e.preventDefault();
     
     if (!form.file) {
-      error("File bukti laporan wajib diunggah");
+      error("File bukti laporan wajib diunggah untuk transparansi");
       return;
     }
 
     try {
       setSubmitting(true);
       
-      // Bungkus dalam FormData karena ada file upload
       const formData = new FormData();
       formData.append("title", form.title);
       formData.append("total_income", form.total_income);
       formData.append("total_expense", form.total_expense);
       formData.append("file", form.file);
 
-      // Consume API createReport
       await createReport(formData);
       
       success("Laporan berhasil diterbitkan & di-anchor ke blockchain");
       
-      // Redirect kembali ke list setelah sukses (delay dikit biar toast terbaca)
       setTimeout(() => {
         navigate("/admin/pura/financereports"); 
-      }, 1000);
+      }, 1500);
 
     } catch (e) {
+      console.error(e);
       error(e.message || "Gagal membuat laporan");
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 fade-in-enter py-6">
+    <div className="max-w-3xl mx-auto space-y-6 py-8 font-sans">
       
-      {/* Header Navigation */}
+      {/* 1. Header Navigation */}
       <div className="flex items-center gap-4">
         <button 
           onClick={() => navigate(-1)} 
-          className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+          className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:text-amber-600 transition-colors text-gray-500 shadow-sm"
         >
-          <ArrowLeftIcon />
+          <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
              Buat Laporan Baru
           </h1>
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-gray-500">
             Data akan disimpan permanen menggunakan IPFS & Smart Contract.
           </p>
         </div>
       </div>
 
-      {/* Form Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* 2. Main Form Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        
+        {/* Progress Indicator (Visual Decoration) */}
+        <div className="h-1 w-full bg-gray-100">
+            <div className="h-full bg-amber-500 w-1/3 rounded-r-full"></div>
+        </div>
+
         <div className="p-8">
-          <form onSubmit={onSubmit} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-8">
             
-            {/* Judul */}
-            <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Judul Laporan
-                </label>
-                <input 
-                    type="text" 
-                    name="title" 
-                    required
-                    value={form.title} 
-                    onChange={handleInputChange}
-                    placeholder="Contoh: Laporan Keuangan Pura Dalem - Januari 2026"
-                    className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400"
-                />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Income */}
-                <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Pemasukan (Income)
-                    </label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <span className="text-slate-400 font-medium text-sm group-focus-within:text-indigo-500">Rp</span>
-                        </div>
-                        <input 
-                            type="number" 
-                            name="total_income" 
-                            required
-                            min="0"
-                            value={form.total_income} 
-                            onChange={handleInputChange}
-                            placeholder="0"
-                            className="w-full rounded-xl border border-slate-300 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-green-500/20 focus:border-green-500 outline-none transition-all font-mono"
-                        />
-                    </div>
+            {/* --- Section: Detail Laporan --- */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-gray-800 font-semibold pb-2 border-b border-gray-100">
+                    <FileText size={18} className="text-amber-500"/>
+                    <h2>Detail Umum</h2>
                 </div>
 
-                {/* Expense */}
                 <div>
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Pengeluaran (Expense)
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Judul Laporan <span className="text-red-500">*</span>
                     </label>
-                    <div className="relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <span className="text-slate-400 font-medium text-sm group-focus-within:text-indigo-500">Rp</span>
-                        </div>
-                        <input 
-                            type="number" 
-                            name="total_expense" 
-                            required
-                            min="0"
-                            value={form.total_expense} 
-                            onChange={handleInputChange}
-                            placeholder="0"
-                            className="w-full rounded-xl border border-slate-300 pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition-all font-mono"
-                        />
-                    </div>
+                    <input 
+                        type="text" 
+                        name="title" 
+                        required
+                        value={form.title} 
+                        onChange={handleInputChange}
+                        placeholder="Contoh: Laporan Keuangan Piodalan - Januari 2026"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-sm focus:ring-4 focus:ring-amber-500/10 focus:border-amber-500 outline-none transition-all placeholder:text-gray-400"
+                    />
                 </div>
             </div>
 
-            {/* File Upload Area */}
+            {/* --- Section: Financial Data --- */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-2 text-gray-800 font-semibold pb-2 border-b border-gray-100">
+                    <AlertCircle size={18} className="text-amber-500"/>
+                    <h2>Data Keuangan</h2>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Income Input */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Total Pemasukan <span className="text-emerald-600 text-xs font-bold">(Income)</span>
+                        </label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span className="text-gray-400 font-bold text-sm group-focus-within:text-emerald-600">Rp</span>
+                            </div>
+                            <input 
+                                type="number" 
+                                name="total_income" 
+                                required
+                                min="0"
+                                value={form.total_income} 
+                                onChange={handleInputChange}
+                                placeholder="0"
+                                className="w-full rounded-xl border border-gray-300 pl-11 pr-4 py-3 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-mono font-medium text-gray-700"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Expense Input */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                            Total Pengeluaran <span className="text-rose-600 text-xs font-bold">(Expense)</span>
+                        </label>
+                        <div className="relative group">
+                            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                                <span className="text-gray-400 font-bold text-sm group-focus-within:text-rose-600">Rp</span>
+                            </div>
+                            <input 
+                                type="number" 
+                                name="total_expense" 
+                                required
+                                min="0"
+                                value={form.total_expense} 
+                                onChange={handleInputChange}
+                                placeholder="0"
+                                className="w-full rounded-xl border border-gray-300 pl-11 pr-4 py-3 text-sm focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none transition-all font-mono font-medium text-gray-700"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* --- Section: Upload File --- */}
             <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Upload Bukti Dokumen
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload Bukti Dokumen (PDF/Gambar) <span className="text-red-500">*</span>
                 </label>
-                <div className="relative border-2 border-dashed border-slate-300 rounded-xl hover:bg-slate-50 transition-colors group text-center py-8 px-6">
+                
+                <div className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 group text-center py-10 px-6 ${
+                    fileName 
+                    ? "border-amber-400 bg-amber-50/30" 
+                    : "border-gray-300 hover:border-amber-400 hover:bg-gray-50"
+                }`}>
                     <input 
                         type="file" 
                         accept=".pdf,.jpg,.png,.jpeg"
                         onChange={handleFileChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
-                    <div className="flex flex-col items-center justify-center space-y-2">
-                        <div className="p-3 bg-indigo-50 rounded-full group-hover:scale-110 transition-transform duration-200">
-                             <CloudUploadIcon />
-                        </div>
-                        <div className="text-sm text-slate-600">
-                            {fileName ? (
-                                <span className="text-indigo-600 font-medium">{fileName}</span>
-                            ) : (
-                                <>
-                                    <span className="font-semibold text-indigo-600">Klik untuk upload</span> atau drag and drop
-                                </>
-                            )}
-                        </div>
-                        <p className="text-xs text-slate-400">PDF, PNG, atau JPG (Maks. 5MB)</p>
+                    
+                    <div className="flex flex-col items-center justify-center space-y-3 pointer-events-none">
+                        {fileName ? (
+                            // State: File Selected
+                            <>
+                                <div className="p-4 bg-white rounded-full shadow-sm text-green-500 border border-green-100">
+                                    <CheckCircle2 size={32} />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-800">{fileName}</p>
+                                    <p className="text-xs text-amber-600 mt-1">Klik untuk mengganti file</p>
+                                </div>
+                            </>
+                        ) : (
+                            // State: Empty
+                            <>
+                                <div className="p-4 bg-gray-50 rounded-full group-hover:bg-white group-hover:scale-110 group-hover:shadow-md transition-all duration-300 text-gray-400 group-hover:text-amber-500">
+                                     <UploadCloud size={32} />
+                                </div>
+                                <div className="text-sm text-gray-600">
+                                    <span className="font-bold text-amber-600 border-b border-amber-600/30">Klik untuk upload</span> atau drag and drop
+                                </div>
+                                <p className="text-xs text-gray-400">PDF, PNG, atau JPG (Maks. 5MB)</p>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
 
-            <hr className="border-slate-100" />
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3">
+            {/* Footer Actions */}
+            <div className="pt-4 flex items-center justify-end gap-4 border-t border-gray-100">
                 <button 
                     type="button"
                     onClick={() => navigate(-1)}
-                    className="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 text-sm font-medium hover:bg-slate-50 transition-colors"
+                    className="px-6 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 hover:text-gray-900 transition-colors"
                 >
                     Batal
                 </button>
                 <button 
                     type="submit" 
                     disabled={submitting}
-                    className="px-6 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2"
+                    className="px-8 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 hover:shadow-amber-300 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center gap-2 active:scale-95"
                 >
                     {submitting ? (
                         <>
-                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Memproses...
+                            <Loader2 size={18} className="animate-spin" />
+                            Memproses Blockchain...
                         </>
                     ) : (
                         <>
-                            <SaveIcon /> Publish Laporan
+                            <Save size={18} /> Publish Laporan
                         </>
                     )}
                 </button>

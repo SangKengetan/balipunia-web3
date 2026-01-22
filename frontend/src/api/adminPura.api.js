@@ -1,5 +1,7 @@
 import api from "./axios"; // axios instance
 
+
+
 /* Profile */
 export const getProfile = () =>
   api.get("/adminpura/profile");

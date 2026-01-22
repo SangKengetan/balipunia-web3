@@ -1,153 +1,185 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Import navigasi
+import { useNavigate } from "react-router-dom";
 import { fetchReports } from "../../api/adminPura.api";
-import useToast from "../../hooks/useToast";
-
-// --- Icons ---
-const PlusIcon = () => (<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>);
-const DocumentIcon = () => (<svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>);
-const ExternalLinkIcon = () => (<svg className="w-3 h-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>);
-const SearchIcon = () => (<svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>);
-const CubeIcon = () => (<svg className="w-4 h-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>);
+// Pastikan path import ini sesuai dengan struktur projectmu
+import useToast from "../../hooks/useToast"; 
+import { 
+  Plus, 
+  FileText, 
+  ExternalLink, 
+  Search, 
+  Link as LinkIcon, 
+  ArrowUpRight, 
+  ArrowDownRight,
+  Loader2,
+  Calendar
+} from "lucide-react";
 
 export default function FinanceReportList() {
-  const { error } = useToast();
-  const navigate = useNavigate(); // Hook untuk navigasi
+  const { error } = useToast(); // Asumsi hook ini ada
+  const navigate = useNavigate();
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const loadReports = async () => {
-  try {
-    setLoading(true);
-    const res = await fetchReports();
-    setReports(res.data.data); // ✅ FIX
-  } catch (e) {
-    error(e.message || "Gagal memuat laporan keuangan");
-  } finally {
-    setLoading(false);
-  }
+    try {
+      setLoading(true);
+      const res = await fetchReports();
+      // Handle response structure variations
+      const data = res.data?.data || res.data || [];
+      setReports(data);
+    } catch (e) {
+      console.error(e);
+      // Jika useToast belum ready, fallback ke alert console
+      if (error) error(e.message || "Gagal memuat laporan keuangan");
+    } finally {
+      setLoading(false);
+    }
   };
-
 
   useEffect(() => {
     loadReports();
   }, []);
 
   return (
-    <div className="space-y-8 fade-in-enter">
+    <div className="space-y-8 font-sans pb-10">
       
-      {/* Header Section */}
+      {/* 1. Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800 tracking-tight">
+          <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
              Laporan Keuangan
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
-            Daftar transparansi dana punia yang tercatat di Blockchain.
+          <p className="text-sm text-gray-500 mt-1">
+             Transparansi dana punia yang tercatat abadi di Blockchain.
           </p>
         </div>
 
         {/* Tombol Create New Report */}
         <button
-          onClick={() => navigate("/admin/pura/financereports/create")} // Sesuaikan route kamu
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-600/20 transition-all transform active:scale-95"
+          onClick={() => navigate("/admin/pura/financereports/create")}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 shadow-lg shadow-amber-200 hover:shadow-amber-300 transition-all transform active:scale-95"
         >
-          <PlusIcon />
+          <Plus size={18} />
           Buat Laporan Baru
         </button>
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      {/* 2. Main Table Card */}
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
         
-        {loading && <div className="p-12 text-center text-slate-400 animate-pulse">Memuat data laporan...</div>}
+        {/* Loading State */}
+        {loading && (
+          <div className="p-12 text-center text-gray-400 flex flex-col items-center">
+            <Loader2 size={32} className="animate-spin text-amber-500 mb-2" />
+            <p>Memuat data on-chain...</p>
+          </div>
+        )}
         
+        {/* Empty State */}
         {!loading && reports.length === 0 && (
-          <div className="flex flex-col items-center justify-center p-12 text-slate-500">
-            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-               <SearchIcon />
+          <div className="flex flex-col items-center justify-center py-20 px-6 text-gray-500">
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+               <Search size={32} />
             </div>
-            <p className="font-medium text-slate-600">Belum ada laporan keuangan</p>
-            <p className="text-xs mt-1">Klik tombol di atas untuk membuat laporan pertama.</p>
+            <h3 className="font-bold text-gray-700 text-lg">Belum ada laporan</h3>
+            <p className="text-sm mt-1 max-w-xs text-center text-gray-400">
+              Laporan keuangan bulanan atau kegiatan pura Anda akan muncul di sini.
+            </p>
           </div>
         )}
 
+        {/* Table Data */}
         {!loading && reports.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 font-semibold uppercase tracking-wider text-xs border-b border-slate-200">
+              <thead className="bg-gray-50 text-gray-500 font-semibold uppercase tracking-wider text-xs border-b border-gray-200">
                 <tr>
                   <th className="px-6 py-4">Tanggal & Judul</th>
                   <th className="px-6 py-4">Pemasukan</th>
                   <th className="px-6 py-4">Pengeluaran</th>
-                  <th className="px-6 py-4">Bukti IPFS</th>
-                  <th className="px-6 py-4 text-right">Blockchain Proof</th>
+                  <th className="px-6 py-4">Bukti File</th>
+                  <th className="px-6 py-4 text-right">Blockchain Anchor</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/80 transition-colors group">
+                  <tr key={r.id} className="hover:bg-amber-50/30 transition-colors group">
                     
-                    {/* Kolom Tanggal & Judul */}
-                    <td className="px-6 py-4">
-                        <div className="text-xs text-slate-400 mb-1 font-mono">
-                            {new Date(r.anchored_at || r.created_at).toLocaleDateString('id-ID', { 
-                              day: 'numeric', month: 'long', year: 'numeric' 
-                            })}
+                    {/* Kolom 1: Info Laporan */}
+                    <td className="px-6 py-4 align-top">
+                        <div className="flex items-start gap-3">
+                            <div className="mt-1 p-2 bg-gray-100 rounded-lg text-gray-500">
+                                <FileText size={16} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-gray-800 text-base line-clamp-1 mb-1">
+                                    {r.title}
+                                </div>
+                                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium">
+                                    <Calendar size={12} />
+                                    {new Date(r.anchored_at || r.created_at).toLocaleDateString('id-ID', { 
+                                      day: 'numeric', month: 'long', year: 'numeric' 
+                                    })}
+                                </div>
+                            </div>
                         </div>
-                        <div className="font-bold text-slate-800 text-base line-clamp-1">{r.title}</div>
                     </td>
 
-                    {/* Kolom Income */}
-                    <td className="px-6 py-4">
-                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-green-50 text-green-700 border border-green-100">
-                         + {formatRupiah(r.total_income)}
-                       </span>
+                    {/* Kolom 2: Income */}
+                    <td className="px-6 py-4 align-middle">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          <ArrowDownRight size={14} className="text-emerald-600" />
+                          {formatRupiah(r.total_income)}
+                        </span>
                     </td>
 
-                    {/* Kolom Expense */}
-                    <td className="px-6 py-4">
-                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-red-50 text-red-700 border border-red-100">
-                         - {formatRupiah(r.total_expense)}
-                       </span>
+                    {/* Kolom 3: Expense */}
+                    <td className="px-6 py-4 align-middle">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
+                          <ArrowUpRight size={14} className="text-rose-600" />
+                          {formatRupiah(r.total_expense)}
+                        </span>
                     </td>
 
-                    {/* Kolom IPFS */}
-                    <td className="px-6 py-4">
+                    {/* Kolom 4: IPFS Link */}
+                    <td className="px-6 py-4 align-middle">
                       {r.ipfs_cid ? (
                           <a
                             href={`https://gateway.pinata.cloud/ipfs/${r.ipfs_cid}`}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 px-3 py-1.5 bg-white text-slate-600 rounded-lg text-xs font-medium border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 transition-colors shadow-sm"
+                            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium hover:underline transition-all"
                           >
-                            <DocumentIcon />
-                            <span>Lihat File</span>
+                            <LinkIcon size={14} />
+                            <span>Lihat Bukti</span>
                           </a>
                       ) : (
-                          <span className="text-slate-300 text-xs italic">Tidak ada file</span>
+                          <span className="text-gray-300 text-xs italic">Tanpa lampiran</span>
                       )}
                     </td>
 
-                    {/* Kolom Blockchain Proof */}
-                    <td className="px-6 py-4 text-right">
+                    {/* Kolom 5: Blockchain Proof */}
+                    <td className="px-6 py-4 text-right align-middle">
                         {r.anchor_tx_hash ? (
                             <a 
                                 href={`https://testnet.bscscan.com/tx/${r.anchor_tx_hash}`} 
                                 target="_blank"
                                 rel="noreferrer"
-                                className="inline-flex items-center gap-1.5 justify-end group/link bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                                className="inline-flex items-center gap-2 justify-end group/link bg-gray-50 hover:bg-amber-50 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-amber-200 transition-colors"
                             >
-                                <CubeIcon />
-                                <span className="font-mono text-xs text-indigo-700 font-medium">
-                                    {truncateHash(r.anchor_tx_hash)}
-                                </span>
-                                <ExternalLinkIcon />
+                                <div className="text-right">
+                                    <div className="text-[10px] uppercase text-gray-400 font-bold tracking-wider mb-0.5">BSC Testnet</div>
+                                    <div className="font-mono text-xs text-gray-700 font-medium group-hover/link:text-amber-700">
+                                        {truncateHash(r.anchor_tx_hash)}
+                                    </div>
+                                </div>
+                                <ExternalLink size={14} className="text-gray-400 group-hover/link:text-amber-500" />
                             </a>
                         ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200">
-                                Pending
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-50 text-yellow-700 border border-yellow-200 animate-pulse">
+                                Menunggu Konfirmasi
                             </span>
                         )}
                     </td>
@@ -162,17 +194,20 @@ export default function FinanceReportList() {
   );
 }
 
-// --- Helpers ---
+// --- Helper Functions ---
 
 function formatRupiah(amount) {
+    // Handle null/undefined safely
+    const val = amount || 0;
     return new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
         minimumFractionDigits: 0
-    }).format(amount);
+    }).format(val);
 }
 
 function truncateHash(hash) {
     if (!hash) return "-";
+    // Format standar Web3: 0x1234...5678
     return `${hash.substring(0, 6)}...${hash.substring(hash.length - 4)}`;
 }

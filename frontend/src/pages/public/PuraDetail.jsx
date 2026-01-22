@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { fetchPublicPuraDetail } from "../../api/public.api";
-// Pastikan path component ini sesuai
+import { fetchPublicPuraDetail, fetchFinancialReportsByPura } from "../../api/public.api"; // Pastikan import ini ada
 import CampaignCardDB from "../../components/public/CampaignCardDB";
 import CampaignCardSC from "../../components/public/CampaignCardSC";
 
@@ -16,27 +15,52 @@ const formatCurrency = (value) => {
   }).format(value);
 };
 
+const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("id-ID", {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+};
+
 export default function PuraDetail() {
   const { id } = useParams();
+  
+  // Data State
   const [pura, setPura] = useState(null);
   const [campaignDB, setCampaignDB] = useState([]);
   const [campaignSC, setCampaignSC] = useState([]);
+  
+  // Financial Reports State
+  const [reports, setReports] = useState([]);
+  const [loadingReports, setLoadingReports] = useState(true);
+
+  // General Loading
   const [loading, setLoading] = useState(true);
   
-  // State untuk Tab Navigasi (Campaigns vs Reports)
+  // Tab Navigation
   const [activeTab, setActiveTab] = useState("campaigns");
 
   useEffect(() => {
-    const fetchDetail = async () => {
+    const fetchAllData = async () => {
       try {
-        const res = await fetchPublicPuraDetail(id);
-        const data = res?.data || res;
+        // 1. Fetch Detail Pura & Campaign
+        const resDetail = await fetchPublicPuraDetail(id);
+        const data = resDetail?.data || resDetail;
 
         setPura(data.pura);
         setCampaignDB(Array.isArray(data.campaigns?.db) ? data.campaigns.db : []);
-        setCampaignSC(
-          Array.isArray(data.campaigns?.sc_only) ? data.campaigns.sc_only : []
-        );
+        setCampaignSC(Array.isArray(data.campaigns?.sc_only) ? data.campaigns.sc_only : []);
+
+        // 2. Fetch Financial Reports (Parallel)
+        try {
+            const resReports = await fetchFinancialReportsByPura(id);
+            setReports(resReports.data || []);
+        } catch (reportErr) {
+            console.error("Failed fetch reports (non-blocking):", reportErr);
+            setReports([]); // Fallback empty
+        } finally {
+            setLoadingReports(false);
+        }
+
       } catch (err) {
         console.error("Failed fetch pura detail:", err);
       } finally {
@@ -44,7 +68,7 @@ export default function PuraDetail() {
       }
     };
 
-    fetchDetail();
+    fetchAllData();
   }, [id]);
 
   const handleDonateOnchain = (campaignId) => {
@@ -59,10 +83,10 @@ export default function PuraDetail() {
       
       {/* 1. HERO SECTION */}
       <div className="relative h-[320px] lg:h-[380px] bg-slate-900 overflow-hidden">
-        {/* Background Image with Gradient Overlay */}
+        {/* Background Image */}
         <div className="absolute inset-0">
           <img 
-            src="https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1400" 
+            src={pura.image_url || "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1400"} // Use dynamic image if available
             alt="Bali Temple Background" 
             className="w-full h-full object-cover opacity-50 scale-105"
           />
@@ -87,13 +111,11 @@ export default function PuraDetail() {
                  {pura.alamat_pura}
               </div>
             </div>
-
-            {/* Optional: Tombol Connect Wallet atau Action Utama lainnya di sini jika perlu */}
           </div>
         </div>
       </div>
 
-      {/* 2. CONTENT WRAPPER (Overlap Effect) */}
+      {/* 2. CONTENT WRAPPER */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
         
         {/* STATS OVERVIEW CARDS */}
@@ -102,7 +124,7 @@ export default function PuraDetail() {
             title="Total Saldo Operasional" 
             value={formatCurrency(pura.saldo_operasional)} 
             icon="wallet"
-            color="amber" // Sesuai tema BaliPunia
+            color="amber"
           />
           <SaldoCard 
             title="Pending On-Chain" 
@@ -143,7 +165,8 @@ export default function PuraDetail() {
 
             {/* TAB CONTENT AREA */}
             <div className="p-6 md:p-8 min-h-[400px]">
-                {/* VIEW 1: CAMPAIGNS */}
+                
+                {/* === VIEW 1: CAMPAIGNS === */}
                 {activeTab === 'campaigns' && (
                     <div className="animate-fadeIn">
                         {/* Hybrid Campaigns */}
@@ -190,70 +213,138 @@ export default function PuraDetail() {
                     </div>
                 )}
 
-                {/* VIEW 2: FINANCIAL REPORTS (Transparansi) */}
+                {/* === VIEW 2: FINANCIAL REPORTS (REAL) === */}
                 {activeTab === 'reports' && (
-                    <div className="animate-fadeIn space-y-8">
-                        {/* Placeholder Header for Reports */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 bg-amber-50 rounded-lg border border-amber-100">
+                    <div className="animate-fadeIn space-y-6">
+                        
+                        {/* Info Banner */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-amber-50 rounded-xl border border-amber-100 mb-8">
                             <div>
-                                <h3 className="font-bold text-amber-900">Laporan Keuangan Terbuka</h3>
-                                <p className="text-sm text-amber-700 mt-1">
-                                    Data ini diambil langsung dari pencatatan blockchain dan database pura secara real-time.
+                                <h3 className="font-bold text-amber-900 text-lg">Laporan Keuangan Terverifikasi</h3>
+                                <p className="text-sm text-amber-700 mt-1 max-w-2xl">
+                                    Laporan ini dicatat menggunakan teknologi Blockchain untuk menjamin transparansi dan mencegah manipulasi data.
                                 </p>
                             </div>
-                            <button className="px-4 py-2 bg-white text-amber-600 font-medium rounded-md shadow-sm border border-amber-200 hover:bg-amber-50 transition-colors text-sm">
-                                Download PDF
-                            </button>
                         </div>
 
-                        {/* Transaction History Table Mockup */}
-                        <div>
-                           <h4 className="text-lg font-semibold text-gray-800 mb-4">Riwayat Transaksi Masuk</h4>
-                           <div className="overflow-x-auto rounded-lg border border-gray-200">
-                                <table className="w-full text-sm text-left text-gray-600">
-                                    <thead className="bg-gray-50 text-gray-700 uppercase text-xs font-bold">
-                                        <tr>
-                                            <th className="px-6 py-3">Tanggal</th>
-                                            <th className="px-6 py-3">Donatur</th>
-                                            <th className="px-6 py-3">Program</th>
-                                            <th className="px-6 py-3">Jumlah</th>
-                                            <th className="px-6 py-3">Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {/* Dummy Data Rows */}
-                                        <tr className="bg-white hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">20 Jan 2026</td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">0x71C...9A21</td>
-                                            <td className="px-6 py-4">Piodalan Agung</td>
-                                            <td className="px-6 py-4 text-green-600 font-bold">+ Rp 500.000</td>
-                                            <td className="px-6 py-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Success</span></td>
-                                        </tr>
-                                        <tr className="bg-white hover:bg-gray-50 transition-colors">
-                                            <td className="px-6 py-4">19 Jan 2026</td>
-                                            <td className="px-6 py-4 font-medium text-gray-900">Made Wijaya</td>
-                                            <td className="px-6 py-4">Renovasi Tembok</td>
-                                            <td className="px-6 py-4 text-green-600 font-bold">+ Rp 1.000.000</td>
-                                            <td className="px-6 py-4"><span className="bg-green-100 text-green-700 px-2 py-1 rounded text-xs font-bold">Success</span></td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                                <div className="p-4 bg-gray-50 text-center text-xs text-gray-400">
-                                    Menampilkan 2 dari 124 transaksi terbaru
+                        {/* Loading Logic */}
+                        {loadingReports ? (
+                             <div className="space-y-4">
+                                {[1, 2].map((i) => (
+                                <div key={i} className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm animate-pulse">
+                                    <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="h-12 bg-gray-100 rounded"></div>
+                                        <div className="h-12 bg-gray-100 rounded"></div>
+                                    </div>
                                 </div>
-                           </div>
-                        </div>
+                                ))}
+                            </div>
+                        ) : reports.length === 0 ? (
+                            <EmptySection text="Belum ada laporan keuangan yang dipublikasikan oleh pengelola pura." />
+                        ) : (
+                            /* Real Reports List */
+                            <div className="grid grid-cols-1 gap-6">
+                                {reports.map((r) => (
+                                    <div key={r.id} className="group bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+                                        
+                                        {/* Report Header */}
+                                        <div className="p-5 border-b border-gray-50 bg-gray-50/50 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+                                            <div className="flex gap-4">
+                                                <div className="hidden sm:flex h-12 w-12 bg-white border border-gray-200 rounded-lg items-center justify-center text-amber-600 shadow-sm">
+                                                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-bold text-gray-900 group-hover:text-amber-600 transition-colors">
+                                                        {r.title}
+                                                    </h3>
+                                                    <p className="text-sm text-gray-500 mt-1">
+                                                        Dipublikasikan: <span className="font-medium text-gray-700">{formatDate(r.created_at)}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <span className="self-start inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                                Teraudit & Valid
+                                            </span>
+                                        </div>
+
+                                        {/* Financial Stats */}
+                                        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <CurrencyStat label="Total Pemasukan" value={r.total_income} type="income" />
+                                            <CurrencyStat label="Total Pengeluaran" value={r.total_expense} type="expense" />
+                                        </div>
+
+                                        {/* Footer: Proofs */}
+                                        <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex flex-wrap gap-3 items-center text-sm">
+                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Proofs:</span>
+                                            
+                                            {r.ipfs_cid && (
+                                                <a href={`https://ipfs.io/ipfs/${r.ipfs_cid}`} target="_blank" rel="noreferrer" className="proof-badge group/link">
+                                                    <svg className="w-3.5 h-3.5 text-gray-400 group-hover/link:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                                                    IPFS Data
+                                                </a>
+                                            )}
+
+                                            {r.anchor_tx_hash && (
+                                                <a href={`https://testnet.bscscan.com/tx/${r.anchor_tx_hash}`} target="_blank" rel="noreferrer" className="proof-badge group/link">
+                                                    <svg className="w-3.5 h-3.5 text-gray-400 group-hover/link:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                                                    Tx: {r.anchor_tx_hash.slice(0, 6)}...
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
         </div>
 
       </div>
+
+      {/* CSS Utility for Proof Badges (Bisa dimasukkan ke index.css atau dibiarkan inline via Tailwind di bawah) */}
+      <style>{`
+        .proof-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            color: #4b5563;
+            font-size: 0.75rem;
+            font-family: monospace;
+            transition: all 0.2s;
+        }
+        .proof-badge:hover {
+            border-color: #d1d5db;
+            color: #111827;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+      `}</style>
     </div>
   );
 }
 
-/* ===== COMPONENTS (Modular & Professional) ===== */
+/* ===== HELPER COMPONENTS ===== */
+
+// Currency Stat Component (Untuk Laporan)
+function CurrencyStat({ label, value, type }) {
+    const isIncome = type === "income";
+    const colorClass = isIncome ? "text-emerald-600" : "text-rose-600";
+    const bgClass = isIncome ? "bg-emerald-50/50 border-emerald-100" : "bg-rose-50/50 border-rose-100";
+    
+    return (
+      <div className={`flex flex-col p-3 rounded-lg border ${bgClass}`}>
+        <span className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">{label}</span>
+        <div className={`flex items-center text-lg font-bold ${colorClass}`}>
+          {isIncome ? "+" : "-"} {formatCurrency(value)}
+        </div>
+      </div>
+    );
+}
 
 function TabButton({ isActive, onClick, label, icon }) {
     return (
@@ -275,11 +366,10 @@ function TabButton({ isActive, onClick, label, icon }) {
 }
 
 function SaldoCard({ title, value, icon, color }) {
-  // Mapping warna lebih modern
   const colors = {
-    amber: { bg: "bg-amber-50", text: "text-amber-600", border: "border-amber-100", iconBg: "bg-amber-100" },
-    indigo: { bg: "bg-indigo-50", text: "text-indigo-600", border: "border-indigo-100", iconBg: "bg-indigo-100" },
-    gray: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200", iconBg: "bg-gray-100" },
+    amber: { bg: "bg-amber-50", text: "text-amber-600", iconBg: "bg-amber-100" },
+    indigo: { bg: "bg-indigo-50", text: "text-indigo-600", iconBg: "bg-indigo-100" },
+    gray: { bg: "bg-gray-50", text: "text-gray-600", iconBg: "bg-gray-100" },
   };
   
   const theme = colors[color] || colors.amber;

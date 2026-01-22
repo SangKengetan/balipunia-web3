@@ -5,11 +5,6 @@ import api from "./axios";
  * GET /public/pura
  */
 export const fetchPublicPuras = () => api.get("/public/pura");
-
-/**
- * Get detail pura by id (public)
- * GET /public/pura/:id
- */
 export const fetchPublicPuraDetail = (id) => {
   return api.get(`/public/pura/${id}`);
 };
