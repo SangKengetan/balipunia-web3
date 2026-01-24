@@ -44,7 +44,7 @@ export default function CampaignCardSC({ campaign }) {
       <div className="h-48 bg-gray-100 relative overflow-hidden">
         {/* Placeholder Image (Nuansa Teknologi/Blockchain + Bali) */}
         <img
-          src="https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1000"
+          src="https://plus.unsplash.com/premium_photo-1677829177642-30def98b0963?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
           alt={title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />

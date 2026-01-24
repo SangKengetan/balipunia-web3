@@ -86,7 +86,7 @@ export default function PuraDetail() {
         {/* Background Image */}
         <div className="absolute inset-0">
           <img 
-            src={pura.image_url || "https://images.unsplash.com/photo-1516426122078-c23e76319801?auto=format&fit=crop&q=80&w=1400"} // Use dynamic image if available
+            src={pura.image_url || "https://images.unsplash.com/photo-1640716862072-94d7324bb2d7?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"} // Use dynamic image if available
             alt="Bali Temple Background" 
             className="w-full h-full object-cover opacity-50 scale-105"
           />
