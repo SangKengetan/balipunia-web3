@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../../middlewares/upload");
 
 const {
   getProfileHandler,
@@ -20,6 +21,7 @@ router.put(
   "/",
   authenticateAdmin,
   requireRole("ADMIN_PURA"),
+  upload.single("profile_picture"),
   updateProfileHandler
 );
 

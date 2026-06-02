@@ -73,6 +73,7 @@ async function voteProposal(proposalId, support) {
 async function getProposal(proposalId) {
   const [
     campaignId,
+    adminPura,
     yesVotes,
     noVotes,
     votesCount,
@@ -89,11 +90,12 @@ async function getProposal(proposalId) {
   return {
     proposalId: proposalId.toString(),
     campaignId: campaignId.toString(),
+    adminPura,
     yesVotes: Number(yesVotes),
     noVotes: Number(noVotes),
     votesCount: Number(votesCount),
     status: statusMap[Number(status)] ?? "UNKNOWN",
-    executed,
+    executed: Boolean(executed),
   };
 }
 

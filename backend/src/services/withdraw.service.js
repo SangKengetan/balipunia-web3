@@ -3,17 +3,27 @@ const votingService = require("./voting.service");
 const { uploadToIPFS } = require("./ipfsService");
 
 /**
- * CREATE WITHDRAW REQUEST (ONCHAIN)
- * Melakukan validasi campaign, insert DB, dan call Blockchain.
+ * CREATE WITHDRAW REQUEST (UNIFIED: CRYPTO + FIAT)
+ * Melakukan validasi campaign, insert DB, dan menyiapkan data untuk voting.
+ * amount_snapshot disimpan sebagai JSON yang memuat rincian crypto, fiat, fee.
  */
 
-async function createOnchainWithdrawRequest({
+async function createWithdrawRequest({
   adminPuraId,
   campaignId,
   payload,
   file,
 }) {
-  const { amount, reason } = payload;
+    const {
+      reason,
+      crypto_usdt = "0",
+      crypto_usdc = "0",
+      crypto_fee_idr = 0,
+      fiat_amount_idr = "0",
+      fiat_fee_idr = 0,
+      total_idr = "0",
+      proposal_id = null,
+    } = payload;
 
   /* =====================================================
      0. Ambil Wallet Admin Pura
@@ -55,26 +65,35 @@ async function createOnchainWithdrawRequest({
   const campaign = campaignRows[0];
 
   /* =====================================================
-     2. Validasi SC-ONLY
+     2. Validasi — Semua campaign harus terdaftar on-chain
   ===================================================== */
   if (!campaign.id_campaign_onchain) {
-    throw new Error("ONLY_SC_ONLY_ALLOWED");
+    throw new Error("CAMPAIGN_NOT_REGISTERED_ONCHAIN");
   }
 
   /* =====================================================
-     3. Validasi Deadline
+     3. Validasi Deadline (jika ada)
   ===================================================== */
-  const now = new Date();
-  const deadline = new Date(campaign.deadline);
+  if (campaign.deadline) {
+    const now = new Date();
+    const deadline = new Date(campaign.deadline);
 
-  if (now < deadline) {
-    throw new Error("CAMPAIGN_NOT_FINISHED");
+    if (now < deadline) {
+      throw new Error("CAMPAIGN_NOT_FINISHED");
+    }
   }
 
   /* =====================================================
-     4. Cegah Double Withdraw
+     4. Cegah Double Withdraw / Cegah Withdraw jika sudah selesai
   ===================================================== */
-  if (campaign.status === "REQUEST WITHDRAW") {
+  const activeStatuses = [
+    "REQUESTED",
+    "VOTING_IN_PROGRESS",
+    "PENDING_TRANSFER",
+    "WITHDRAWN",
+    "COMPLETED"
+  ];
+  if (activeStatuses.includes(campaign.status)) {
     throw new Error("WITHDRAW_ALREADY_REQUESTED");
   }
 
@@ -88,45 +107,68 @@ async function createOnchainWithdrawRequest({
   const ipfsCid = await uploadToIPFS(file);
 
   /* =====================================================
-     6. Insert Withdraw Request
+     6. Bangun amount_snapshot JSON
   ===================================================== */
-  const { rows: wdRows } = await pool.query(
-    `
-    INSERT INTO withdraw_requests (
-      admin_pura_id,
-      campaign_id,
-      onchain_campaign_id,
-      campaign_title,
-      withdraw_type,
-      amount_snapshot,
-      wallet_address,
-      reason,
-      ipfs_cid,
-      status
-    ) VALUES (
-      $1, $2, $3, $4,
-      'ONCHAIN',
-      $5, $6, $7, $8,
-      'REQUESTED'
-    )
-    RETURNING *
-    `,
-    [
-      adminPuraId,
-      campaign.id,
-      campaign.id_campaign_onchain, // 🔑 SUMBER BENAR
-      campaign.title,
-      amount, // snapshot (string / text)
-      walletAddress,
-      reason,
-      ipfsCid,
-    ]
-  );
+  const amountSnapshot = JSON.stringify({
+    crypto: {
+      amount_usdt: crypto_usdt,
+      amount_usdc: crypto_usdc,
+      fee_idr: Number(crypto_fee_idr),
+    },
+    fiat: {
+      amount_idr: fiat_amount_idr,
+      fee_idr: Number(fiat_fee_idr),
+    },
+    total_idr: total_idr,
+  });
+
+  /* =====================================================
+     7. Insert Withdraw Request
+  ===================================================== */
+    const initialStatus = proposal_id ? 'VOTING_IN_PROGRESS' : 'REQUESTED';
+
+    const { rows: wdRows } = await pool.query(
+      `
+      INSERT INTO withdraw_requests (
+        admin_pura_id,
+        campaign_id,
+        onchain_campaign_id,
+        campaign_title,
+        withdraw_type,
+        amount_snapshot,
+        total_idr,
+        wallet_address,
+        reason,
+        ipfs_cid,
+        governance_proposal_id,
+        status
+      ) VALUES (
+        $1, $2, $3, $4,
+        'UNIFIED',
+        $5, $6, $7, $8, $9,
+        $10, $11
+      )
+      RETURNING *
+      `,
+      [
+        adminPuraId,
+        campaign.id,
+        campaign.id_campaign_onchain,
+        campaign.title,
+        amountSnapshot,
+        total_idr,
+        walletAddress,
+        reason,
+        ipfsCid,
+        proposal_id,
+        initialStatus
+      ]
+    );
 
   const withdrawRequest = wdRows[0];
 
   /* =====================================================
-     7. Update Campaign Status
+     8. Update Campaign Status
   ===================================================== */
   await pool.query(
     `
@@ -139,7 +181,7 @@ async function createOnchainWithdrawRequest({
   );
 
   /* =====================================================
-     8. Return
+     9. Return
   ===================================================== */
   return {
     withdrawRequestId: withdrawRequest.id,
@@ -148,8 +190,10 @@ async function createOnchainWithdrawRequest({
     walletAddress,
     ipfsCid,
     status: withdrawRequest.status,
+    amountSnapshot: JSON.parse(amountSnapshot),
   };
 }
+
 
 
 
@@ -180,10 +224,13 @@ async function getWithdrawRequestsByAdmin(adminPuraId) {
       wr.campaign_id,
       wr.onchain_campaign_id,
       wr.campaign_title,
-      wr.amount_snapshot,          -- 🔑 ini yang dipakai
+      wr.amount_snapshot,
+      wr.total_idr,
       wr.status,
       wr.created_at,
       wr.governance_proposal_id,
+      wr.executed_tx_hash,
+      wr.transfer_proof_cid,
       c.title AS campaign_title_db,
       c.campaign_type
     FROM withdraw_requests wr
@@ -214,7 +261,7 @@ async function getWithdrawRequestsByAdmin(adminPuraId) {
             yesVotes: proposal.yesVotes,
             noVotes: proposal.noVotes,
             votesCount: proposal.votesCount,
-            finalized: proposal.finalized,
+            status: proposal.status,
             executed: proposal.executed,
           },
         };
@@ -229,7 +276,7 @@ async function getWithdrawRequestsByAdmin(adminPuraId) {
 }
 
 module.exports = {
-  createOnchainWithdrawRequest,
+  createWithdrawRequest,
   markWithdrawExecuted,
   getWithdrawRequestsByAdmin,
-};
+};

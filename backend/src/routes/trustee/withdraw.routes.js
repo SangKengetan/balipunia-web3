@@ -6,6 +6,7 @@ const {
   listWithdrawsForTrustee,
   getWithdrawDetail,
 } = require("../../controllers/trustee/withdraw.controller");
+const { syncVotingResult } = require("../../controllers/adminpura/withdraw.sync.controller");
 const { authenticateAdmin } = require("../../middlewares/auth.middleware");
 
 // NOTE:
@@ -33,6 +34,12 @@ router.get(
   "/withdraws/:id",
   authenticateAdmin,
   getWithdrawDetail
+);
+
+router.post(
+  "/withdraws/sync",
+  authenticateAdmin,
+  syncVotingResult
 );
 
 module.exports = router;

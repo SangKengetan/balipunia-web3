@@ -9,7 +9,7 @@ import {
   Coins, 
   History, 
   FileText,
-  Copy
+  Banknote
 } from "lucide-react";
 
 // --- Helper Functions ---
@@ -17,11 +17,19 @@ import {
 // Format angka desimal crypto
 const formatCrypto = (val) => {
   if (!val) return "0.00";
-  // Asumsi val adalah string raw integer dari smart contract (6 decimals)
-  return (parseFloat(val) / 1000000).toLocaleString("en-US", {
+  return (parseFloat(val) / 1e18).toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};
+
+const formatRupiah = (val) => {
+  if (!val) return "Rp 0";
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0
+  }).format(val);
 };
 
 // Memendekkan Address Wallet (misal: 0x123...abc)
@@ -72,7 +80,16 @@ export default function CampaignDetail() {
     );
   }
 
-  const { campaign, onchain_balance, donation_history } = data;
+  const campaign = data?.campaign || {};
+  const onchain_balance = data?.funds?.onchain || null;
+  const offchain_balance = data?.funds?.offchain || 0;
+  
+  const onchain_donations = data?.donations?.onchain || [];
+  const offchain_donations = data?.donations?.offchain || [];
+
+  const type = campaign.campaign_type; // 'HYBRID', 'MIDTRANS_ONLY', 'CRYPTO_ONLY'
+  const isFiat = type === 'HYBRID' || type === 'MIDTRANS_ONLY';
+  const isCrypto = type === 'HYBRID' || type === 'CRYPTO_ONLY';
 
   return (
     <div className="font-sans space-y-8 pb-10">
@@ -82,7 +99,7 @@ export default function CampaignDetail() {
             to="/admin/pura/campaigns" 
             className="inline-flex items-center text-sm text-gray-500 hover:text-amber-600 mb-4 transition-colors"
         >
-            <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Campaign
+            <ArrowLeft size={16} className="mr-1" /> Kembali ke Daftar Kegiatan
         </Link>
         <h1 className="text-3xl font-bold text-gray-900 leading-tight">
             {campaign.title}
@@ -93,12 +110,35 @@ export default function CampaignDetail() {
             </span>
             <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
             <span className="uppercase tracking-wider font-semibold text-amber-600">
-                {campaign.category || "Umum"}
+                {campaign.purpose || "Umum"}
+            </span>
+            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-xs font-bold">
+                {type}
             </span>
         </div>
       </div>
 
-      {/* 2. Main Layout Grid */}
+      {/* 2. Quick Actions */}
+      {campaign.status === "WITHDRAWN" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
+          <div>
+            <h3 className="font-bold text-amber-800">Laporan Kegiatan Diperlukan</h3>
+            <p className="text-sm text-amber-700 mt-1">
+              Dana telah ditarik. Harap segera unggah laporan dokumentasi dan mutasi keuangan terkait penggunaan dana ini.
+            </p>
+          </div>
+          <Link 
+            to={`/admin/pura/campaigns/${id}/report`}
+            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap"
+          >
+            <FileText size={18} />
+            Buat Laporan
+          </Link>
+        </div>
+      )}
+
+      {/* 3. Main Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* === LEFT COLUMN: Content & History === */}
@@ -108,7 +148,7 @@ export default function CampaignDetail() {
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                 <div className="flex items-center gap-2 mb-4 text-gray-800 font-bold border-b border-gray-100 pb-2">
                     <FileText size={20} className="text-amber-500" />
-                    <h2>Deskripsi Kampanye</h2>
+                    <h2>Deskripsi Kegiatan</h2>
                 </div>
                 <div className="prose prose-amber max-w-none text-gray-600 leading-relaxed">
                     {/* Menggunakan whitespace-pre-wrap agar enter/paragraf terbaca */}
@@ -116,111 +156,233 @@ export default function CampaignDetail() {
                 </div>
             </div>
 
-            {/* Donation History Table */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                    <div className="flex items-center gap-2 font-bold text-gray-800">
-                        <History size={20} className="text-amber-500" />
-                        <h2>Riwayat Donasi</h2>
-                    </div>
-                    <span className="bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full font-medium">
-                        {donation_history.length} Transaksi
-                    </span>
-                </div>
-                
-                <div className="overflow-x-auto">
-                    {donation_history.length > 0 ? (
-                        <table className="w-full text-left text-sm">
-                            <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
-                                <tr>
-                                    <th className="px-6 py-3">Donatur</th>
-                                    <th className="px-6 py-3">Jumlah</th>
-                                    <th className="px-6 py-3">Token</th>
-                                    <th className="px-6 py-3 text-right">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {donation_history.map((d, i) => (
-                                    <tr key={i} className="hover:bg-amber-50/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2 text-gray-700 font-medium font-mono">
-                                                <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-200 to-yellow-100 flex items-center justify-center text-amber-700 text-xs">
-                                                    <User size={14}/>
-                                                </div>
-                                                {shortenAddress(d.donor)}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 font-mono font-bold text-gray-800">
-                                            {formatCrypto(d.amount)}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${
-                                                d.token === 'USDT' 
-                                                ? 'bg-green-50 text-green-700 border-green-200' 
-                                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                                            }`}>
-                                                <Coins size={10} /> {d.token}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <span className="text-xs text-gray-400 italic">Success</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    ) : (
-                        <div className="p-8 text-center text-gray-400">
-                            <History size={32} className="mx-auto mb-2 opacity-50"/>
-                            <p>Belum ada donasi tercatat.</p>
-                        </div>
-                    )}
-                </div>
-            </div>
+            {/* Fiat Donation History Table */}
+            {isFiat && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-amber-50/50">
+                      <div className="flex items-center gap-2 font-bold text-gray-800">
+                          <History size={20} className="text-amber-500" />
+                          <h2>Riwayat Donasi Rupiah</h2>
+                      </div>
+                      <span className="bg-white text-gray-600 text-xs px-2 py-1 rounded-full font-medium border border-gray-200">
+                          {offchain_donations.length} Transaksi
+                      </span>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                      {offchain_donations.length > 0 ? (
+                          <table className="w-full text-left text-sm">
+                              <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                                  <tr>
+                                      <th className="px-6 py-3">Donatur</th>
+                                      <th className="px-6 py-3">Jumlah</th>
+                                      <th className="px-6 py-3">Waktu</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                  {offchain_donations.map((d, i) => (
+                                      <tr key={i} className="hover:bg-amber-50/30 transition-colors">
+                                          <td className="px-6 py-4">
+                                              <div className="flex items-center gap-2 text-gray-700 font-medium">
+                                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-200 to-yellow-100 flex items-center justify-center text-amber-700 text-xs uppercase">
+                                                      {(d.donor || '?')[0]}
+                                                  </div>
+                                                  {d.donor}
+                                              </div>
+                                          </td>
+                                          <td className="px-6 py-4 font-bold text-gray-800">
+                                              {formatRupiah(d.amount)}
+                                          </td>
+                                          <td className="px-6 py-4 text-gray-500 text-xs">
+                                              {formatDate(d.timestamp)}
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      ) : (
+                          <div className="p-8 text-center text-gray-400">
+                              <History size={32} className="mx-auto mb-2 opacity-50"/>
+                              <p>Belum ada donasi rupiah tercatat.</p>
+                          </div>
+                      )}
+                  </div>
+              </div>
+            )}
+
+            {/* Crypto Donation History Table */}
+            {isCrypto && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-amber-50/30">
+                      <div className="flex items-center gap-2 font-bold text-gray-800">
+                          <History size={20} className="text-amber-500" />
+                          <h2>Riwayat Donasi Kripto</h2>
+                      </div>
+                      <span className="bg-white text-gray-600 text-xs px-2 py-1 rounded-full font-medium border border-gray-200">
+                          {onchain_donations.length} Transaksi
+                      </span>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                      {onchain_donations.length > 0 ? (
+                          <table className="w-full text-left text-sm">
+                              <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                                  <tr>
+                                      <th className="px-6 py-3">Donatur</th>
+                                      <th className="px-6 py-3">Jumlah</th>
+                                      <th className="px-6 py-3">Mata Uang</th>
+                                      <th className="px-6 py-3">Waktu</th>
+                                  </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-100">
+                                  {onchain_donations.map((d, i) => (
+                                      <tr key={i} className="hover:bg-amber-50/30 transition-colors">
+                                          <td className="px-6 py-4">
+                                              <div className="flex items-center gap-2 text-gray-700 font-medium font-mono">
+                                                  <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-200 to-yellow-100 flex items-center justify-center text-amber-700 text-xs uppercase">
+                                                      {(d.donor || '?')[0]}
+                                                  </div>
+                                                  {d.donor}
+                                              </div>
+                                          </td>
+                                          <td className="px-6 py-4 font-mono font-bold text-gray-800">
+                                              {formatCrypto(d.amount)}
+                                          </td>
+                                          <td className="px-6 py-4">
+                                              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold border ${
+                                                  d.token === 'USDT' 
+                                                  ? 'bg-green-50 text-green-700 border-green-200' 
+                                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                                              }`}>
+                                                  <Coins size={10} /> {d.token}
+                                              </span>
+                                          </td>
+                                          <td className="px-6 py-4 text-gray-500 text-xs">
+                                              {formatDate(d.timestamp * 1000)}
+                                          </td>
+                                      </tr>
+                                  ))}
+                              </tbody>
+                          </table>
+                      ) : (
+                          <div className="p-8 text-center text-gray-400">
+                              <History size={32} className="mx-auto mb-2 opacity-50"/>
+                              <p>Belum ada donasi kripto tercatat.</p>
+                          </div>
+                      )}
+                  </div>
+              </div>
+            )}
         </div>
 
         {/* === RIGHT COLUMN: Sticky Sidebar === */}
         <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-8">
             
-            {/* 1. On-Chain Vault Card */}
-            {onchain_balance ? (
+            {/* 1. Off-Chain (Fiat) Balance Card */}
+            {isFiat && (
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-200">
+                  <div className="bg-amber-500 p-5 text-white">
+                      <div className="flex items-center gap-2 mb-1 opacity-90">
+                          <Banknote size={18} className="text-amber-100"/>
+                          <span className="text-xs font-semibold uppercase tracking-wider">Dana Rupiah</span>
+                      </div>
+                  </div>
+                  
+                  <div className="bg-white p-5 space-y-4">
+                      {(() => {
+                        const totalCollectedOffchain = offchain_donations.reduce((sum, d) => sum + Number(d.amount || 0), 0);
+                        return (
+                          <>
+                            <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
+                                <span className="font-medium text-gray-600 text-sm">Total Terkumpul</span>
+                                <span className="font-bold text-gray-900">
+                                    {formatRupiah(totalCollectedOffchain)}
+                                </span>
+                            </div>
+                            
+                            {!campaign.deadline && (
+                              <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
+                                  <span className="font-medium text-gray-600 text-sm">Belum Ditarik</span>
+                                  <span className="font-bold text-gray-900">
+                                      {formatRupiah(offchain_balance)}
+                                  </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      
+                      <div className="pt-2">
+                            <p className="text-xs text-center text-gray-400">
+                              Dana ini dikelola melalui platform pembayaran
+                            </p>
+                      </div>
+                  </div>
+              </div>
+            )}
+
+            {/* 2. On-Chain (Crypto) Vault Card */}
+            {isCrypto && onchain_balance ? (
                 <div className="rounded-2xl overflow-hidden shadow-lg border border-gray-200">
-                    {/* Header Dark */}
                     <div className="bg-gray-900 p-5 text-white">
                         <div className="flex items-center gap-2 mb-1 opacity-80">
                             <Wallet size={18} className="text-amber-400"/>
-                            <span className="text-xs font-semibold uppercase tracking-wider">Vault Balance</span>
+                            <span className="text-xs font-semibold uppercase tracking-wider">Dana Kripto</span>
                         </div>
-                        <h3 className="text-lg font-medium text-gray-200">Dana Tersimpan</h3>
                     </div>
                     
-                    {/* Body Content */}
                     <div className="bg-white p-5 space-y-4">
-                        {/* USDT */}
-                        <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-xs">
-                                    T
-                                </div>
-                                <span className="font-semibold text-gray-600">USDT</span>
-                            </div>
-                            <span className="font-mono text-lg font-bold text-gray-900">
-                                {formatCrypto(onchain_balance.USDT)}
-                            </span>
-                        </div>
+                        {(() => {
+                          let totalCollectedUSDT = 0n;
+                          let totalCollectedUSDC = 0n;
+                          onchain_donations.forEach((d) => {
+                            try {
+                              const amt = BigInt(d.amount || 0);
+                              if (d.token === 'USDT') totalCollectedUSDT += amt;
+                              if (d.token === 'USDC') totalCollectedUSDC += amt;
+                            } catch(e) {}
+                          });
 
-                        {/* USDC */}
-                        <div className="flex justify-between items-center p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">
-                                    C
-                                </div>
-                                <span className="font-semibold text-gray-600">USDC</span>
-                            </div>
-                            <span className="font-mono text-lg font-bold text-gray-900">
-                                {formatCrypto(onchain_balance.USDC)}
-                            </span>
-                        </div>
+                          return (
+                            <>
+                              {/* USDT */}
+                              <div className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                                  <div className="flex items-center gap-3 mb-1">
+                                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-bold text-xs">T</div>
+                                      <span className="font-bold text-gray-800 text-sm">USDT</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Terkumpul:</span>
+                                    <span className="font-mono font-bold text-gray-900">{formatCrypto(totalCollectedUSDT.toString())}</span>
+                                  </div>
+                                  {!campaign.deadline && (
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-500">Belum Ditarik:</span>
+                                      <span className="font-mono font-bold text-gray-900">{formatCrypto(onchain_balance.USDT)}</span>
+                                    </div>
+                                  )}
+                              </div>
+
+                              {/* USDC */}
+                              <div className="flex flex-col gap-2 p-3 rounded-xl bg-gray-50 border border-gray-100">
+                                  <div className="flex items-center gap-3 mb-1">
+                                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">C</div>
+                                      <span className="font-bold text-gray-800 text-sm">USDC</span>
+                                  </div>
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-500">Terkumpul:</span>
+                                    <span className="font-mono font-bold text-gray-900">{formatCrypto(totalCollectedUSDC.toString())}</span>
+                                  </div>
+                                  {!campaign.deadline && (
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-500">Belum Ditarik:</span>
+                                      <span className="font-mono font-bold text-gray-900">{formatCrypto(onchain_balance.USDC)}</span>
+                                    </div>
+                                  )}
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         <div className="pt-2">
                              <p className="text-xs text-center text-gray-400">
@@ -229,13 +391,13 @@ export default function CampaignDetail() {
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : isCrypto && !onchain_balance ? (
                 <div className="p-4 bg-yellow-50 text-yellow-700 rounded-xl text-sm border border-yellow-200">
-                    Kampanye ini belum terhubung ke On-chain Vault.
+                    Kegiatan ini belum terhubung ke On-chain Vault.
                 </div>
-            )}
+            ) : null}
 
-            {/* 2. Metadata / Info Tambahan */}
+            {/* 3. Metadata / Info Tambahan */}
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
                 <h3 className="font-bold text-gray-800 mb-4 text-sm uppercase text-opacity-50">Informasi Tambahan</h3>
                 <div className="space-y-4 text-sm">
@@ -246,8 +408,8 @@ export default function CampaignDetail() {
                         </span>
                     </div>
                     <div className="flex justify-between border-b border-gray-50 pb-2">
-                        <span className="text-gray-500">Creator</span>
-                        <span className="font-medium text-gray-800">Admin Pura</span>
+                        <span className="text-gray-500">Status</span>
+                        <span className="font-medium text-gray-800">{campaign.status}</span>
                     </div>
                 </div>
             </div>

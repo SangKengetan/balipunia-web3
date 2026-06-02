@@ -27,4 +27,26 @@ async function uploadToIPFS(file) {
   }
 }
 
-module.exports = { uploadToIPFS };
+/**
+ * Upload sebuah JSON object ke IPFS sebagai file .json
+ * Digunakan untuk membuat Master Metadata (mirip NFT metadata)
+ * yang berisi seluruh data laporan: deskripsi, foto CIDs, financials, dll.
+ * @param {Object} jsonData - Objek JSON yang akan diunggah
+ * @param {string} fileName - Nama file (misal: "report_metadata.json")
+ * @returns {string} CID dari file JSON yang diunggah
+ */
+async function uploadJSONToIPFS(jsonData, fileName = "report_metadata.json") {
+  try {
+    const jsonString = JSON.stringify(jsonData, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const fileObject = new File([blob], fileName, { type: "application/json" });
+
+    const result = await pinata.upload.public.file(fileObject);
+    return result.cid;
+  } catch (error) {
+    console.error("Kesalahan unggah JSON ke Pinata:", error);
+    throw error;
+  }
+}
+
+module.exports = { uploadToIPFS, uploadJSONToIPFS };

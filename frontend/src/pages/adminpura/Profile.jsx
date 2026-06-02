@@ -9,8 +9,13 @@ import {
   Wallet, 
   Save, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Camera,
+  CheckCircle2,
+  Users,
+  ShieldCheck
 } from "lucide-react";
+import { registerTrustees } from "../../services/blockchain/onchainTrustee";
 
 export default function Profile() {
   const [form, setForm] = useState({
@@ -18,22 +23,34 @@ export default function Profile() {
     alamat_pura: "",
     kontak_pura: "",
     bank_name: "",
-    bank_account: "",
+    bank_account_number: "",
+    bank_account_name: "",
     wallet_address: "",
+    profile_completion_percentage: 0,
+    is_trustees_registered: false,
+    profile_picture: null,
   });
+
+  const [trustees, setTrustees] = useState(["", "", ""]);
+  const [registeringTrustee, setRegisteringTrustee] = useState(false);
+
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [setError] = useState(null);
+  const [error, setError] = useState(null);
 
   // Fetch Data
   useEffect(() => {
     async function fetchProfile() {
       try {
         const res = await getProfile();
-        // Handler flexible untuk response structure
         const data = res.data?.data || res.data || {};
         setForm(data);
+        if (data.profile_picture) {
+          setPreview(`https://gateway.pinata.cloud/ipfs/${data.profile_picture}`);
+        }
       } catch (err) {
         console.error("Gagal mengambil data profil:", err);
         setError("Gagal memuat data profil. Silakan coba lagi.");
@@ -44,20 +61,71 @@ export default function Profile() {
     fetchProfile();
   }, []);
 
+  const handleTrusteeChange = (index, value) => {
+    const newTrustees = [...trustees];
+    newTrustees[index] = value;
+    setTrustees(newTrustees);
+  };
+
+  const handleRegisterTrustee = async () => {
+    if (trustees.some(t => !t || t.trim() === "")) {
+      return alert("Harap isi ketiga alamat trustee");
+    }
+    setRegisteringTrustee(true);
+    try {
+      await registerTrustees(trustees);
+      alert("Trustee berhasil didaftarkan di Blockchain!");
+      // Refresh profile untuk update persentase dan status
+      const res = await getProfile();
+      const data = res.data?.data || res.data || {};
+      setForm(data);
+    } catch (err) {
+      console.error(err);
+      alert("Gagal mendaftarkan trustee: " + (err.reason || err.message));
+    } finally {
+      setRegisteringTrustee(false);
+    }
+  };
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
-      await updateProfile(form);
-      // Optional: Tambahkan toast notification disini
+      const formData = new FormData();
+      const allowedFields = [
+        "nama_pura", "alamat_pura", "kontak_pura", 
+        "bank_name", "bank_account_number", "bank_account_name", "wallet_address"
+      ];
+      
+      allowedFields.forEach(key => {
+        if (form[key] !== null && form[key] !== undefined) {
+          formData.append(key, form[key]);
+        }
+      });
+
+      if (file) {
+        formData.append("profile_picture", file);
+      }
+      const res = await updateProfile(formData);
+      const updatedData = res.data?.data || res.data || {};
+      setForm(updatedData);
       alert("Profil berhasil diperbarui!"); 
     } catch (error) {
       console.error(error);
-      alert("Gagal memperbarui profil.");
+      const errMsg = error.response?.data?.message || "Gagal memperbarui profil.";
+      alert(errMsg);
     } finally {
       setSaving(false);
     }
@@ -110,9 +178,17 @@ export default function Profile() {
         <div className="lg:col-span-1 space-y-6">
             
             {/* Card Avatar / Branding */}
-            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center">
-                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg shadow-amber-200 mb-4">
-                    {getInitials(form.nama_pura)}
+            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm text-center relative">
+                <div className="w-24 h-24 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white text-4xl font-bold shadow-lg shadow-amber-200 mb-4 overflow-hidden group relative">
+                    {preview ? (
+                      <img src={preview} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      getInitials(form.nama_pura)
+                    )}
+                    <label className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
+                      <Camera size={24} className="text-white" />
+                      <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
+                    </label>
                 </div>
                 <h2 className="text-lg font-bold text-gray-800 truncate">
                     {form.nama_pura || "Nama Pura"}
@@ -120,12 +196,39 @@ export default function Profile() {
                 <p className="text-xs text-gray-400 uppercase tracking-wider font-semibold mt-1">
                     Administrator
                 </p>
-                <div className="mt-6 pt-6 border-t border-gray-50 text-left">
-                     <p className="text-xs text-gray-500 mb-2 flex items-center gap-1">
-                        <AlertCircle size={12}/> Tips:
+
+                {/* Progress Bar Kelengkapan Profil */}
+                <div className="mt-5 text-left">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-semibold text-gray-600">Kelengkapan Profil</span>
+                    <span className="text-xs font-bold text-amber-600">{form.profile_completion_percentage}%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-amber-500 h-2 rounded-full" style={{ width: `${form.profile_completion_percentage}%` }}></div>
+                  </div>
+                  {form.profile_completion_percentage < 100 && (
+                    <p className="text-[10px] text-red-500 mt-2">
+                      Lengkapi profil 100% untuk dapat membuat kampanye donasi.
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-50 text-left">
+                     <p className="text-xs font-semibold text-gray-700 flex items-center gap-1 mb-2">
+                        <Users size={14} className={form.is_trustees_registered ? "text-emerald-500" : "text-gray-400"}/> 
+                        Status Trustee
                      </p>
-                     <p className="text-xs text-gray-400 leading-relaxed">
-                        Pastikan data kontak dan alamat valid agar donatur dapat memverifikasi keaslian pura/yayasan.
+                     {form.is_trustees_registered ? (
+                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold rounded border border-emerald-100">
+                         <CheckCircle2 size={12}/> Sudah Terdaftar
+                       </span>
+                     ) : (
+                       <span className="inline-flex items-center gap-1 px-2 py-1 bg-red-50 text-red-600 text-[10px] font-bold rounded border border-red-100">
+                         <AlertCircle size={12}/> Belum Terdaftar
+                       </span>
+                     )}
+                     <p className="text-[10px] text-gray-500 mt-2 leading-relaxed">
+                        Anda harus mendaftarkan 3 trustee di smart contract untuk memenuhi syarat 100%.
                      </p>
                 </div>
             </div>
@@ -232,13 +335,30 @@ export default function Profile() {
                                 </span>
                                 <input
                                     type="text"
-                                    name="bank_account"
-                                    value={form.bank_account || ""}
+                                    name="bank_account_number"
+                                    value={form.bank_account_number || ""}
                                     onChange={handleChange}
                                     className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
                                     placeholder="1234567890"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pemilik Rekening</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                <Users size={16} />
+                            </span>
+                            <input
+                                type="text"
+                                name="bank_account_name"
+                                value={form.bank_account_name || ""}
+                                onChange={handleChange}
+                                className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
+                                placeholder="A.n Pura..."
+                            />
                         </div>
                     </div>
 
@@ -268,6 +388,77 @@ export default function Profile() {
                             Alamat wallet ini akan digunakan sebagai penerima dana donasi crypto (USDT/USDC).
                         </p>
                     </div>
+                </div>
+            </div>
+
+            {/* SECTION 3: Pendaftaran Trustee */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex items-center gap-2">
+                    <ShieldCheck size={18} className="text-gray-500" />
+                    <h3 className="font-semibold text-gray-700">Pendaftaran Trustee (Web3)</h3>
+                </div>
+
+                <div className="p-6 space-y-5">
+                    {form.is_trustees_registered ? (
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                        <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
+                        <h4 className="text-emerald-800 font-bold">Trustee Sudah Terdaftar</h4>
+                        <p className="text-emerald-600 text-sm mt-1">Anda telah mendaftarkan 3 Trustee di smart contract.</p>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                          <p className="text-amber-800 text-sm flex items-start gap-2">
+                            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                            <span>
+                              Anda diwajibkan mendaftarkan tepat 3 alamat wallet Trustee. Trustee ini akan bertugas memverifikasi dan menyetujui setiap pencairan dana donasi kripto (USDT/USDC). <b>Pastikan Anda menggunakan Metamask dan berada di jaringan yang tepat.</b>
+                            </span>
+                          </p>
+                        </div>
+                        
+                        {[0, 1, 2].map((index) => (
+                          <div key={index}>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">Wallet Address Trustee {index + 1}</label>
+                              <div className="relative">
+                                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                                      <Wallet size={16} />
+                                  </span>
+                                  <input
+                                      type="text"
+                                      value={trustees[index]}
+                                      onChange={(e) => handleTrusteeChange(index, e.target.value)}
+                                      className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none font-mono text-sm"
+                                      placeholder="0x..."
+                                  />
+                              </div>
+                          </div>
+                        ))}
+
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={handleRegisterTrustee}
+                            disabled={registeringTrustee || !form.wallet_address}
+                            className={`w-full flex justify-center items-center gap-2 py-3 rounded-xl font-bold text-white transition-all shadow-sm ${
+                              registeringTrustee || !form.wallet_address
+                                ? "bg-gray-400 cursor-not-allowed"
+                                : "bg-blue-600 hover:bg-blue-700 hover:shadow-md"
+                            }`}
+                          >
+                            {registeringTrustee ? (
+                              <><Loader2 size={18} className="animate-spin" /> Memproses Transaksi...</>
+                            ) : (
+                              <><ShieldCheck size={18} /> Daftarkan Trustee di Blockchain</>
+                            )}
+                          </button>
+                          {!form.wallet_address && (
+                            <p className="text-xs text-red-500 text-center mt-2">
+                              Simpan Wallet Address Anda di form Keuangan terlebih dahulu sebelum mendaftar.
+                            </p>
+                          )}
+                        </div>
+                      </>
+                    )}
                 </div>
             </div>
 

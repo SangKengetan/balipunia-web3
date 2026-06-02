@@ -10,10 +10,10 @@ import {
 
 const menu = [
   { name: "Dashboard", path: "/admin/pura", icon: <LayoutDashboard size={20} /> },
-  { name: "Campaign", path: "/admin/pura/campaigns", icon: <Megaphone size={20} /> },
-  { name: "Profile Pura", path: "/admin/pura/profile", icon: <Landmark size={20} /> },
-  { name: "Reports", path: "/admin/pura/financereports", icon: <FileText size={20} /> },
-  { name: "Withdraw", path: "/admin/pura/withdraws", icon: <Wallet size={20} /> },
+  { name: "Kegiatan", path: "/admin/pura/campaigns", icon: <Megaphone size={20} /> },
+  { name: "Profil Pura", path: "/admin/pura/profile", icon: <Landmark size={20} /> },
+  { name: "Laporan", path: "/admin/pura/financereports", icon: <FileText size={20} /> },
+  { name: "Pencairan Dana", path: "/admin/pura/withdraws", icon: <Wallet size={20} /> },
 ];
 
 export default function Sidebar() {

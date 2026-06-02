@@ -26,7 +26,7 @@ async function getPublicCampaignDetail(req, res) {
      * 2) Ambil detail sesuai tipe
      */
     let data;
-    if (campaign_type === 'SC-ONLY') {
+    if (campaign_type === 'CRYPTO_ONLY') {
       // DB + Onchain, TANPA offchain
       data = await campaignService.getScCampaignDetail(id);
     } else {
@@ -64,12 +64,12 @@ async function getPublicCampaignDetail(req, res) {
       return res.status(404).json({ message: 'Campaign tidak ditemukan' });
     }
 
-    if (err.message === 'FORBIDDEN_SC_ONLY') {
-      return res.status(403).json({ message: 'Campaign SC-ONLY tidak mendukung halaman Hybrid' });
+    if (err.message === 'FORBIDDEN_CRYPTO_ONLY') {
+      return res.status(403).json({ message: 'Kegiatan CRYPTO_ONLY tidak mendukung halaman Hybrid' });
     }
 
-    if (err.message === 'FORBIDDEN_NON_SC_ONLY') {
-      return res.status(403).json({ message: 'Campaign bukan SC-ONLY' });
+    if (err.message === 'FORBIDDEN_NON_CRYPTO_ONLY') {
+      return res.status(403).json({ message: 'Kegiatan bukan CRYPTO_ONLY' });
     }
 
     if (err.message === 'SC_NOT_REGISTERED_ONCHAIN') {

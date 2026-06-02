@@ -16,10 +16,10 @@ export default function PuraCard({ pura }) {
     >
       {/* 1. IMAGE SECTION */}
       <div className="relative h-48 bg-gray-200 overflow-hidden">
-        {/* Jika nanti ada pura.image_url, ganti logika di bawah ini */}
-        {pura.image_url ? (
+        {/* Jika ada pura.profile_picture */}
+        {pura.profile_picture ? (
           <img 
-            src={pura.image_url} 
+            src={`https://gateway.pinata.cloud/ipfs/${pura.profile_picture}`} 
             alt={pura.nama_pura} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />

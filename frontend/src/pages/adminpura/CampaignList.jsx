@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { getMyCampaigns } from "../../api/adminPura.api"; 
+import { getMyCampaigns, getProfile } from "../../api/adminPura.api"; 
 import { Link } from "react-router-dom";
 import { 
   Calendar, 
   Coins, 
   Plus, 
-  Banknote, // Icon untuk Off-chain
+  Banknote, 
   Clock, 
   CheckCircle2,
   Wallet,
-  Globe // Icon alternatif untuk Web3
+  Globe,
+  ArrowRight
 } from "lucide-react";
 
 // --- Helper Functions ---
@@ -24,19 +25,24 @@ const formatDate = (dateString) => {
 
 const formatCrypto = (val) => {
   if (!val) return "0.00";
-  return (parseFloat(val) / 1000000).toLocaleString("en-US", {
-    minimumFractionDigits: 2,
+  return (parseFloat(val) / 1e18).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
 };
 
 export default function CampaignList() {
   const [campaigns, setCampaigns] = useState([]);
+  const [profileCompletion, setProfileCompletion] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getMyCampaigns()
-      .then((res) => setCampaigns(res.data))
+    Promise.all([getMyCampaigns(), getProfile()])
+      .then(([campRes, profRes]) => {
+        setCampaigns(campRes.data);
+        const pData = profRes.data?.data || profRes.data || {};
+        setProfileCompletion(pData.profile_completion_percentage || 0);
+      })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
@@ -56,153 +62,172 @@ export default function CampaignList() {
 
   // --- Main Render ---
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-8 font-sans pb-10">
       {/* Header Page */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Daftar Kampanye</h1>
-          <p className="text-sm text-gray-500">
-            Kelola penggalangan dana (Hybrid & Fiat) pura Anda di sini.
+          <h1 className="text-2xl font-bold text-gray-800">Daftar Kegiatan Pura</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Lihat dan kelola semua kegiatan penggalangan dana pura Anda.
           </p>
         </div>
-        <Link
-          to="create"
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-2.5 rounded-xl font-medium transition-all shadow-sm shadow-amber-200 hover:shadow-md"
-        >
-          <Plus size={20} />
-          <span>Buat Campaign</span>
-        </Link>
+        {profileCompletion === 100 ? (
+          <Link
+            to="create"
+            className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
+          >
+            <Plus size={20} />
+            <span>Buat Kegiatan Baru</span>
+          </Link>
+        ) : (
+          <button
+            onClick={() => alert("Harap lengkapi profil Anda hingga 100% (termasuk pendaftaran Trustee) di menu Profil untuk dapat membuat kegiatan baru.")}
+            className="flex items-center gap-2 bg-gray-300 text-gray-500 px-5 py-3 rounded-xl font-medium cursor-not-allowed"
+          >
+            <Plus size={20} />
+            <span>Buat Kegiatan Baru</span>
+          </button>
+        )}
       </div>
 
       {/* Empty State */}
       {campaigns.length === 0 && (
         <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-gray-300">
-          <div className="mx-auto w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-400">
+          <div className="mx-auto w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-4 text-amber-500">
             <Calendar size={32} />
           </div>
-          <h3 className="text-lg font-medium text-gray-900">Belum ada kampanye</h3>
-          <p className="text-gray-500 mt-1">Silakan buat kampanye baru untuk memulai.</p>
+          <h3 className="text-lg font-medium text-gray-900">Belum ada kegiatan</h3>
+          <p className="text-gray-500 mt-1">Silakan buat kegiatan baru untuk mulai menerima donasi.</p>
         </div>
       )}
 
       {/* Grid List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {campaigns.map((c) => {
-          const deadline = c.deadline ? new Date(c.deadline) : null;
-          const isExpired = deadline && now > deadline;
+          const activeOrCompletedStatuses = [
+            "REQUEST WITHDRAW",
+            "PENDING_TRANSFER",
+            "WITHDRAWN",
+            "COMPLETED",
+            "REPORTED",
+          ];
           
-          // Logic Tombol Withdraw (Hanya relevan untuk On-chain/Web3)
+          const hasNoDeadline = !c.deadline;
+          const isExpired = c.deadline && now > new Date(c.deadline);
+          
           const canShowWithdrawButton =
-            c.is_onchain_enabled &&
-            c.is_sc_registered &&
-            isExpired &&
-            c.status !== "REQUEST_WD";
+            (isExpired || hasNoDeadline) &&
+            !activeOrCompletedStatuses.includes(c.status);
 
           return (
             <div
               key={c.id}
-              className="group bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col"
+              className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col relative group"
             >
-              {/* === CARD HEADER: Badges === */}
-              <div className="px-5 pt-5 pb-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  {/* Badge 1: Status Waktu */}
-                  {isExpired ? (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-gray-100 text-gray-600 border border-gray-200 uppercase tracking-wide">
-                      <CheckCircle2 size={12} /> Selesai
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-100 uppercase tracking-wide">
-                      <Clock size={12} /> Aktif
-                    </span>
-                  )}
+              {/* Highlight bar di atas */}
+              <div className={`h-1.5 w-full ${isExpired ? 'bg-gray-400' : 'bg-amber-500'}`}></div>
 
-                  {/* Badge 2: On-chain (Web3) */}
-                  {c.is_onchain_enabled && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase tracking-wide">
-                      <Globe size={12} /> Web3
-                    </span>
-                  )}
-
-                  {/* Badge 3: Off-chain (Fiat) */}
-                  {/* Asumsi: Ada flag 'is_offchain_enabled' atau default true */}
-                  {(c.is_offchain_enabled !== false) && (
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-100 uppercase tracking-wide">
-                      <Banknote size={12} /> Fiat
-                    </span>
-                  )}
+              {/* === CARD HEADER === */}
+              <div className="px-6 pt-5 pb-3 border-b border-gray-50">
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    {isExpired ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs font-semibold uppercase">
+                        <CheckCircle2 size={14} /> Selesai
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded bg-amber-50 text-amber-600 text-xs font-semibold uppercase">
+                        <Clock size={14} /> Aktif
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Badge Tipe Metode */}
+                  <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                    {c.campaign_type === 'HYBRID' ? 'Rupiah & Kripto' : c.campaign_type === 'MIDTRANS_ONLY' ? 'Hanya Rupiah' : 'Hanya Kripto'}
+                  </span>
                 </div>
-              </div>
 
-              {/* === CARD BODY: Content === */}
-              <div className="px-5 pb-5 flex-1">
-                <Link to={`/admin/pura/campaigns/${c.id}`} className="block mt-2 group-hover:text-amber-600 transition-colors">
-                  <h2 className="text-lg font-bold text-gray-800 leading-snug line-clamp-2">
+                <Link to={`/admin/pura/campaigns/${c.id}`} className="block mt-3">
+                  <h2 className="text-lg font-bold text-gray-900 leading-snug line-clamp-2 group-hover:text-amber-600 transition-colors">
                     {c.title}
                   </h2>
                 </Link>
-                <p className="text-sm text-gray-500 mt-2 line-clamp-2 min-h-[40px]">
+                <p className="text-sm text-gray-500 mt-2 line-clamp-2">
                   {c.purpose}
                 </p>
+              </div>
 
-                {/* Crypto Balance Section (Hanya tampil jika On-chain aktif) */}
-                {c.is_onchain_enabled && c.onchain_info?.balance_usdt !== undefined && (
-                  <div className="mt-4 bg-gray-50 rounded-xl p-3 border border-gray-100">
-                    <div className="flex items-center gap-2 mb-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                      <Wallet size={12} /> Vault Balance
-                    </div>
-                    <div className="flex justify-between items-center gap-4">
-                      <div>
-                         <span className="text-[10px] text-gray-500 block uppercase">USDT</span>
-                         <span className="font-mono text-sm font-semibold text-gray-800">
-                            {formatCrypto(c.onchain_info.balance_usdt)}
-                         </span>
-                      </div>
-                      <div className="h-6 w-px bg-gray-200"></div>
-                      <div className="text-right">
-                         <span className="text-[10px] text-gray-500 block uppercase">USDC</span>
-                         <span className="font-mono text-sm font-semibold text-gray-800">
-                            {formatCrypto(c.onchain_info.balance_usdc)}
-                         </span>
-                      </div>
-                    </div>
+              {/* === CARD BODY: Summary === */}
+              <div className="px-6 py-4 flex-1 bg-gray-50/50">
+                <div className="flex flex-col gap-3">
+                  {/* Tenggat Waktu */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-gray-500 flex items-center gap-2">
+                      <Calendar size={16}/> Tenggat Waktu
+                    </span>
+                    <span className="font-semibold text-gray-800">
+                      {formatDate(c.deadline)}
+                    </span>
                   </div>
-                )}
+
+                  {/* Saldo Kripto (Jika Ada) */}
+                  {c.campaign_type !== 'MIDTRANS_ONLY' && c.onchain_info?.balance_usdt !== undefined && (
+                    <div className="mt-2 bg-white rounded-xl p-3 border border-gray-100 shadow-sm">
+                      <span className="text-xs text-gray-500 block mb-2 font-medium">Saldo Kripto Terkumpul:</span>
+                      <div className="flex gap-4">
+                        <div className="flex items-center gap-1.5 bg-green-50 px-2 py-1 rounded text-green-700">
+                           <span className="font-bold text-sm">{formatCrypto(c.onchain_info.balance_usdt)}</span>
+                           <span className="text-xs">USDT</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 bg-blue-50 px-2 py-1 rounded text-blue-700">
+                           <span className="font-bold text-sm">{formatCrypto(c.onchain_info.balance_usdc)}</span>
+                           <span className="text-xs">USDC</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {c.campaign_type === 'MIDTRANS_ONLY' && (
+                     <div className="mt-2 bg-white rounded-xl p-3 border border-gray-100 shadow-sm text-center">
+                        <span className="text-xs text-gray-500 block font-medium">Penggalangan Dana Rupiah</span>
+                        <p className="text-xs text-gray-400 mt-1">Cek detail untuk melihat jumlah donasi.</p>
+                     </div>
+                  )}
+                </div>
               </div>
 
               {/* === CARD FOOTER: Actions === */}
-              <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 mt-auto">
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3 font-medium">
-                    <div className="flex items-center gap-1.5">
-                        <Calendar size={14} />
-                        <span>Deadline: {formatDate(c.deadline)}</span>
-                    </div>
-                </div>
-
-                {/* Logic Tombol: Prioritaskan Withdraw jika Web3, jika tidak tampilkan Lihat Detail */}
+              <div className="px-6 py-4 bg-white border-t border-gray-100">
                 {canShowWithdrawButton ? (
                   <Link
                     to={`/admin/pura/withdraw/request/${c.id}`}
-                    className="flex w-full items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white py-2 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    className="flex w-full items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
                   >
-                    <Coins size={16} /> Ajukan Withdraw
+                    <Coins size={18} /> Cairkan Dana
                   </Link>
                 ) : (
-                  <div className="w-full text-center">
-                     {/* Jika Campaign masih aktif atau tipe Fiat Only, tampilkan status/info text */}
-                     <span className="text-xs text-gray-400 select-none">
-                        {c.status === "REQUEST_WD" ? (
-                           <span className="text-blue-600 font-medium flex items-center justify-center gap-1">
-                              <Clock size={12}/> Withdraw Sedang Diproses
-                           </span>
-                        ) : !isExpired ? (
-                           "Sedang Berlangsung..."
-                        ) : !c.is_onchain_enabled ? (
-                           "Pengelolaan Dana Fiat via Laporan"
-                        ) : (
-                           "Belum Terdaftar Smart Contract"
-                        )}
-                     </span>
+                  <Link
+                    to={`/admin/pura/campaigns/${c.id}`}
+                    className="flex w-full items-center justify-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
+                  >
+                    Lihat Detail Kegiatan <ArrowRight size={16} className="text-gray-400"/>
+                  </Link>
+                )}
+                
+                {/* Status Khusus */}
+                {c.status === "REQUEST WITHDRAW" && (
+                  <div className="mt-3 text-center">
+                    <span className="inline-flex items-center justify-center gap-1 text-xs text-amber-600 font-medium bg-amber-50 px-3 py-1.5 rounded-full w-full">
+                      <Clock size={14}/> Pencairan Diproses
+                    </span>
+                  </div>
+                )}
+                {(c.status === "WITHDRAWN" || c.status === "COMPLETED") && (
+                  <div className="mt-3 text-center">
+                    <span className="inline-flex items-center justify-center gap-1 text-xs text-emerald-600 font-medium bg-emerald-50 px-3 py-1.5 rounded-full w-full">
+                      <CheckCircle2 size={14}/> Dana Telah Dicairkan
+                    </span>
                   </div>
                 )}
               </div>

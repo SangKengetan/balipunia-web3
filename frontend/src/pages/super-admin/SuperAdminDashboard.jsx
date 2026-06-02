@@ -50,6 +50,9 @@ export default function SuperAdminDashboard() {
           <MenuLink to="/admin/super/offchain" icon={<WalletIcon />}>
             Offchain Withdrawal
           </MenuLink>
+          <MenuLink to="/admin/super/withdraws" icon={<BanknoteIcon />}>
+            Pencairan Dana
+          </MenuLink>
         </nav>
 
         {/* 3. Footer / User Profile */}
@@ -141,6 +144,14 @@ const WalletIcon = () => (
 const LogoutIcon = () => (
   <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+  </svg>
+);
+
+const BanknoteIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 7a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7z" />
+    <circle cx="12" cy="12" r="3" strokeWidth={1.5} />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2 9h2m16 0h2M2 15h2m16 0h2" />
   </svg>
 );
 

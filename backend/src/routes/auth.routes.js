@@ -1,6 +1,12 @@
 const express = require("express");
 const { adminAuth } = require("../controllers/auth.controller");
-const { authenticateAdmin } = require("../middlewares/auth.middleware");
+const { authenticateAdmin, authenticateDonor } = require("../middlewares/auth.middleware");
+const {
+  registerDonor,
+  loginDonor,
+  getDonorProfile,
+  updateDonorWallet,
+} = require("../controllers/donorAuth.controller");
 
 const {
   requestNonce,
@@ -20,5 +26,11 @@ router.get("/me", authenticateAdmin, (req, res) => {
     role: req.admin.role,
   });
 });
+
+// === DONOR ROUTES ===
+router.post("/donor/register", registerDonor);
+router.post("/donor/login", loginDonor);
+router.get("/donor/me", authenticateDonor, getDonorProfile);
+router.put("/donor/wallet", authenticateDonor, updateDonorWallet);
 
 module.exports = router;

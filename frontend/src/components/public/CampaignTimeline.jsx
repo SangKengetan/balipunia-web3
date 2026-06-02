@@ -29,27 +29,29 @@ export default function CampaignTimeline({ campaignId }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="relative border-l border-gray-200 ml-3 space-y-6 pb-2 pt-2">
       {items.map((item, i) => (
-        <div key={i} className="flex gap-4">
+        <div key={i} className="relative pl-6">
           {/* DOT */}
-          <div className="mt-1 h-3 w-3 rounded-full bg-blue-600" />
+          <div className="absolute -left-[5px] top-1.5 h-2.5 w-2.5 rounded-full bg-amber-500 ring-4 ring-white" />
 
           {/* CONTENT */}
-          <div className="flex-1">
-            <div className="font-medium">{item.title}</div>
+          <div className="flex flex-col">
+            <div className="font-bold text-gray-900">{item.title}</div>
 
-            <div className="text-xs text-gray-500">
-              {new Date(item.timestamp).toLocaleString()}
+            <div className="text-xs text-gray-500 font-medium">
+              {new Date(item.timestamp).toLocaleDateString('id-ID', {
+                 weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'
+              })}
             </div>
 
             {item.details && (
-              <div className="mt-1 text-xs text-gray-600 space-y-1">
+              <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-100 text-xs text-gray-600 space-y-1 font-mono">
                 {item.details.txHash && (
-                  <div>Tx: {short(item.details.txHash)}</div>
+                  <div>Tx: <a href={`https://testnet.bscscan.com/tx/${item.details.txHash}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{short(item.details.txHash)}</a></div>
                 )}
                 {item.details.ipfsCid && (
-                  <div>CID: {item.details.ipfsCid}</div>
+                  <div>CID: <a href={`https://gateway.pinata.cloud/ipfs/${item.details.ipfsCid}`} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">{short(item.details.ipfsCid)}</a></div>
                 )}
                 {item.details.fileName && (
                   <div>File: {item.details.fileName}</div>

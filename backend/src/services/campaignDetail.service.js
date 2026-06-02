@@ -37,15 +37,42 @@ async function getCampaignDetailFullService({
   let onchainBalance = null;
   let donationHistory = [];
 
-  if (campaign.is_onchain_enabled && campaign.onchain_campaign_id) {
+  if (campaign.id_campaign_onchain) {
     onchainBalance = await vaultService.getCampaignBalances(
-      campaign.onchain_campaign_id,
+      campaign.id_campaign_onchain,
       [USDT, USDC]
     );
 
-    donationHistory = await vaultService.getDonationHistory({
-      campaignId: campaign.onchain_campaign_id,
+    const rawDonations = await vaultService.getDonationHistory({
+      campaignId: campaign.id_campaign_onchain,
     });
+
+    if (rawDonations.length > 0) {
+      const uniqueWallets = [...new Set(rawDonations.map((d) => d.donor.toLowerCase()))];
+      const { rows: donorRows } = await pool.query(
+        `SELECT name, LOWER(wallet_address) AS wallet_address FROM donors WHERE LOWER(wallet_address) = ANY($1)`,
+        [uniqueWallets]
+      );
+      
+      const walletToNameMap = {};
+      donorRows.forEach((row) => {
+        walletToNameMap[row.wallet_address] = row.name;
+      });
+
+      donationHistory = rawDonations.map((d) => {
+        const lowerWallet = d.donor.toLowerCase();
+        let tokenSymbol = d.token;
+        if (USDT && d.token.toLowerCase() === USDT.toLowerCase()) tokenSymbol = "USDT";
+        else if (USDC && d.token.toLowerCase() === USDC.toLowerCase()) tokenSymbol = "USDC";
+
+        return {
+          ...d,
+          donor: walletToNameMap[lowerWallet] || `${d.donor.slice(0, 6)}...${d.donor.slice(-4)}`,
+          original_wallet: d.donor,
+          token: tokenSymbol
+        };
+      });
+    }
   }
 
   /**
@@ -61,7 +88,46 @@ async function getCampaignDetailFullService({
     [campaign.id]
   );
 
-  const totalOffchain = offchainRows[0].total_offchain;
+  let totalOffchain = Number(offchainRows[0].total_offchain);
+
+  // Kurangi dengan total Rupiah yang sudah berhasil ditarik (Metode Sweep/Gelombang)
+  const { rows: withdrawnRows } = await pool.query(
+    `
+    SELECT COALESCE(
+      SUM(
+        CASE 
+          WHEN amount_snapshot IS NOT NULL AND amount_snapshot <> '' 
+          THEN (amount_snapshot::jsonb->'fiat'->>'amount_idr')::numeric 
+          ELSE 0 
+        END
+      ), 
+      0
+    ) AS total_withdrawn
+    FROM withdraw_requests
+    WHERE campaign_id = $1
+      AND status IN ('COMPLETED', 'EXECUTED')
+    `,
+    [campaign.id]
+  );
+  totalOffchain -= Number(withdrawnRows[0].total_withdrawn);
+  if (totalOffchain < 0) totalOffchain = 0;
+  totalOffchain = totalOffchain.toString();
+
+  const { rows: offchainDonations } = await pool.query(
+    `
+    SELECT
+      id,
+      donor_name,
+      gross_amount,
+      system_status,
+      updated_at
+    FROM offchain_transactions
+    WHERE campaign_id = $1
+      AND system_status IN ('PAID_LOCKED','APPROVED','WITHDRAWN')
+    ORDER BY updated_at DESC
+    `,
+    [campaign.id]
+  );
 
   /**
    * 4️⃣ Withdraw timeline
@@ -71,7 +137,7 @@ async function getCampaignDetailFullService({
     SELECT
       id,
       withdraw_type,
-      amount,
+      amount_snapshot AS amount,
       status,
       governance_proposal_id,
       executed_tx_hash,
@@ -120,7 +186,14 @@ async function getCampaignDetailFullService({
       offchain: totalOffchain,
     },
 
-    donations: donationHistory,
+    donations: {
+      onchain: donationHistory,
+      offchain: offchainDonations.map((d) => ({
+        donor: d.donor_name,
+        amount: d.gross_amount,
+        timestamp: d.updated_at,
+      })),
+    },
 
     withdraws: withdrawRows,
 
@@ -160,15 +233,42 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
   let onchainBalance = null;
   let donationHistory = [];
 
-  if (campaign.is_onchain_enabled && campaign.onchain_campaign_id) {
+  if (campaign.id_campaign_onchain) {
     onchainBalance = await vaultService.getCampaignBalances(
-      campaign.onchain_campaign_id,
+      campaign.id_campaign_onchain,
       [USDT, USDC]
     );
 
-    donationHistory = await vaultService.getDonationHistory({
-      campaignId: campaign.onchain_campaign_id,
+    const rawDonations = await vaultService.getDonationHistory({
+      campaignId: campaign.id_campaign_onchain,
     });
+
+    if (rawDonations.length > 0) {
+      const uniqueWallets = [...new Set(rawDonations.map((d) => d.donor.toLowerCase()))];
+      const { rows: donorRows } = await pool.query(
+        `SELECT name, LOWER(wallet_address) AS wallet_address FROM donors WHERE LOWER(wallet_address) = ANY($1)`,
+        [uniqueWallets]
+      );
+      
+      const walletToNameMap = {};
+      donorRows.forEach((row) => {
+        walletToNameMap[row.wallet_address] = row.name;
+      });
+
+      donationHistory = rawDonations.map((d) => {
+        const lowerWallet = d.donor.toLowerCase();
+        let tokenSymbol = d.token;
+        if (USDT && d.token.toLowerCase() === USDT.toLowerCase()) tokenSymbol = "USDT";
+        else if (USDC && d.token.toLowerCase() === USDC.toLowerCase()) tokenSymbol = "USDC";
+
+        return {
+          ...d,
+          donor: walletToNameMap[lowerWallet] || `${d.donor.slice(0, 6)}...${d.donor.slice(-4)}`,
+          original_wallet: d.donor,
+          token: tokenSymbol
+        };
+      });
+    }
   }
 
   /**
@@ -184,7 +284,46 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
     [campaign.id]
   );
 
-  const totalOffchain = offchainRows[0].total_offchain;
+  let totalOffchain = Number(offchainRows[0].total_offchain);
+
+  // Kurangi dengan total Rupiah yang sudah berhasil ditarik (Metode Sweep/Gelombang)
+  const { rows: withdrawnRows } = await pool.query(
+    `
+    SELECT COALESCE(
+      SUM(
+        CASE 
+          WHEN amount_snapshot IS NOT NULL AND amount_snapshot <> '' 
+          THEN (amount_snapshot::jsonb->'fiat'->>'amount_idr')::numeric 
+          ELSE 0 
+        END
+      ), 
+      0
+    ) AS total_withdrawn
+    FROM withdraw_requests
+    WHERE campaign_id = $1
+      AND status IN ('COMPLETED', 'EXECUTED')
+    `,
+    [campaign.id]
+  );
+  totalOffchain -= Number(withdrawnRows[0].total_withdrawn);
+  if (totalOffchain < 0) totalOffchain = 0;
+  totalOffchain = totalOffchain.toString();
+
+  const { rows: offchainDonations } = await pool.query(
+    `
+    SELECT
+      id,
+      donor_name,
+      gross_amount,
+      system_status,
+      updated_at
+    FROM offchain_transactions
+    WHERE campaign_id = $1
+      AND system_status IN ('PAID_LOCKED','APPROVED','WITHDRAWN')
+    ORDER BY updated_at DESC
+    `,
+    [campaign.id]
+  );
 
   /**
    * 4️⃣ Withdraw (PUBLIC – tanpa proposal detail)
@@ -193,7 +332,7 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
     `
     SELECT
       withdraw_type,
-      amount,
+      amount_snapshot AS amount,
       status,
       created_at
     FROM withdraw_requests
@@ -235,12 +374,19 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
       offchain: totalOffchain,
     },
 
-    donations: donationHistory.map((d) => ({
-      donor: d.donor,
-      token: d.token,
-      amount: d.amount,
-      timestamp: d.timestamp,
-    })),
+    donations: {
+      onchain: donationHistory.map((d) => ({
+        donor: d.donor,
+        token: d.token,
+        amount: d.amount,
+        timestamp: d.timestamp,
+      })),
+      offchain: offchainDonations.map((d) => ({
+        donor: d.donor_name,
+        amount: d.gross_amount,
+        timestamp: d.updated_at,
+      })),
+    },
 
     withdraws: withdrawRows,
 

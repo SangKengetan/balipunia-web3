@@ -54,16 +54,17 @@ async function getAllWithdrawsForTrustee() {
       wr.onchain_campaign_id,
       wr.campaign_title,
       wr.amount_snapshot,
+      wr.total_idr,
       wr.status,
       wr.ipfs_cid,
       wr.governance_proposal_id,
+      wr.transfer_proof_cid,
       wr.created_at,
 
       c.campaign_type,
       c.deadline
     FROM withdraw_requests wr
     JOIN campaigns c ON c.id = wr.campaign_id
-    WHERE wr.withdraw_type = 'ONCHAIN'
     ORDER BY wr.created_at DESC
   `);
 

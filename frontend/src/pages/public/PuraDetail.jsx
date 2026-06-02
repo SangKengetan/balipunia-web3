@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { fetchPublicPuraDetail, fetchFinancialReportsByPura } from "../../api/public.api"; // Pastikan import ini ada
 import CampaignCardDB from "../../components/public/CampaignCardDB";
-import CampaignCardSC from "../../components/public/CampaignCardSC";
+import Navbar from "../../components/Navbar";
+import useWallet from "../../hooks/useWallet";
 
 // --- Utility Helpers ---
 const formatCurrency = (value) => {
@@ -23,9 +24,12 @@ const formatDate = (dateString) => {
 
 export default function PuraDetail() {
   const { id } = useParams();
+  const { address, connectWallet } = useWallet();
   
   // Data State
   const [pura, setPura] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [exchangeRate, setExchangeRate] = useState(15500); // Default USDT to IDR estimate
   const [campaignDB, setCampaignDB] = useState([]);
   const [campaignSC, setCampaignSC] = useState([]);
   
@@ -40,6 +44,16 @@ export default function PuraDetail() {
   const [activeTab, setActiveTab] = useState("campaigns");
 
   useEffect(() => {
+    // Ambil rate USDT to IDR dari CoinGecko
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tether && data.tether.idr) {
+          setExchangeRate(data.tether.idr);
+        }
+      })
+      .catch(err => console.error("Gagal mengambil rate USDT", err));
+
     const fetchAllData = async () => {
       try {
         // 1. Fetch Detail Pura & Campaign
@@ -47,6 +61,11 @@ export default function PuraDetail() {
         const data = resDetail?.data || resDetail;
 
         setPura(data.pura);
+        setStats(data.stats || {
+          total_available_offchain: 0,
+          total_pending_transfer_offchain: 0,
+          total_onchain: { usdt: "0", usdc: "0" }
+        });
         setCampaignDB(Array.isArray(data.campaigns?.db) ? data.campaigns.db : []);
         setCampaignSC(Array.isArray(data.campaigns?.sc_only) ? data.campaigns.sc_only : []);
 
@@ -75,18 +94,29 @@ export default function PuraDetail() {
     console.log("Donate onchain to campaign:", campaignId);
   };
 
+  // Kalkulasi Dana Belum Dicairkan
+  let undisbursedTotal = 0;
+  if (stats) {
+    const totalOnchainUsd = parseFloat(stats.total_onchain.usdt) + parseFloat(stats.total_onchain.usdc);
+    const totalOnchainIdr = totalOnchainUsd * exchangeRate;
+    undisbursedTotal = parseFloat(stats.total_available_offchain) + parseFloat(stats.total_pending_transfer_offchain) + totalOnchainIdr;
+  } else if (pura) {
+    // Fallback if stats isn't returned from old backend
+    undisbursedTotal = Number(pura.saldo_pending_onchain || 0) + Number(pura.saldo_pending_offchain || 0);
+  }
+
   if (loading) return <LoadingState />;
   if (!pura) return <EmptyState />;
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-20 font-sans">
-      
+      <Navbar address={address} onConnect={connectWallet} />
       {/* 1. HERO SECTION */}
       <div className="relative h-[320px] lg:h-[380px] bg-slate-900 overflow-hidden">
         {/* Background Image */}
         <div className="absolute inset-0">
           <img 
-            src={pura.image_url || "https://images.unsplash.com/photo-1640716862072-94d7324bb2d7?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"} // Use dynamic image if available
+            src={pura.profile_picture ? `https://gateway.pinata.cloud/ipfs/${pura.profile_picture}` : "https://images.unsplash.com/photo-1640716862072-94d7324bb2d7?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"}
             alt="Bali Temple Background" 
             className="w-full h-full object-cover opacity-50 scale-105"
           />
@@ -99,7 +129,7 @@ export default function PuraDetail() {
             <div className="space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/90 backdrop-blur-sm border border-amber-300/30">
                 <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                <span className="text-white text-xs font-bold tracking-wide uppercase">Verified Pura</span>
+                <span className="text-white text-xs font-bold tracking-wide uppercase">Pura Terverifikasi</span>
               </div>
               
               <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-sm">
@@ -119,24 +149,18 @@ export default function PuraDetail() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10">
         
         {/* STATS OVERVIEW CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <SaldoCard 
-            title="Total Saldo Operasional" 
+            title="Total Kas" 
             value={formatCurrency(pura.saldo_operasional)} 
             icon="wallet"
             color="amber"
           />
           <SaldoCard 
-            title="Pending On-Chain" 
-            value={formatCurrency(pura.saldo_pending_onchain)} 
-            icon="chain"
-            color="indigo"
-          />
-          <SaldoCard 
-            title="Pending Off-Chain" 
-            value={formatCurrency(pura.saldo_pending_offchain)} 
+            title="Total Yang Belum Dicairkan" 
+            value={formatCurrency(undisbursedTotal)} 
             icon="clock"
-            color="gray"
+            color="indigo"
           />
         </div>
 
@@ -167,51 +191,54 @@ export default function PuraDetail() {
             <div className="p-6 md:p-8 min-h-[400px]">
                 
                 {/* === VIEW 1: CAMPAIGNS === */}
-                {activeTab === 'campaigns' && (
-                    <div className="animate-fadeIn">
-                        {/* Hybrid Campaigns */}
-                        <div className="mb-10">
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Program Aktif</h2>
-                                <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Database & Hybrid</span>
-                            </div>
-                            
-                            {campaignDB.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {campaignDB.map((c) => (
-                                        <CampaignCardDB key={c.id} campaign={c} />
-                                    ))}
-                                </div>
-                            ) : (
-                                <EmptySection text="Belum ada program donasi reguler yang aktif." />
-                            )}
-                        </div>
+                {activeTab === 'campaigns' && (() => {
+                    const allCampaigns = [...campaignDB, ...campaignSC];
+                    const campaignsWithDeadline = allCampaigns.filter(c => c.deadline != null);
+                    const campaignsWithoutDeadline = allCampaigns.filter(c => c.deadline == null);
 
-                        {/* On-Chain Only Campaigns */}
-                        {campaignSC.length > 0 && (
-                            <div className="pt-6 border-t border-gray-100">
+                    const renderCampaignCards = (campaigns) => {
+                        if (campaigns.length === 0) return <EmptySection text="Belum ada program di kategori ini." />;
+                        return (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {campaigns.map((c) => 
+                                    <CampaignCardDB key={c.id || c.id_campaign_onchain} campaign={c} />
+                                )}
+                            </div>
+                        );
+                    };
+
+                    return (
+                        <div className="animate-fadeIn space-y-12">
+                            {/* Berbatas Waktu */}
+                            <div>
                                 <div className="flex items-center gap-3 mb-6">
-                                    <div className="p-2 bg-indigo-50 rounded-lg">
-                                        <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                    <div className="p-2 bg-rose-50 rounded-lg">
+                                        <svg className="w-6 h-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-bold text-gray-900">Web3 Exclusive</h2>
-                                        <p className="text-sm text-gray-500">Program khusus via Smart Contract.</p>
+                                        <h2 className="text-xl font-bold text-gray-900">Program Berbatas Waktu</h2>
+                                        <p className="text-sm text-gray-500">Program donasi dengan target waktu tertentu.</p>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {campaignSC.map((c) => (
-                                        <CampaignCardSC
-                                            key={c.id_campaign_onchain}
-                                            campaign={c}
-                                            onDonate={handleDonateOnchain}
-                                        />
-                                    ))}
-                                </div>
+                                {renderCampaignCards(campaignsWithDeadline)}
                             </div>
-                        )}
-                    </div>
-                )}
+
+                            {/* Terbuka */}
+                            <div className="pt-8 border-t border-gray-100">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="p-2 bg-emerald-50 rounded-lg">
+                                        <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900">Program Rutin / Terbuka</h2>
+                                        <p className="text-sm text-gray-500">Program yang selalu menerima donasi kapan saja.</p>
+                                    </div>
+                                </div>
+                                {renderCampaignCards(campaignsWithoutDeadline)}
+                            </div>
+                        </div>
+                    );
+                })()}
 
                 {/* === VIEW 2: FINANCIAL REPORTS (REAL) === */}
                 {activeTab === 'reports' && (
@@ -276,19 +303,19 @@ export default function PuraDetail() {
 
                                         {/* Footer: Proofs */}
                                         <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex flex-wrap gap-3 items-center text-sm">
-                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Proofs:</span>
+                                            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider mr-2">Bukti Audit:</span>
                                             
                                             {r.ipfs_cid && (
                                                 <a href={`https://ipfs.io/ipfs/${r.ipfs_cid}`} target="_blank" rel="noreferrer" className="proof-badge group/link">
                                                     <svg className="w-3.5 h-3.5 text-gray-400 group-hover/link:text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                                                    IPFS Data
+                                                    Penyimpanan Terdesentralisasi
                                                 </a>
                                             )}
 
                                             {r.anchor_tx_hash && (
                                                 <a href={`https://testnet.bscscan.com/tx/${r.anchor_tx_hash}`} target="_blank" rel="noreferrer" className="proof-badge group/link">
                                                     <svg className="w-3.5 h-3.5 text-gray-400 group-hover/link:text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                                    Tx: {r.anchor_tx_hash.slice(0, 6)}...
+                                                    Transaksi: {r.anchor_tx_hash.slice(0, 6)}...
                                                 </a>
                                             )}
                                         </div>

@@ -9,7 +9,7 @@ const { authenticateAdmin } = require("../../middlewares/auth.middleware");
 const requireRole = require("../../middlewares/requireRole");
 
 router.get(
-  "/dashboard/summary",
+  "/summary",
   authenticateAdmin,
   requireRole("ADMIN_PURA"),
   getAdminPuraDashboardSummaryHandler

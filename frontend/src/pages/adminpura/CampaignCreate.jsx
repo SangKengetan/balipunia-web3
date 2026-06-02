@@ -1,13 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// API backend (HYBRID & SYNC)
-import {
-  createCampaign, // HYBRID
-  syncScOnlyCampaign, // BARU
-} from "../../api/adminPura.api";
+// API backend (sync metadata ke database)
+import { syncCampaign } from "../../api/adminPura.api";
 
-// Blockchain service (SC_ONLY)
+// Blockchain service (registrasi ke smart contract)
 import {
   createCampaignOnChain,
   CAMPAIGN_TYPE,
@@ -17,7 +14,7 @@ export default function CampaignCreate() {
   const navigate = useNavigate();
 
   // 🔑 State management
-  const [mode, setMode] = useState("HYBRID"); // HYBRID | SC_ONLY
+  const [mode, setMode] = useState("HYBRID"); // HYBRID | MIDTRANS_ONLY | CRYPTO_ONLY
   const [isLoading, setIsLoading] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -27,61 +24,64 @@ export default function CampaignCreate() {
   });
 
   // =========================
-  // SUBMIT HANDLER (LOGIC)
+  // SUBMIT HANDLER
+  // Semua tipe kegiatan melewati jalur blockchain
   // =========================
   const submit = async () => {
     setIsLoading(true);
 
     try {
-      // 1. Jalur Hybrid (Database Only)
-      if (mode === "HYBRID") {
-        await createCampaign(form);
-        navigate("/admin/pura/campaigns");
-        return;
-      }
-
-      // 2. Jalur SC Only (Blockchain + Sync)
-      // 🔥 Get Wallet from Session
+      // 1. Ambil wallet admin dari session
       const rawWallet = sessionStorage.getItem("admin_wallet");
       console.log("RAW admin_wallet:", rawWallet);
 
       if (!rawWallet) {
-        throw new Error("Wallet admin pura tidak ditemukan di sesi ini.");
+        throw new Error("Wallet admin pura tidak ditemukan di sesi ini. Silakan login ulang.");
       }
 
-      // Normalisasi Wallet Address
       const adminWallet = rawWallet.trim();
       console.log("ADMIN WALLET FINAL:", adminWallet);
 
-      // Prepare Data
+      // 2. Generate unique campaign ID
       const campaignId = Date.now();
-      const deadlineUnix = Math.floor(
-        new Date(form.deadline).getTime() / 1000
-      );
+      
+      // 3. Deadline: 0 = open-ended (tidak ada batas waktu)
+      let deadlineUnix = 0;
+      let deadlineIsoString = null;
+      if (form.deadline) {
+        // Set ke 23:59:59 WITA (WITA = UTC+8). 23:59:59 WITA = 15:59:59 UTC
+        const utcDateStr = `${form.deadline}T15:59:59Z`; 
+        const dateObj = new Date(utcDateStr);
+        deadlineUnix = Math.floor(dateObj.getTime() / 1000);
+        deadlineIsoString = dateObj.toISOString();
+      }
 
-      // A. Create On-Chain
+      // 4. Map mode ke contract enum
+      const contractType = CAMPAIGN_TYPE[mode]; // HYBRID=0, MIDTRANS_ONLY=1, CRYPTO_ONLY=2
+
+      // A. Registrasi ke Smart Contract via MetaMask
       const { txHash } = await createCampaignOnChain({
         campaignId,
-        campaignType: CAMPAIGN_TYPE.SC_ONLY,
+        campaignType: contractType,
         payoutWallet: adminWallet,
         deadlineUnix,
       });
 
-      // B. Sync to Database
-      await syncScOnlyCampaign({
+      // B. Sync metadata ke Database
+      await syncCampaign({
         id_campaign_onchain: campaignId,
         tx_hash: txHash,
         title: form.title,
         description: form.description,
         purpose: form.purpose,
-        deadline: form.deadline,
+        deadline: deadlineIsoString,
+        campaign_type: mode, // 'HYBRID' | 'MIDTRANS_ONLY' | 'CRYPTO_ONLY'
       });
 
       navigate("/admin/pura/campaigns");
     } catch (err) {
       console.error("SUBMIT ERROR:", err);
-      // Fallback alert jika toast belum ada
-      alert(err.message || "Gagal membuat campaign. Cek konsol untuk detail.");
+      alert(err.message || "Gagal membuat kegiatan. Cek konsol untuk detail.");
     } finally {
       setIsLoading(false);
     }
@@ -102,9 +102,9 @@ export default function CampaignCreate() {
         
         {/* Header */}
         <div className="bg-white p-8 pb-4">
-          <h1 className="text-2xl font-bold text-gray-800">Buat Campaign Baru</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Buat Kegiatan Baru</h1>
           <p className="text-gray-500 text-sm mt-1">
-            Lengkapi detail di bawah untuk menggalang dana Pura atau Yayasan.
+            Lengkapi detail di bawah untuk menggalang dana Pura.
           </p>
         </div>
 
@@ -112,8 +112,8 @@ export default function CampaignCreate() {
           
           {/* 🔀 MODE SELECTION (Visual Cards) */}
           <div>
-            <label className={labelClass}>Metode Penyimpanan (Storage Mode)</label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            <label className={labelClass}>Tipe Donasi Kegiatan</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
               {/* Option: Hybrid */}
               <div
                 onClick={() => setMode("HYBRID")}
@@ -124,29 +124,47 @@ export default function CampaignCreate() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800">Hybrid</span>
+                  <span className="font-semibold text-gray-800 text-sm">Keduanya (Hybrid)</span>
                   {mode === "HYBRID" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Data disimpan di Database & Opsional ke Blockchain. Lebih cepat & hemat gas fee.
+                <p className="text-[11px] text-gray-500 leading-snug">
+                  Menerima donasi menggunakan mata uang Rupiah maupun Kripto. Data transparan dan tercatat dengan aman.
                 </p>
               </div>
 
-              {/* Option: SC Only */}
+              {/* Option: Fiat Only */}
               <div
-                onClick={() => setMode("SC_ONLY")}
+                onClick={() => setMode("MIDTRANS_ONLY")}
                 className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                  mode === "SC_ONLY"
+                  mode === "MIDTRANS_ONLY"
                     ? "border-yellow-400 bg-yellow-50"
                     : "border-gray-200 hover:border-gray-300"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800">SC-Only (Web3)</span>
-                  {mode === "SC_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  <span className="font-semibold text-gray-800 text-sm">Hanya Rupiah</span>
+                  {mode === "MIDTRANS_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                 </div>
-                <p className="text-xs text-gray-500">
-                  Full On-Chain. Transparansi maksimal, data kekal di Blockchain.
+                <p className="text-[11px] text-gray-500 leading-snug">
+                  Hanya menerima donasi Rupiah melalui sistem transfer bank, QRIS, atau e-wallet (GoPay, OVO, dll).
+                </p>
+              </div>
+
+              {/* Option: Crypto Only */}
+              <div
+                onClick={() => setMode("CRYPTO_ONLY")}
+                className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                  mode === "CRYPTO_ONLY"
+                    ? "border-yellow-400 bg-yellow-50"
+                    : "border-gray-200 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-gray-800 text-sm">Hanya Kripto</span>
+                  {mode === "CRYPTO_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                </div>
+                <p className="text-[11px] text-gray-500 leading-snug">
+                  Hanya menerima donasi menggunakan mata uang digital Kripto (Web3). Data tersimpan penuh secara desentralisasi.
                 </p>
               </div>
             </div>
@@ -159,7 +177,7 @@ export default function CampaignCreate() {
             
             {/* Judul */}
             <div>
-              <label htmlFor="title" className={labelClass}>Nama Campaign / Kegiatan</label>
+              <label htmlFor="title" className={labelClass}>Nama Kegiatan</label>
               <input
                 id="title"
                 type="text"
@@ -201,7 +219,7 @@ export default function CampaignCreate() {
             {/* Deadline dengan Helper Text */}
             <div>
               <label htmlFor="deadline" className={labelClass}>
-                Batas Waktu Donasi <span className="text-red-500">*</span>
+                Batas Waktu Donasi
               </label>
               <div className="relative">
                 <input
@@ -212,26 +230,24 @@ export default function CampaignCreate() {
                   onChange={(e) => setForm({ ...form, deadline: e.target.value })}
                 />
                 <p className="text-xs text-gray-400 mt-1 ml-1">
-                  Campaign akan ditutup otomatis pada tanggal ini pukul 23:59 WITA.
+                  Kosongkan jika kegiatan bersifat selamanya (tanpa batas waktu). Jika diisi, kegiatan akan ditutup otomatis pada tanggal tersebut tepat pukul 23:59 WITA.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* UX Alert for Blockchain Mode */}
-          {mode === "SC_ONLY" && (
-            <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800 animate-fade-in">
-              <span className="text-xl">⚠️</span>
-              <div>
-                <p className="font-bold">Perhatian Mode On-Chain</p>
-                <p className="mt-1">
-                  Campaign akan diregistrasi langsung ke Blockchain.
-                  Pastikan wallet admin memiliki saldo untuk <strong>Gas Fee</strong>.
-                  Data tidak dapat diubah setelah disimpan.
-                </p>
-              </div>
+          {/* UX Alert for Blockchain Registration */}
+          <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800 animate-fade-in">
+            <span className="text-xl">⚠️</span>
+            <div>
+              <p className="font-bold">Registrasi Blockchain Diperlukan</p>
+              <p className="mt-1">
+                Semua kegiatan akan diregistrasikan ke Smart Contract di Blockchain.
+                Pastikan wallet MetaMask terhubung dan memiliki saldo BNB/koin testnet untuk <strong>Gas Fee</strong>.
+                Data on-chain tidak dapat diubah setelah disimpan.
+              </p>
             </div>
-          )}
+          </div>
 
           {/* Action Button */}
           <div className="pt-2">
@@ -246,10 +262,10 @@ export default function CampaignCreate() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Memproses Transaksi...
+                  Memproses Transaksi Blockchain...
                 </span>
               ) : (
-                "Simpan & Publikasikan Campaign"
+                "Simpan & Publikasikan Kegiatan"
               )}
             </button>
           </div>

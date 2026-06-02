@@ -3,24 +3,25 @@ import { fetchPublicCampaignDetail } from "../api/public.api";
 
 export default function OffchainSummary({ campaignId }) {
   const [donations, setDonations] = useState([]);
-  const [total, setTotal] = useState(0);
+  const [totalCollected, setTotalCollected] = useState(0);
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [hasDeadline, setHasDeadline] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
         const res = await fetchPublicCampaignDetail(campaignId);
         
-        // 1. Ambil bagian 'offchain' dari response data
-        // Menggunakan optional chaining (?.) untuk keamanan jika data null
+        const campaignData = res.data?.campaign || {};
+        setHasDeadline(!!campaignData.deadline);
+
         const offchainData = res.data?.offchain || {};
 
-        // 2. Set list transaksi dari offchain.transactions
         const transactions = offchainData.transactions || [];
         setDonations(transactions);
 
-        // 3. Set total langsung dari offchain.total (konversi ke Number)
-        // Jika API sudah menyediakan total, lebih baik pakai itu daripada reduce manual
-        setTotal(Number(offchainData.total) || 0);
+        setTotalCollected(Number(offchainData.total_collected) || 0);
+        setCurrentBalance(Number(offchainData.current_balance) || 0);
 
       } catch (err) {
         console.error("Failed fetch offchain donations", err);
@@ -34,14 +35,24 @@ export default function OffchainSummary({ campaignId }) {
 
   return (
     <div className="space-y-4">
-      {/* TOTAL */}
-      <div className="rounded-xl border p-4">
-        <p className="text-sm text-gray-500">
-          Total Donasi Non-Crypto
-        </p>
-        <p className="text-2xl font-semibold">
-          Rp{total.toLocaleString("id-ID")}
-        </p>
+      {/* TOTALS */}
+      <div className="rounded-xl border border-blue-100 bg-blue-50 p-4 flex flex-col justify-between">
+        <div className="flex items-center justify-between mb-3">
+           <p className="text-sm font-bold text-blue-700 opacity-80 tracking-wide uppercase">Donasi Tunai</p>
+           <div className="text-xl filter grayscale hover:grayscale-0 transition-all cursor-default">🏦</div>
+        </div>
+        <div className="space-y-2 text-blue-900">
+          <div className="flex justify-between items-center text-sm">
+            <span className="opacity-70 font-medium">Total Terkumpul:</span>
+            <span className="font-bold">Rp{totalCollected.toLocaleString("id-ID")}</span>
+          </div>
+          {!hasDeadline && (
+            <div className="flex justify-between items-center text-sm border-t border-blue-200 pt-2">
+              <span className="opacity-70 font-medium">Dana Belum Ditarik:</span>
+              <span className="font-bold">Rp{currentBalance.toLocaleString("id-ID")}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* HISTORY */}

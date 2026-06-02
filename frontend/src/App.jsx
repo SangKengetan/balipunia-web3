@@ -11,6 +11,7 @@ import Dashboard from "./pages/super-admin/Dashboard";
 import AdminManagement from "./pages/super-admin/AdminManagement";
 import Reports from "./pages/super-admin/Report";
 import OffchainWithdrawals from "./pages/super-admin/OffchainWithdrawals";
+import WithdrawTransfers from "./pages/super-admin/WithdrawTransfers";
 import CampaignList from "./pages/adminpura/CampaignList";
 import CampaignCreate from "./pages/adminpura/CampaignCreate";
 import CampaignDetail from "./pages/adminpura/CampaignDetail";
@@ -18,6 +19,7 @@ import Profile from "./pages/adminpura/Profile";
 import DashboardPura from "./pages/adminpura/Dashboard";
 import ReportFinancial from "./pages/adminpura/Report";
 import CreateFinanceReport from "./pages/adminpura/CreateFinanceReport";
+import CreateCampaignReport from "./pages/adminpura/CreateCampaignReport";
 import PuraList from "./pages/public/PuraList";
 import PuraDetail from "./pages/public/PuraDetail";
 import CampaignDetailPublic from "./pages/public/CampaignDetail";
@@ -29,8 +31,11 @@ import WithdrawList from "./pages/adminpura/WithdrawList";
 import TrusteeWithdrawDashboard from "./pages/trustee/TrusteesDashboard";
 import TrusteeWithdrawDetail from "./pages/trustee/WithdrawDetail";
 
-
-
+// Donor pages & route guard
+import DonorLogin from "./pages/donor/DonorLogin";
+import DonorRegister from "./pages/donor/DonorRegister";
+import DonorDashboard from "./pages/donor/DonorDashboard";
+import ProtectedDonorRoute from "./components/ProtectedDonorRoute";
 
 // Route guard
 import AdminProtectedRoute from "./components/ProtectedAdminRoute";
@@ -50,6 +55,20 @@ function App() {
         <Route path="/campaign/:id" element={<CampaignDetailPublic />} />
         <Route path="/pura/:puraId/financial-reports" element={<PuraFinancialReports />} />
         {/* <Route path="/campaigns/sc/:id_campaign_onchain" element={<CampaignSCDetail />} /> */}
+
+        {/* =====================
+            DONOR ROUTES
+        ====================== */}
+        <Route path="/donor/login" element={<DonorLogin />} />
+        <Route path="/donor/register" element={<DonorRegister />} />
+        <Route
+          path="/donor/dashboard"
+          element={
+            <ProtectedDonorRoute>
+              <DonorDashboard />
+            </ProtectedDonorRoute>
+          }
+        />
 
         {/* <Route path="/public/campaigns" element={<PublicCampaignList />} />
         <Route path="/campaigns/:id" element={<PublicCampaignDetail />}/> */}
@@ -87,6 +106,7 @@ function App() {
           <Route path="admins" element={<AdminManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="offchain" element={<OffchainWithdrawals />} />
+          <Route path="withdraws" element={<WithdrawTransfers />} />
         </Route>
 
         
@@ -103,6 +123,7 @@ function App() {
           <Route path="campaigns" element={<CampaignList />} />
           <Route path="campaigns/create" element={<CampaignCreate />} />
           <Route path="campaigns/:id" element={<CampaignDetail />} />
+          <Route path="campaigns/:id/report" element={<CreateCampaignReport />} />
           <Route path="profile" element={<Profile />} />
           <Route path="financereports" element={<ReportFinancial />} />
           <Route path="financereports/create" element={<CreateFinanceReport />} />

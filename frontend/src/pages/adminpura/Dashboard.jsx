@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { getDashboardSummary } from "../../api/adminPura.api";
 import { 
   Megaphone, 
   Wallet, 
@@ -16,10 +18,10 @@ const formatIDR = (amount) => {
   }).format(amount);
 };
 
-// Helper untuk format Crypto (Asumsi 6 desimal untuk USDT/USDC)
-// Di real app, gunakan library seperti ethers.js: ethers.utils.formatUnits(value, 6)
+// Helper untuk format Crypto (Sudah di-format desimal dari backend)
 const formatCrypto = (valueStr) => {
-  const val = parseFloat(valueStr) / 1000000; // Asumsi 6 decimals
+  if (!valueStr) return "0.00";
+  const val = parseFloat(valueStr);
   return new Intl.NumberFormat("en-US", {
     style: "decimal",
     minimumFractionDigits: 2,
@@ -28,29 +30,54 @@ const formatCrypto = (valueStr) => {
 };
 
 export default function Dashboard() {
-  // Simulasi State data dari Backend API
   const [stats, setStats] = useState({
+    saldo_operasional: 0,
     total_campaigns: 0,
     total_offchain: 0,
+    total_available_offchain: 0,
+    total_pending_transfer_offchain: 0,
     total_onchain: { usdt: "0", usdc: "0" },
     loading: true,
   });
+  const [exchangeRate, setExchangeRate] = useState(15500); // Default estimate
 
-  // Simulasi Fetch Data (Ganti dengan API call aslimu nanti)
   useEffect(() => {
-    // Anggap ini request ke endpoint: GET /api/admin/pura/dashboard
-    setTimeout(() => {
-      setStats({
-        total_campaigns: 12,
-        total_offchain: 45000000, // Rp 45.000.000
-        total_onchain: {
-          usdt: "1500000000", // 1500 USDT (6 decimals)
-          usdc: "2450000000", // 2450 USDC (6 decimals)
-        },
-        loading: false,
+    // Fetch dashboard stats
+    getDashboardSummary()
+      .then((res) => {
+        const data = res.data?.data || res.data || {};
+        setStats({
+          saldo_operasional: parseFloat(data.saldo_operasional) || 0,
+          total_campaigns: data.total_campaigns || 0,
+          total_offchain: parseFloat(data.total_offchain) || 0,
+          total_available_offchain: parseFloat(data.total_available_offchain) || 0,
+          total_pending_transfer_offchain: parseFloat(data.total_pending_transfer_offchain) || 0,
+          total_onchain: {
+            usdt: data.total_onchain?.usdt || "0",
+            usdc: data.total_onchain?.usdc || "0",
+          },
+          loading: false,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        setStats((prev) => ({ ...prev, loading: false }));
       });
-    }, 1000);
+
+    // Fetch USDT to IDR rate
+    fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.tether && data.tether.idr) {
+          setExchangeRate(data.tether.idr);
+        }
+      })
+      .catch(err => console.error("Gagal mengambil rate USDT", err));
   }, []);
+
+  // Hitung total onchain dalam IDR
+  const totalOnchainUsd = parseFloat(stats.total_onchain.usdt) + parseFloat(stats.total_onchain.usdc);
+  const totalOnchainIdr = totalOnchainUsd * exchangeRate;
 
   if (stats.loading) {
     return <div className="p-8 text-gray-500">Memuat data dashboard...</div>;
@@ -64,17 +91,37 @@ export default function Dashboard() {
           Om Swastyastu, Admin Pura
         </h1>
         <p className="text-gray-500 mt-1 text-sm">
-          Berikut adalah ringkasan aktivitas dana punia dan kampanye Anda.
+          Berikut adalah ringkasan aktivitas dana punia dan kegiatan Anda.
         </p>
       </header>
 
-      {/* 2. Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* 2. Stats Grid - 5 Cards Layout */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         
-        {/* Card 1: Total Campaign */}
+        {/* Card 1: Saldo Operasional (Kas Pura) */}
+        <div className="bg-white p-6 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
+          
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="p-3 bg-blue-100 text-blue-600 rounded-xl">
+              <Wallet size={24} />
+            </div>
+            <div className="text-blue-600 flex items-center text-xs font-bold bg-blue-50 px-2 py-1 rounded-full border border-blue-100">
+              Kas Pura
+            </div>
+          </div>
+          <div className="relative z-10">
+            <p className="text-sm text-gray-500 font-medium">Saldo Operasional</p>
+            <h3 className="text-2xl font-bold text-gray-800 mt-1 truncate">
+              {formatIDR(stats.saldo_operasional)}
+            </h3>
+          </div>
+        </div>
+
+        {/* Card 2: Total Kegiatan */}
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-4">
-            <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
+            <div className="p-3 bg-gray-50 text-gray-600 rounded-xl">
               <Megaphone size={24} />
             </div>
             <span className="text-xs font-medium px-2 py-1 bg-gray-100 text-gray-500 rounded-full">
@@ -82,64 +129,71 @@ export default function Dashboard() {
             </span>
           </div>
           <div>
-            <p className="text-sm text-gray-500 font-medium">Total Kampanye</p>
+            <p className="text-sm text-gray-500 font-medium">Total Kegiatan</p>
             <h3 className="text-3xl font-bold text-gray-800 mt-1">
               {stats.total_campaigns}
             </h3>
           </div>
         </div>
 
-        {/* Card 2: Off-chain Funds (Fiat) - THEME COLOR */}
-        <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden group">
-          {/* Decorative Background Blob */}
-          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
+        {/* Card 3: Saldo Tersisa Midtrans */}
+        <div className="bg-white p-6 rounded-2xl border border-emerald-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
           
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
               <Wallet size={24} />
             </div>
-            <div className="text-green-600 flex items-center text-xs font-bold bg-green-50 px-2 py-1 rounded-full">
-              <TrendingUp size={14} className="mr-1" /> Fiat
+            <div className="text-emerald-600 flex items-center text-xs font-bold bg-emerald-50 px-2 py-1 rounded-full border border-emerald-100">
+              Belum Dicairkan
             </div>
           </div>
           <div className="relative z-10">
-            <p className="text-sm text-gray-500 font-medium">Dana Terkumpul (IDR)</p>
+            <p className="text-sm text-gray-500 font-medium">Saldo Tersisa Midtrans</p>
             <h3 className="text-2xl font-bold text-gray-800 mt-1 truncate">
-              {formatIDR(stats.total_offchain)}
+              {formatIDR(stats.total_available_offchain)}
             </h3>
           </div>
         </div>
 
-        {/* Card 3: On-chain Funds (Web3) */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl text-white shadow-lg relative overflow-hidden">
-          {/* Subtle Grid Pattern for Tech Feel */}
-          <div className="absolute inset-0 opacity-10 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+        {/* Card 4: Saldo Tersisa Kripto */}
+        <div className="bg-white p-6 rounded-2xl border border-purple-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
           
           <div className="flex items-center justify-between mb-4 relative z-10">
-            <div className="p-3 bg-gray-700/50 rounded-xl border border-gray-600">
-              <Coins size={24} className="text-amber-400" />
+            <div className="p-3 bg-purple-100 text-purple-600 rounded-xl">
+              <Coins size={24} />
             </div>
-            <span className="text-xs font-medium px-2 py-1 bg-gray-700 text-gray-300 rounded-full border border-gray-600">
-              Web 3.0
-            </span>
+            <div className="text-purple-600 flex items-center text-xs font-bold bg-purple-50 px-2 py-1 rounded-full border border-purple-100">
+              Belum Dicairkan
+            </div>
           </div>
-          
           <div className="relative z-10">
-            <p className="text-sm text-gray-400 font-medium mb-1">Aset Crypto (Vault)</p>
-            <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-300 text-sm">USDT</span>
-                <span className="font-bold font-mono text-lg text-amber-400">
-                   ${formatCrypto(stats.total_onchain.usdt)}
-                </span>
-              </div>
-              <div className="flex justify-between items-center border-t border-gray-700 pt-1 mt-1">
-                <span className="text-gray-300 text-sm">USDC</span>
-                <span className="font-bold font-mono text-lg text-blue-400">
-                   ${formatCrypto(stats.total_onchain.usdc)}
-                </span>
-              </div>
+            <p className="text-sm text-gray-500 font-medium">Saldo Tersisa Kripto (IDR)</p>
+            <h3 className="text-2xl font-bold text-gray-800 mt-1 truncate">
+              {formatIDR(totalOnchainIdr)}
+            </h3>
+            <p className="text-xs text-gray-400 mt-1">Est: 1 USDT = {formatIDR(exchangeRate)}</p>
+          </div>
+        </div>
+
+        {/* Card 5: Saldo Belum Ditransfer */}
+        <div className="bg-white p-6 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-50 rounded-bl-full -mr-4 -mt-4 opacity-50 transition-transform group-hover:scale-110"></div>
+          
+          <div className="flex items-center justify-between mb-4 relative z-10">
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl">
+              <ArrowUpRight size={24} />
             </div>
+            <div className="text-amber-600 flex items-center text-xs font-bold bg-amber-50 px-2 py-1 rounded-full border border-amber-100">
+              Pending
+            </div>
+          </div>
+          <div className="relative z-10">
+            <p className="text-sm text-gray-500 font-medium">Saldo Belum Ditransfer</p>
+            <h3 className="text-2xl font-bold text-gray-800 mt-1 truncate">
+              {formatIDR(stats.total_pending_transfer_offchain)}
+            </h3>
           </div>
         </div>
       </div>
@@ -150,12 +204,12 @@ export default function Dashboard() {
             <h3 className="text-lg font-bold text-gray-800">Aksi Cepat</h3>
         </div>
         <div className="flex gap-4">
-            <button className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors shadow-sm shadow-amber-200">
-                <Megaphone size={18} /> Buat Kampanye
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors">
-                <ArrowUpRight size={18} /> Ajukan Withdraw
-            </button>
+            <Link to="/admin/pura/campaigns/create" className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors shadow-sm shadow-amber-200">
+                <Megaphone size={18} /> Buat Kegiatan
+            </Link>
+            <Link to="/admin/pura/campaigns" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors">
+                <ArrowUpRight size={18} /> Ajukan Pencairan Dana
+            </Link>
         </div>
       </div>
     </div>

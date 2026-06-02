@@ -46,7 +46,7 @@ function startWithdrawListener() {
           `
           SELECT id, admin_pura_id
           FROM campaigns
-          WHERE onchain_campaign_id = $1
+          WHERE id_campaign_onchain = $1
           `,
           [Number(campaignId)]
         );
@@ -85,8 +85,7 @@ function startWithdrawListener() {
           `
           UPDATE admin_pura
           SET
-            saldo_pending_onchain = saldo_pending_onchain - $1,
-            saldo_operasional = saldo_operasional + $1
+            saldo_pending_onchain = saldo_pending_onchain - $1
           WHERE id = $2
           `,
           [totalOnchain.toString(), admin_pura_id]

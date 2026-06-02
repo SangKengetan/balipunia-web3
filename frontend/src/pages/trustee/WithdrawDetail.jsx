@@ -1,19 +1,17 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   getWithdrawDetail,
-  setReadyForVoting,
-  notifyProposeVoting,
+  syncWithdrawVoting,
 } from "../../api/trustee.api";
 import {
-  proposeWithdraw,
-  voteProposal, getProposal
+  voteProposal,
+  getProposal,
 } from "../../services/blockchain/voting";
-
-
 
 export default function TrusteeWithdrawDetail() {
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [voting, setVoting] = useState(null);
   const [data, setData] = useState(null);
@@ -21,32 +19,43 @@ export default function TrusteeWithdrawDetail() {
   const [loadingAction, setLoadingAction] = useState(null); // ready | propose | vote
   const [error, setError] = useState(null);
 
-  // OPSI 1: READY hanya logika frontend
-  const [ready, setReady] = useState(false);
 
   // UX voting
   const [hasVoted, setHasVoted] = useState(false);
 
   /* ===============================
-     FETCH
+       FETCH
   =============================== */
   const refresh = useCallback(async () => {
     const res = await getWithdrawDetail(id);
     setData(res.data ?? res);
   }, [id]);
+
   const fetchVoting = useCallback(async () => {
     if (!data?.governance_proposal_id) return;
 
     try {
-      const proposal = await getProposal(
-        data.governance_proposal_id
-      );
+      const proposal = await getProposal(data.governance_proposal_id);
       setVoting(proposal);
+
+      // Auto-sync jika proposal sudah finalized tapi database masih VOTING_IN_PROGRESS
+      if (
+        data.status === "VOTING_IN_PROGRESS" &&
+        (proposal.status === "APPROVED" || proposal.status === "REJECTED")
+      ) {
+        try {
+          await syncWithdrawVoting(data.id);
+          await refresh(); // Refresh data dari database setelah sync
+        } catch (syncErr) {
+          console.error("Auto-sync gagal:", syncErr);
+        }
+      }
     } catch (err) {
       console.error("Gagal fetch voting:", err);
     }
-  }, [data]);
+  }, [data, refresh]);
 
+  // Initial Load
   useEffect(() => {
     (async () => {
       try {
@@ -59,251 +68,420 @@ export default function TrusteeWithdrawDetail() {
     })();
   }, [refresh]);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!data) return <div className="p-6">Data tidak ditemukan</div>;
+  // Fetch Voting data when proposal ID exists
+  useEffect(() => {
+    if (data?.governance_proposal_id) {
+      fetchVoting();
+    }
+  }, [data, fetchVoting]);
 
   /* ===============================
-     ACTION HANDLERS
+       ACTION HANDLERS
   =============================== */
-  const handleReady = async () => {
-    try {
-      setLoadingAction("ready");
-      setError(null);
 
-      await setReadyForVoting(id); // validasi backend
-      setReady(true);              // logika lokal
-    } catch (err) {
-      setError(err.response?.data?.message || "Gagal set ready");
-    } finally {
-      setLoadingAction(null);
-    }
-  };
-
-  const handlePropose = async () => {
-    try {
-      setLoadingAction("propose");
-      setError(null);
-
-      // 1️⃣ MetaMask → Smart Contract
-      const proposalId = await proposeWithdraw(
-        data.onchain_campaign_id
-      );
-
-      // 2️⃣ Backend → simpan proposalId & ubah status
-      await notifyProposeVoting(id, proposalId);
-
-      // reset UX
-      setReady(false);
-      setHasVoted(false);
-
-      await refresh();
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.message ||
-        "Gagal propose voting"
-      );
-    } finally {
-      setLoadingAction(null);
-    }
-  };
 
   const handleVote = async (support) => {
     try {
       setLoadingAction("vote");
       setError(null);
 
-      await voteProposal(
-        data.governance_proposal_id,
-        support
-      );
+      await voteProposal(data.governance_proposal_id, support);
 
-      setHasVoted(true); // UX guard
+      setHasVoted(true);
 
-      alert(
-        support
-          ? "Vote APPROVE berhasil dikirim"
-          : "Vote REJECT berhasil dikirim"
-      );
+      // Setelah vote, sync ke database (vote ke-2 bisa langsung finalize proposal)
+      try {
+        await syncWithdrawVoting(data.id);
+      } catch (syncErr) {
+        console.error("Post-vote sync gagal:", syncErr);
+      }
 
       await refresh();
+      await fetchVoting(); // Refresh vote count
     } catch (err) {
-      setError(
-        err.message ||
-        "Anda sudah melakukan vote atau transaksi gagal"
-      );
+      // Decode error ProposalAlreadyFinalized
+      const errorData = err?.data || err?.error?.data;
+      if (errorData === "0x9c93eb2d" || err?.message?.includes("ProposalAlreadyFinalized")) {
+        // Proposal sudah selesai, sync dan refresh
+        try {
+          await syncWithdrawVoting(data.id);
+          await refresh();
+          await fetchVoting();
+        } catch (syncErr) {
+          console.error("Sync setelah finalized gagal:", syncErr);
+        }
+        setError("Voting sudah selesai — proposal telah di-finalize oleh suara mayoritas Trustee.");
+      } else {
+        setError(
+          err.message || "Anda sudah melakukan vote atau transaksi gagal"
+        );
+      }
     } finally {
       setLoadingAction(null);
     }
   };
 
+  const isVotingFinalized = voting && (voting.status === "APPROVED" || voting.status === "REJECTED");
+
   /* ===============================
-     RENDER
+       LOADING & ERROR STATES
   =============================== */
-  return (
-    <div className="p-6 max-w-2xl space-y-6">
-      <h1 className="text-xl font-semibold">
-        Withdraw Detail (Trustee)
-      </h1>
-
-      {error && (
-        <div className="p-3 bg-red-100 text-red-700 rounded">
-          {error}
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-400 border-t-transparent"></div>
+          <p className="text-sm font-medium text-gray-500">Memuat Detail...</p>
         </div>
-      )}
+      </div>
+    );
+  }
 
-      {/* INFO */}
-      <div className="bg-gray-50 p-4 rounded space-y-1 text-sm">
-        <p><strong>Campaign:</strong> {data.campaign_title}</p>
-        <p>
-          <strong>Status:</strong>{" "}
-          <span className="px-2 py-1 rounded bg-gray-200">
-            {data.status}
-          </span>
-        </p>
+  if (!data) {
+    return (
+      <div className="p-8 text-center bg-gray-50 h-screen flex flex-col items-center justify-center">
+        <p className="text-gray-500 mb-4">Data withdraw tidak ditemukan.</p>
+        <button onClick={() => navigate(-1)} className="text-amber-600 font-medium hover:underline">
+          &larr; Kembali
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-12">
+      {/* Top Navigation */}
+      <div className="mx-auto max-w-4xl px-4 pt-6">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-sm text-gray-500 hover:text-gray-900 transition-colors"
+        >
+          <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Kembali ke Dashboard
+        </button>
       </div>
 
-      {/* SNAPSHOT */}
-      <div className="bg-blue-50 p-4 rounded text-sm">
-        <p className="font-medium mb-1">Saldo Snapshot</p>
-        {renderAmountSnapshot(data.amount_snapshot)}
-        <p className="text-xs text-gray-600 mt-2">
-          Snapshot hanya untuk laporan & verifikasi.
-        </p>
-      </div>
+      <div className="mx-auto max-w-4xl px-4 py-6 space-y-6">
 
-      {/* IPFS */}
-      <a
-        href={`https://ipfs.io/ipfs/${data.ipfs_cid}`}
-        target="_blank"
-        rel="noreferrer"
-        className="text-blue-600 underline text-sm"
-      >
-        Lihat Dokumen Pendukung (IPFS)
-      </a>
+        {/* HEADER & STATUS */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Detail Permintaan Withdraw</h1>
+            <p className="text-gray-500 text-sm mt-1">ID Transaksi: <span className="font-mono text-gray-700">#{id}</span></p>
+          </div>
+          <StatusBadge status={data.status} />
+        </div>
 
-      {/* ===============================
-          ACTIONS
-      =============================== */}
-      <div className="space-y-3">
-        {/* REQUESTED → READY */}
-        {data.status === "REQUESTED" && !ready && (
-          <button
-            onClick={handleReady}
-            disabled={loadingAction === "ready"}
-            className="w-full px-4 py-2 bg-yellow-500 text-white rounded"
-          >
-            {loadingAction === "ready"
-              ? "Memproses..."
-              : "Set Ready for Voting"}
-          </button>
-        )}
-
-        {/* REQUESTED + ready → PROPOSE */}
-        {data.status === "REQUESTED" && ready && (
-          <button
-            onClick={handlePropose}
-            disabled={loadingAction === "propose"}
-            className="w-full px-4 py-2 bg-blue-600 text-white rounded"
-          >
-            {loadingAction === "propose"
-              ? "Menunggu MetaMask..."
-              : "Propose Voting (MetaMask)"}
-          </button>
-        )}
-
-        {/* VOTING → VOTE */}
-        {data.status === "VOTING_IN_PROGRESS" &&
-          data.governance_proposal_id && (
-            <div className="bg-yellow-50 p-4 rounded space-y-4">
-
-              {/* 🔹 VOTING INDICATOR */}
-              {data.voting && (
-                <div className="border rounded p-3 bg-white text-sm space-y-2">
-                  <p className="font-medium">Status Voting</p>
-
-                  <div className="flex justify-between">
-                    <span>YES</span>
-                    <span className="font-semibold text-green-600">
-                      {data.voting.yesVotes}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span>NO</span>
-                    <span className="font-semibold text-red-600">
-                      {data.voting.noVotes}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between">
-                    <span>Total</span>
-                    <span>{data.voting.votesCount} / 3</span>
-                  </div>
-
-                  {hasVoted && (
-                    <div className="text-xs text-green-600">
-                      ✔️ Anda sudah memberikan suara
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* 🔹 VOTE BUTTONS (HANYA JIKA BELUM VOTE) */}
-              {!hasVoted && (
-                <>
-                  <p className="text-xs text-gray-700">
-                    Voting bersifat final dan hanya dapat dilakukan satu kali.
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleVote(true)}
-                      disabled={loadingAction === "vote"}
-                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => handleVote(false)}
-                      disabled={loadingAction === "vote"}
-                      className="flex-1 px-4 py-2 bg-red-600 text-white rounded"
-                    >
-                      Reject
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-        )}
-
-
-        {/* FINAL */}
-        {(data.status === "EXECUTED" ||
-          data.status === "REJECTED") && (
-          <div className="text-sm text-gray-600">
-            Proses withdraw telah selesai.
+        {/* ERROR BANNER */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start animate-pulse">
+            <svg className="w-5 h-5 text-red-600 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="text-sm text-red-800">{error}</div>
           </div>
         )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* LEFT COLUMN: INFO & SNAPSHOT */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* CARD: CAMPAIGN INFO */}
+            <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Informasi Kampanye</h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase">Judul Kampanye</label>
+                  <div className="mt-1 text-lg font-medium text-gray-900">{data.campaign_title}</div>
+                </div>
+
+                {/* IPFS Document Link */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 uppercase mb-2">Dokumen Pendukung</label>
+                  <a
+                    href={`https://gateway.pinata.cloud/ipfs/${data.ipfs_cid}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group flex items-center p-3 border border-gray-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all"
+                  >
+                    <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-3">
+                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 group-hover:text-amber-700">Bukti Penggunaan Dana</p>
+                      <p className="text-xs text-gray-500">Disimpan di IPFS • Klik untuk melihat</p>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* CARD: SNAPSHOT */}
+            <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Snapshot Saldo</h3>
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Verified</span>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-500 mb-4">
+                  Saldo yang tercatat pada saat pengajuan withdraw dibuat. Digunakan sebagai acuan validasi.
+                </p>
+                {renderAmountSnapshot(data.amount_snapshot)}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: ACTION CENTER */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 sticky top-6">
+              <div className="p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-4">Tindakan Diperlukan</h3>
+
+
+
+                {/* STATE 2: VOTING */}
+                {data.status === "VOTING_IN_PROGRESS" && !isVotingFinalized && (
+                  <div className="space-y-6">
+                    <div className="bg-purple-50 rounded-lg p-4 border border-purple-100">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="relative flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+                        </span>
+                        <span className="text-sm font-bold text-purple-900">Voting Sedang Berlangsung</span>
+                      </div>
+
+                      {/* Voting Stats Visual */}
+                      {voting && (
+                        <div className="mt-4 space-y-3">
+                          <VotingBar
+                            label="Setuju (Yes)"
+                            count={voting.yesVotes}
+                            total={voting.votesCount || 3}
+                            color="bg-green-500"
+                          />
+                          <VotingBar
+                            label="Tolak (No)"
+                            count={voting.noVotes}
+                            total={voting.votesCount || 3}
+                            color="bg-red-500"
+                          />
+                          <p className="text-xs text-center text-gray-500 mt-2">Total Suara Masuk: {voting.votesCount} / 3 Trustee</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {!hasVoted ? (
+                      <div className="space-y-3">
+                        <p className="text-sm text-gray-600 text-center">Berikan keputusan Anda:</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={() => handleVote(true)}
+                            disabled={loadingAction === "vote"}
+                            className="flex flex-col items-center justify-center p-3 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-300 transition-all text-green-700 font-medium"
+                          >
+                            <span className="text-xl mb-1">👍</span>
+                            {loadingAction === "vote" ? "..." : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => handleVote(false)}
+                            disabled={loadingAction === "vote"}
+                            className="flex flex-col items-center justify-center p-3 rounded-lg border border-red-200 bg-red-50 hover:bg-red-100 hover:border-red-300 transition-all text-red-700 font-medium"
+                          >
+                            <span className="text-xl mb-1">👎</span>
+                            {loadingAction === "vote" ? "..." : "Reject"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border border-gray-200 border-dashed">
+                        <svg className="w-8 h-8 text-green-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-sm font-medium text-gray-900">Anda sudah memberikan suara</p>
+                        <p className="text-xs text-gray-500">Menunggu trustee lain...</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* STATE 3: FINAL */}
+                {(isVotingFinalized || ["PENDING_TRANSFER", "COMPLETED", "EXECUTED", "REJECTED"].includes(data.status)) && (
+                  <div className={`text-center p-6 rounded-lg border ${(voting?.status === 'REJECTED' || data.status === 'REJECTED') ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-200'}`}>
+                    {(voting?.status !== 'REJECTED' && data.status !== 'REJECTED') ? (
+                      <>
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-3">
+                          <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                        <h3 className="text-sm font-medium text-green-800">
+                          {data.status === 'COMPLETED' ? "Withdraw Selesai" : "Voting Disetujui"}
+                        </h3>
+                        <p className="mt-1 text-xs text-green-600">
+                          {data.status === 'COMPLETED'
+                            ? "Dana telah ditransfer ke rekening Pura."
+                            : "Menunggu Super Admin melakukan transfer dana."}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100 mb-3">
+                          <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </div>
+                        <h3 className="text-sm font-medium text-red-800">Permintaan Ditolak</h3>
+                        <p className="mt-1 text-xs text-red-600">Hasil voting memutuskan untuk menolak permintaan ini.</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
 }
 
 /* ===============================
-   HELPERS
+   COMPONENTS & HELPERS
 =============================== */
-function renderAmountSnapshot(snapshot) {
-  if (!snapshot || typeof snapshot !== "string") {
-    return <div>-</div>;
-  }
 
-  const usdt = snapshot.match(/USDT:\s*([\d.]+)/)?.[1] || "0";
-  const usdc = snapshot.match(/USDC:\s*([\d.]+)/)?.[1] || "0";
+function VotingBar({ label, count, total, color }) {
+  const percentage = Math.min((count / 3) * 100, 100); // Asumsi max 3 trustee untuk visual
+  return (
+    <div>
+      <div className="flex justify-between text-xs mb-1">
+        <span className="font-medium text-gray-700">{label}</span>
+        <span className="font-bold text-gray-900">{count} Suara</span>
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2.5">
+        <div
+          className={`h-2.5 rounded-full transition-all duration-500 ${color}`}
+          style={{ width: `${percentage}%` }}
+        ></div>
+      </div>
+    </div>
+  )
+}
+
+function StatusBadge({ status }) {
+  const styles = {
+    REQUESTED: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    READY_FOR_VOTING: "bg-blue-100 text-blue-800 border-blue-200",
+    VOTING_IN_PROGRESS: "bg-purple-100 text-purple-800 border-purple-200",
+    PENDING_TRANSFER: "bg-blue-100 text-blue-800 border-blue-200",
+    COMPLETED: "bg-green-100 text-green-800 border-green-200",
+    EXECUTED: "bg-green-100 text-green-800 border-green-200",
+    REJECTED: "bg-red-100 text-red-800 border-red-200",
+  };
+
+  const labels = {
+    REQUESTED: "Menunggu Review",
+    READY_FOR_VOTING: "Siap Voting",
+    VOTING_IN_PROGRESS: "Voting Berjalan",
+    PENDING_TRANSFER: "Menunggu Transfer",
+    COMPLETED: "Selesai",
+    EXECUTED: "Selesai",
+    REJECTED: "Ditolak"
+  };
 
   return (
-    <div className="space-y-1">
-      <div>USDT: {usdt}</div>
-      <div>USDC: {usdc}</div>
+    <span className={`px-3 py-1 rounded-full text-sm font-medium border ${styles[status] || "bg-gray-100 text-gray-800"}`}>
+      {labels[status] || status}
+    </span>
+  );
+}
+
+function Spinner({ color = "text-gray-500" }) {
+  return (
+    <svg className={`animate-spin h-5 w-5 ${color === "white" ? "text-white" : "text-gray-500"}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+  )
+}
+
+function renderAmountSnapshot(snapshot) {
+  if (!snapshot) {
+    return <div className="text-gray-400 italic">Tidak ada data snapshot</div>;
+  }
+
+  let data = snapshot;
+  if (typeof snapshot === "string") {
+    try {
+      data = JSON.parse(snapshot);
+    } catch (e) {
+      // Fallback untuk format lama string
+      const usdt = snapshot.match(/USDT:\s*([\d,.]+)/)?.[1] || "0";
+      const usdc = snapshot.match(/USDC:\s*([\d,.]+)/)?.[1] || "0";
+      data = { crypto: { amount_usdt: usdt, amount_usdc: usdc } };
+    }
+  }
+
+  const usdt = data.crypto?.amount_usdt || "0";
+  const usdc = data.crypto?.amount_usdc || "0";
+  const fiat = data.fiat?.amount_idr || "0";
+
+  const formatCrypto = (val) => {
+    if (val.includes(".")) return val; // Jika format lama
+    return (parseFloat(val) / 1e18).toLocaleString("en-US", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    });
+  };
+
+  const formatFiat = (val) => {
+    return Number(val).toLocaleString("id-ID");
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="h-8 w-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center font-bold text-xs mr-3">
+            $T
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">USDT</p>
+            <p className="text-sm font-bold text-gray-900">{formatCrypto(usdt)}</p>
+          </div>
+        </div>
+        <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs mr-3">
+            $C
+          </div>
+          <div>
+            <p className="text-xs text-gray-500">USDC</p>
+            <p className="text-sm font-bold text-gray-900">{formatCrypto(usdc)}</p>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center p-3 bg-gray-50 rounded-lg border border-gray-100">
+        <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xs mr-3">
+          Rp
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Fiat (Midtrans)</p>
+          <p className="text-sm font-bold text-gray-900">{formatFiat(fiat)}</p>
+        </div>
+      </div>
+      {data.total_idr && (
+        <div className="flex justify-between items-center px-3 py-2 bg-emerald-50 rounded-lg border border-emerald-100">
+          <span className="text-xs font-bold text-emerald-800">Total Pencairan IDR Bersih:</span>
+          <span className="text-sm font-mono font-bold text-emerald-900">Rp {Number(data.total_idr).toLocaleString("id-ID")}</span>
+        </div>
+      )}
     </div>
   );
 }

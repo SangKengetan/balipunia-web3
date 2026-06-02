@@ -9,6 +9,10 @@ async function main() {
   const USDT = "0x337610d27c682E347C9cD60BD4b3b107C9d34dDd";
   const USDC = "0x64544969ed7EBf5f083679233325356EbE738930";
 
+  // Address untuk menampung fee/hasil withdrawal crypto
+  // Sementara diarahkan ke deployer, bisa diganti nanti
+  const SUPER_ADMIN_TREASURY = deployer.address; 
+
   const TRUSTEES = [
     "0x8598A45E40e558762B24679ee9b65F143854Daf0",
     "0x5A603CB39B31BCf9614ce8D090F685A201043ffa",
@@ -19,20 +23,24 @@ async function main() {
   const INITIAL_ADMIN_PURA = "0xC90e153198B209507E20ED3eEea8CE2120D9Bb92";
 
   // ===== DEPLOY VAULT =====
-  const Vault = await hre.ethers.getContractFactory("DonationVaultV5");
-  const vault = await Vault.deploy(USDT, USDC);
+  // Menggunakan DonationVault terbaru
+  const Vault = await hre.ethers.getContractFactory("DonationVault");
+  // Vault baru butuh 3 parameter: USDT, USDC, SUPER_ADMIN_TREASURY
+  const vault = await Vault.deploy(USDT, USDC, SUPER_ADMIN_TREASURY);
   await vault.deployed();
 
   const vaultAddress = vault.address;
-  console.log("✅ DonationVaultV5 deployed:", vaultAddress);
+  console.log("✅ DonationVault deployed:", vaultAddress);
 
   // ===== DEPLOY VOTING =====
-  const Voting = await hre.ethers.getContractFactory("VotingV2");
-  const voting = await Voting.deploy(vaultAddress, TRUSTEES);
+  // Menggunakan VotingGovernance (berasal dari VotingV3.sol)
+  const Voting = await hre.ethers.getContractFactory("VotingGovernance");
+  // Voting baru hanya butuh 1 parameter: alamat vault
+  const voting = await Voting.deploy(vaultAddress);
   await voting.deployed();
 
   const votingAddress = voting.address;
-  console.log("✅ VotingV2 deployed:", votingAddress);
+  console.log("✅ VotingGovernance deployed:", votingAddress);
 
   // ===== SET VOTING =====
   const txSetVoting = await vault.setVoting(votingAddress);
@@ -45,11 +53,14 @@ async function main() {
   console.log("🏛️ Initial Admin Pura set:", INITIAL_ADMIN_PURA);
 
   console.log("\n🎉 DEPLOYMENT COMPLETE");
-  console.log("Super Admin :", deployer.address);
-  console.log("Admin Pura  :", INITIAL_ADMIN_PURA);
-  console.log("Trustees    :", TRUSTEES.join(", "));
-  console.log("Vault       :", vaultAddress);
-  console.log("Voting      :", votingAddress);
+  console.log("Super Admin          :", deployer.address);
+  console.log("Super Admin Treasury :", SUPER_ADMIN_TREASURY);
+  console.log("Admin Pura           :", INITIAL_ADMIN_PURA);
+  console.log("Vault                :", vaultAddress);
+  console.log("VotingGovernance     :", votingAddress);
+  
+  console.log("\n⚠️ PENTING: Trustee tidak di-set secara otomatis pada deployment ini.");
+  console.log(`Admin Pura (${INITIAL_ADMIN_PURA}) harus memanggil fungsi setTrustees() pada VotingGovernance untuk mendaftarkan 3 Trustee.`);
 }
 
 main().catch((error) => {

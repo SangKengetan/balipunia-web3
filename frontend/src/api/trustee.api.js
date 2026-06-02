@@ -16,3 +16,7 @@ export const setReadyForVoting = (id) =>
 export const notifyProposeVoting = (id, proposalId) =>
   api.post(`/trustee/withdraw/${id}/propose`, { proposalId });
 
+// 🔹 Sync voting result dari blockchain ke database
+export const syncWithdrawVoting = (withdrawRequestId) =>
+  api.post("/trustee/withdraws/sync", { withdrawRequestId });
+

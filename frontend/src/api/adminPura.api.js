@@ -5,19 +5,19 @@ import api from "./axios"; // axios instance
 /* Profile */
 export const getProfile = () =>
   api.get("/adminpura/profile");
-export const updateProfile = (payload) =>
-  api.put("/adminpura/profile", payload);
+export const updateProfile = (formData) =>
+  api.put("/adminpura/profile", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 
 // list campaign admin pura
 export const getMyCampaigns = () =>
   api.get("/adminpura/campaigns");
 
-export const createCampaign = (payload) =>
-  api.post("/adminpura/campaigns", payload);
+export const syncCampaign = (payload) =>
+  api.post("/adminpura/campaigns/sync", payload);
 export const getCampaignDetailFull = (id) =>
-  api.get(`/adminpura/campaign/${id}/detail-full`);
-export const syncScOnlyCampaign = (payload) =>
-  api.post("/adminpura/campaigns/sync-sc-only", payload);
+  api.get(`/adminpura/campaigns/${id}/detail-full`);
 
 export const getScOnlyCampaigns = () =>
   api.get("/adminpura/campaigns/sc-only");
@@ -39,7 +39,7 @@ export const syncVotingResult = (withdrawRequestId) =>
 /**
  * Fetch all financial reports
  */
-export const fetchReports = () => 
+export const fetchReports = () =>
   api.get("/adminpura/financereports");
 
 /**
@@ -48,6 +48,25 @@ export const fetchReports = () =>
  */
 export const createReport = (formData) =>
   api.post("/adminpura/financereports", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+export const getDashboardSummary = () =>
+  api.get("/adminpura/dashboard/summary");
+
+/**
+ * Campaign Reports
+ */
+export const fetchAllCampaignReports = () =>
+  api.get("/adminpura/campaign-reports");
+
+export const fetchPendingWithdrawalForReport = (campaignId) =>
+  api.get(`/adminpura/campaign-reports/campaign/${campaignId}/pending-withdrawal`);
+
+export const uploadCampaignReport = (campaignId, formData) =>
+  api.post(`/adminpura/campaign-reports/campaign/${campaignId}/report`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

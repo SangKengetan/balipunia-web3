@@ -11,8 +11,9 @@ async function createFinancialReport({ admin, payload, file }) {
   const cid = await uploadToIPFS(file);
 
   // 2️⃣ Anchor CID ke blockchain (wallet sistem)
+  // Tidak perlu di-await hingga selesai ditambang (tx.wait()) agar proses UI cepat.
+  // Sistem akan memprosesnya di latar belakang.
   const tx = await financialAnchor.anchorReport(cid);
-  const receipt = await tx.wait();
 
   // 3️⃣ Simpan metadata + bukti on-chain
   const { rows } = await pool.query(
@@ -36,7 +37,21 @@ async function createFinancialReport({ admin, payload, file }) {
       payload.total_income,
       payload.total_expense,
       cid,
-      receipt.transactionHash,
+      tx.hash,
+    ]
+  );
+
+  // 4️⃣ Update Kas Pura (Saldo Operasional)
+  await pool.query(
+    `
+    UPDATE admin_pura
+    SET saldo_operasional = saldo_operasional + $1 - $2
+    WHERE id = $3
+    `,
+    [
+      payload.total_income || 0,
+      payload.total_expense || 0,
+      admin.admin_pura_id
     ]
   );
 

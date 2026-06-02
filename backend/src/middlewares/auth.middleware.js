@@ -53,6 +53,52 @@ async function authenticateAdmin(req, res, next) {
   
 }
 
+async function authenticateDonor(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Token missing" });
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role !== "DONOR") {
+      return res.status(403).json({ message: "Not authorized as donor" });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT id, email, name, contact, wallet_address 
+      FROM donors 
+      WHERE id = $1
+      LIMIT 1
+      `,
+      [decoded.id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(403).json({ message: "Donor not found" });
+    }
+
+    req.donor = {
+      id: result.rows[0].id,
+      email: result.rows[0].email,
+      name: result.rows[0].name,
+      contact: result.rows[0].contact,
+      wallet_address: result.rows[0].wallet_address,
+    };
+
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(401).json({ message: "Invalid or expired token" });
+  }
+}
+
 module.exports = {
   authenticateAdmin,
+  authenticateDonor,
 };

@@ -19,6 +19,9 @@ async function createBankPayment(req, res) {
     }
 
     const orderId = `PUNIA-${uuidv4()}`;
+    const donorId = req.donor.id;
+    const finalDonorName = is_anonymous ? 'Anonim' : (donor_name || req.donor.name);
+    const finalDonorContact = donor_contact || req.donor.contact || null;
 
     await pool.query(
       `
@@ -29,17 +32,19 @@ async function createBankPayment(req, res) {
         system_status,
         donor_name,
         donor_contact,
-        is_anonymous
+        is_anonymous,
+        donor_id
       )
-      VALUES ($1, $2, $3, 'PAID_LOCKED', $4, $5, $6)
+      VALUES ($1, $2, $3, 'PAID_LOCKED', $4, $5, $6, $7)
       `,
       [
         campaign_id,
         orderId,
         amount,
-        is_anonymous ? null : donor_name,
-        donor_contact || null,
-        is_anonymous
+        is_anonymous ? null : finalDonorName,
+        finalDonorContact,
+        is_anonymous,
+        donorId
       ]
     );
 
@@ -48,7 +53,7 @@ async function createBankPayment(req, res) {
       amount,
       bank,
       {
-        name: is_anonymous ? 'Anonim' : donor_name
+        name: finalDonorName
       }
     );
 

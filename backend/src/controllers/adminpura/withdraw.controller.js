@@ -7,7 +7,18 @@ const pool = require("../../db/pool");
 async function requestWithdraw(req, res) {
   try {
     const admin = req.admin;
-    const { campaign_id, amount, reason } = req.body;
+    const {
+      campaign_id,
+      reason,
+      // Fee breakdown fields
+      crypto_usdt,
+      crypto_usdc,
+      crypto_fee_idr,
+      fiat_amount_idr,
+      fiat_fee_idr,
+      total_idr,
+      proposal_id,
+    } = req.body;
     const file = req.file;
 
     /* ===============================
@@ -32,17 +43,26 @@ async function requestWithdraw(req, res) {
     const adminPuraId = adminPuraRows[0].id;
 
     /* ===============================
-       2. Panggil Service (BENAR)
+       2. Panggil Service (UNIFIED)
     =============================== */
-    const result = await withdrawService.createOnchainWithdrawRequest({
+    const result = await withdrawService.createWithdrawRequest({
       adminPuraId,
       campaignId: campaign_id,
-      payload: { amount, reason },
+      payload: {
+        reason,
+        crypto_usdt,
+        crypto_usdc,
+        crypto_fee_idr,
+        fiat_amount_idr,
+        fiat_fee_idr,
+        total_idr,
+        proposal_id,
+      },
       file,
     });
 
     res.json({
-      message: "Permintaan withdraw berhasil diajukan",
+      message: "Permintaan pencairan dana berhasil diajukan",
       ...result,
     });
 
@@ -53,11 +73,10 @@ async function requestWithdraw(req, res) {
        ERROR HANDLING (RAPI)
     =============================== */
     const errorMap = {
-      CAMPAIGN_NOT_FOUND: [404, "Campaign tidak ditemukan atau bukan milik Anda"],
-      ONCHAIN_DISABLED: [400, "Campaign ini tidak mendukung withdraw on-chain"],
-      CAMPAIGN_NOT_FINISHED: [400, "Campaign belum selesai"],
-      WITHDRAW_ALREADY_REQUESTED: [400, "Withdraw sudah pernah diajukan"],
-      CAMPAIGN_NOT_READY_FOR_WITHDRAW: [400, "Campaign belum siap withdraw"],
+      CAMPAIGN_NOT_FOUND: [404, "Kegiatan tidak ditemukan atau bukan milik Anda"],
+      CAMPAIGN_NOT_REGISTERED_ONCHAIN: [400, "Kegiatan belum terdaftar di blockchain"],
+      CAMPAIGN_NOT_FINISHED: [400, "Kegiatan belum melewati batas waktu deadline"],
+      WITHDRAW_ALREADY_REQUESTED: [400, "Pencairan dana sudah pernah diajukan atau sedang diproses"],
       ADMIN_WALLET_NOT_FOUND: [400, "Wallet admin pura belum terdaftar"],
       DOCUMENT_REQUIRED: [400, "Dokumen pendukung wajib diunggah"],
     };

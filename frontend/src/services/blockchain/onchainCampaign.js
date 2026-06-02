@@ -2,9 +2,16 @@ import { ethers } from "ethers";
 import DonationVaultABI from "./abi/DonationVaultABI.json";
 import { DONATION_VAULT_ADDRESS } from "./constants";
 
+/**
+ * Enum CampaignType sesuai DonationVault.sol
+ * HYBRID        = 0  → Fiat + Crypto
+ * MIDTRANS_ONLY = 1  → Fiat only (crypto diblokir di kontrak)
+ * CRYPTO_ONLY   = 2  → Crypto only
+ */
 export const CAMPAIGN_TYPE = {
-  SC_ONLY: 0,
-  HYBRID: 1,
+  HYBRID: 0,
+  MIDTRANS_ONLY: 1,
+  CRYPTO_ONLY: 2,
 };
 
 function getProvider() {
@@ -19,7 +26,7 @@ async function ensureWalletConnected() {
     throw new Error("MetaMask tidak ditemukan");
   }
 
-  // 🔑 INI YANG MEMUNCULKAN POPUP
+  // 🔑 Memunculkan popup MetaMask
   const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
   });
@@ -31,6 +38,16 @@ async function ensureWalletConnected() {
   return accounts[0];
 }
 
+/**
+ * Registrasi kegiatan ke smart contract DonationVault.
+ * Semua tipe (HYBRID, MIDTRANS_ONLY, CRYPTO_ONLY) harus melewati fungsi ini.
+ * 
+ * @param {Object} params
+ * @param {number} params.campaignId - ID unik kegiatan
+ * @param {number} params.campaignType - Enum CampaignType (0, 1, atau 2)
+ * @param {string} params.payoutWallet - Alamat wallet admin pura
+ * @param {number} params.deadlineUnix - Unix timestamp deadline (0 = open-ended)
+ */
 export async function createCampaignOnChain({
   campaignId,
   campaignType,
@@ -39,7 +56,7 @@ export async function createCampaignOnChain({
 }) {
   if (!campaignId) throw new Error("campaignId wajib diisi");
   if (!payoutWallet) throw new Error("payoutWallet wajib diisi");
-  if (!deadlineUnix) throw new Error("deadline wajib diisi");
+  // deadline = 0 berarti open-ended, jadi TIDAK perlu validasi !deadlineUnix
 
   // 🔥 WAJIB: trigger MetaMask popup
   const connectedWallet = await ensureWalletConnected();

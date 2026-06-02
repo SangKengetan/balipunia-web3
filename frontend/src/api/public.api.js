@@ -22,3 +22,10 @@ export const fetchFinancialReportsByPura = (puraId) =>
 
 export const fetchPublicSCCampaignDetail = (id_campaign_onchain) =>
   api.get(`/public/campaigns/sc/${id_campaign_onchain}`);
+
+/**
+ * Fetch public campaign reports (social media style) for a specific campaign
+ * GET /adminpura/campaign-reports/campaign/:campaignId/reports
+ */
+export const fetchPublicCampaignReports = (campaignId) =>
+  api.get(`/adminpura/campaign-reports/campaign/${campaignId}/reports`);

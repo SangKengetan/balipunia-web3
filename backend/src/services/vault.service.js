@@ -8,18 +8,41 @@ const { ethers } = require("ethers");
  * =========================
  */
 async function getOnchainBalances(campaignId) {
-  const USDT = await vault.USDT();
-  const USDC = await vault.USDC();
+  const USDT_ADDR = await vault.USDT();
+  const USDC_ADDR = await vault.USDC();
 
   const [usdtRaw, usdcRaw] = await Promise.all([
-    vault.getBalance(campaignId, USDT),
-    vault.getBalance(campaignId, USDC),
+    vault.getBalance(campaignId, USDT_ADDR),
+    vault.getBalance(campaignId, USDC_ADDR),
   ]);
 
+  const usdtStr = usdtRaw.toString();
+  const usdcStr = usdcRaw.toString();
+
   return {
-    USDT: ethers.formatUnits(usdtRaw, 6),
-    USDC: ethers.formatUnits(usdcRaw, 6),
+    USDT: usdtStr,
+    USDC: usdcStr,
+    [USDT_ADDR]: usdtStr,
+    [USDC_ADDR]: usdcStr,
+    [USDT_ADDR.toLowerCase()]: usdtStr,
+    [USDC_ADDR.toLowerCase()]: usdcStr,
   };
+}
+
+/**
+ * =========================
+ * ONCHAIN BALANCES RAW (BIGINT)
+ * =========================
+ */
+async function getCampaignBalancesRaw(campaignId, tokens) {
+  const balances = {};
+  await Promise.all(
+    tokens.map(async (tokenAddress) => {
+      const bal = await vault.getBalance(campaignId, tokenAddress);
+      balances[tokenAddress] = bal; // BigInt raw
+    })
+  );
+  return balances;
 }
 
 /**
@@ -45,6 +68,10 @@ async function getOnchainDonations(campaignId) {
     amount: d[2].toString(),
     timestamp: Number(d[3]),
   }));
+}
+
+async function getDonationHistory({ campaignId }) {
+  return getOnchainDonations(campaignId);
 }
 
 /**
@@ -95,7 +122,11 @@ async function hasOnchainBalance(campaignId) {
 
 module.exports = {
   getOnchainBalances,
+  getCampaignBalances: getOnchainBalances, // alias
+  getCampaignBalancesRaw,
   getOnchainDonations,
+  getDonationHistory, // alias
   getCampaign,
+  getScCampaign: getCampaign, // alias
   hasOnchainBalance,
 };

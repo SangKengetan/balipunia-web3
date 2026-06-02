@@ -19,9 +19,7 @@ async function getHybridCampaignDetail(campaignId) {
       campaign_type,
       status,
       deadline,
-      id_campaign_onchain,
-      is_onchain_enabled,
-      is_offchain_enabled
+      id_campaign_onchain
     FROM campaigns
     WHERE id = $1
   `;
@@ -29,8 +27,8 @@ async function getHybridCampaignDetail(campaignId) {
   const campaign = rows[0];
 
   if (!campaign) throw new Error('CAMPAIGN_NOT_FOUND');
-  if (campaign.campaign_type === 'SC-ONLY') {
-    throw new Error('FORBIDDEN_SC_ONLY');
+  if (campaign.campaign_type === 'CRYPTO_ONLY') {
+    throw new Error('FORBIDDEN_CRYPTO_ONLY');
   }
 
   /**
@@ -41,7 +39,8 @@ async function getHybridCampaignDetail(campaignId) {
     transactions: [],
   };
 
-  if (campaign.is_onchain_enabled) {
+  // On-chain data untuk HYBRID dan CRYPTO_ONLY
+  if (campaign.campaign_type !== 'MIDTRANS_ONLY' && campaign.id_campaign_onchain) {
     try {
       const onchainCampaignId = BigInt(campaign.id_campaign_onchain);
 
@@ -74,17 +73,41 @@ async function getHybridCampaignDetail(campaignId) {
     transactions: [],
   };
 
-  if (campaign.is_offchain_enabled) {
-    // Total dana offchain (HANYA yang SETTLEMENT)
+  // Offchain data untuk HYBRID dan MIDTRANS_ONLY
+  if (campaign.campaign_type !== 'CRYPTO_ONLY') {
     const totalQuery = `
       SELECT
-        COALESCE(SUM(gross_amount), 0) AS total
+        COALESCE(SUM(gross_amount), 0) AS total,
+        COUNT(id) AS tx_count
       FROM offchain_transactions
       WHERE campaign_id = $1
         AND system_status = 'PAID_LOCKED'
     `;
     const totalResult = await db.query(totalQuery, [campaignId]);
 
+    let calculatedTotal = Number(totalResult.rows[0].total);
+
+    // Kurangi dengan total Rupiah yang sudah berhasil ditarik
+    const withdrawnQuery = `
+      SELECT COALESCE(
+        SUM(
+          CASE 
+            WHEN amount_snapshot IS NOT NULL AND amount_snapshot <> '' 
+            THEN (amount_snapshot::jsonb->'fiat'->>'amount_idr')::numeric 
+            ELSE 0 
+          END
+        ), 
+        0
+      ) AS total_withdrawn
+      FROM withdraw_requests
+      WHERE campaign_id = $1
+        AND status IN ('COMPLETED', 'EXECUTED')
+    `;
+    const withdrawnResult = await db.query(withdrawnQuery, [campaignId]);
+    
+    let currentBalance = calculatedTotal - Number(withdrawnResult.rows[0].total_withdrawn);
+    if (currentBalance < 0) currentBalance = 0;
+    
     // Riwayat donasi offchain (public-safe)
     const txQuery = `
       SELECT
@@ -102,9 +125,30 @@ async function getHybridCampaignDetail(campaignId) {
     `;
     const txResult = await db.query(txQuery, [campaignId]);
 
+    // Riwayat pencairan dana (withdrawals)
+    const withdrawalsQuery = `
+      SELECT 
+        id, 
+        status, 
+        withdraw_type, 
+        amount_snapshot, 
+        reason,
+        created_at,
+        transferred_at,
+        total_idr,
+        transfer_proof_cid
+      FROM withdraw_requests
+      WHERE campaign_id = $1
+      ORDER BY created_at DESC
+    `;
+    const withdrawalsResult = await db.query(withdrawalsQuery, [campaignId]);
+
     offchain = {
-      total: totalResult.rows[0].total,
+      total_collected: calculatedTotal.toString(),
+      current_balance: currentBalance.toString(),
+      txCount: parseInt(totalResult.rows[0].tx_count || 0, 10),
       transactions: txResult.rows,
+      withdrawals: withdrawalsResult.rows,
     };
   }
 
@@ -133,10 +177,7 @@ async function getScCampaignDetail(campaignId) {
       status,
       deadline,
       id_campaign_onchain,
-      payout_wallet,
-      is_onchain_enabled,
-      is_sc_registered,
-      is_withdrawn
+      payout_wallet
     FROM campaigns
     WHERE id = $1
   `;
@@ -146,13 +187,13 @@ async function getScCampaignDetail(campaignId) {
 
   if (!campaign) throw new Error("CAMPAIGN_NOT_FOUND");
 
-  // ⛔ wajib SC-ONLY
-  if (campaign.campaign_type !== "SC-ONLY") {
-    throw new Error("FORBIDDEN_NON_SC_ONLY");
+  // ⛔ wajib CRYPTO_ONLY
+  if (campaign.campaign_type !== "CRYPTO_ONLY") {
+    throw new Error("FORBIDDEN_NON_CRYPTO_ONLY");
   }
 
-  // ⛔ SC-ONLY wajib terdaftar on-chain
-  if (!campaign.is_sc_registered || !campaign.id_campaign_onchain) {
+  // Semua kampanye sekarang terdaftar on-chain, cek id_campaign_onchain saja
+  if (!campaign.id_campaign_onchain) {
     throw new Error("SC_NOT_REGISTERED_ONCHAIN");
   }
 

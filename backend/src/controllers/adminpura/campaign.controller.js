@@ -1,48 +1,34 @@
 const campaignService = require("../../services/adminpura/campaign.service");
-const vault = require("../../blockchain/vault.contract");
 const vaultService = require("../../services/vault.service");
-const { ethers } = require("ethers");
+const { getAdminPuraProfile } = require("../../services/adminpura/adminPuraProfile.service");
 const pool = require("../../db/pool");
 
 const USDT = process.env.USDT_ADDRESS;
 const USDC = process.env.USDC_ADDRESS;
 
 /**
- * POST /api/adminpura/campaigns
- * DEFAULT = HYBRID
+ * POST /api/adminpura/campaigns/sync
+ * 
+ * Universal sync — semua tipe kegiatan (HYBRID, MIDTRANS_ONLY, CRYPTO_ONLY)
+ * wajib teregistrasi di blockchain terlebih dahulu via MetaMask.
+ * Endpoint ini hanya menyimpan metadata ke database setelah tx on-chain sukses.
  */
-async function createCampaign(req, res) {
+async function syncCampaign(req, res) {
   try {
     const admin = req.admin;
 
-    // 🔒 VALIDASI DOMAIN
     if (!admin || !admin.admin_pura_id) {
+      return res.status(403).json({ message: "Admin belum terdaftar sebagai admin pura" });
+    }
+
+    // 🔒 VALIDASI KELENGKAPAN PROFIL (100%)
+    const profile = await getAdminPuraProfile(admin.id);
+    if (profile.profile_completion_percentage < 100) {
       return res.status(403).json({
-        message: "Admin belum terdaftar sebagai admin pura",
+        message: "Harap lengkapi profil Anda hingga 100% (termasuk pendaftaran Trustee) sebelum membuat kegiatan.",
       });
     }
 
-    const campaign = await campaignService.createHybridCampaign(
-      admin.admin_pura_id, // ✅ admin_pura.id
-      req.body
-    );
-
-    res.status(201).json({
-      message: "Hybrid campaign created",
-      campaign,
-    });
-  } catch (err) {
-    console.error("CREATE CAMPAIGN ERROR:", err);
-    res.status(500).json({ message: "Internal server error" });
-  }
-}
-
-/**
- * POST /api/adminpura/sync sc only
- */
-async function syncScOnlyCampaign(req, res) {
-  try {
-    const admin = req.admin;
     const {
       id_campaign_onchain,
       tx_hash,
@@ -50,66 +36,42 @@ async function syncScOnlyCampaign(req, res) {
       description,
       purpose,
       deadline,
+      campaign_type,
     } = req.body;
 
-    if (!admin || !admin.admin_pura_id) {
-      return res.status(403).json({ message: "Unauthorized" });
+    // Validasi campaign_type
+    const validTypes = ['HYBRID', 'MIDTRANS_ONLY', 'CRYPTO_ONLY'];
+    if (!validTypes.includes(campaign_type)) {
+      return res.status(400).json({
+        message: `Tipe kegiatan tidak valid. Harus salah satu dari: ${validTypes.join(', ')}`,
+      });
     }
 
-    // cek duplikasi
+    // Validasi field wajib
+    if (!id_campaign_onchain || !tx_hash) {
+      return res.status(400).json({
+        message: "id_campaign_onchain dan tx_hash wajib diisi (kegiatan harus sudah terdaftar di blockchain).",
+      });
+    }
+
+    // Cek duplikasi
     const exists = await pool.query(
       `SELECT 1 FROM campaigns WHERE id_campaign_onchain = $1 LIMIT 1`,
       [id_campaign_onchain]
     );
 
     if (exists.rowCount > 0) {
-      return res.status(409).json({ message: "Campaign already synced" });
+      return res.status(409).json({ message: "Kegiatan sudah pernah disinkronisasi" });
     }
 
-    // Query INSERT yang sudah diperbaiki (onchain_status dihapus)
-    const { rows } = await pool.query(
-      `
-      INSERT INTO campaigns (
-        admin_pura_id,
-        title,
-        description,
-        purpose,
-        campaign_type,
-        is_sc_registered,
-        is_onchain_enabled,
-        is_offchain_enabled,
-        deadline,
-        id_campaign_onchain,
-        tx_hash,
-        status
-      )
-      VALUES (
-        $1, $2, $3, $4,
-        'SC-ONLY',
-        true,
-        true,
-        false,
-        $5,
-        $6,
-        $7,
-        'ACTIVE'
-      )
-      RETURNING *
-      `,
-      [
-        admin.admin_pura_id,
-        title,
-        description,
-        purpose,
-        deadline,
-        id_campaign_onchain,
-        tx_hash,
-      ]
+    const campaign = await campaignService.syncCampaignFromChain(
+      admin.admin_pura_id,
+      req.body
     );
 
-    res.json({
-      message: "Campaign synced successfully",
-      campaign: rows[0],
+    res.status(201).json({
+      message: "Kegiatan berhasil disinkronisasi",
+      campaign,
     });
   } catch (err) {
     console.error("SYNC CAMPAIGN ERROR:", err);
@@ -120,8 +82,6 @@ async function syncScOnlyCampaign(req, res) {
 /**
  * GET /api/adminpura/campaigns
  */
-// controller/campaignController.js
-
 async function getMyCampaigns(req, res) {
   try {
     const admin = req.admin;
@@ -141,13 +101,12 @@ async function getMyCampaigns(req, res) {
       rows.map(async (c) => {
         let onchainInfo = null;
 
-        if (c.campaign_type === 'sc_only' && c.onchain_campaign_id) {
+        if (c.id_campaign_onchain) {
           try {
-            // 🚀 PARALLEL REQUEST: Ambil Metadata SC & Saldo Saldo sekaligus
-            // Ini akan memanggil getScCampaign() DAN getCampaignBalances()
+            // 🚀 PARALLEL REQUEST: Ambil Metadata SC & Saldo sekaligus
             const [scMetadata, balances] = await Promise.all([
-               vaultService.getScCampaign(c.onchain_campaign_id), // <--- INI TAMBAHANNYA
-               vaultService.getCampaignBalances(c.onchain_campaign_id, [USDT, USDC])
+               vaultService.getScCampaign(c.id_campaign_onchain),
+               vaultService.getCampaignBalances(c.id_campaign_onchain, [USDT, USDC])
             ]);
 
             onchainInfo = {
@@ -168,7 +127,7 @@ async function getMyCampaigns(req, res) {
 
         return {
           ...c,
-          onchain_info: onchainInfo, // Sekarang isinya lengkap (Saldo + Status Withdrawn)
+          onchain_info: onchainInfo,
         };
       })
     );
@@ -196,7 +155,7 @@ async function getCampaignById(req, res) {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kegiatan tidak ditemukan" });
     }
 
     const campaign = rows[0];
@@ -204,24 +163,23 @@ async function getCampaignById(req, res) {
     let history = [];
 
     // 2. Ambil Blockchain Data via Service
-    if (campaign.campaign_type === 'sc_only' && campaign.onchain_campaign_id) {
-      const onchainId = campaign.onchain_campaign_id;
+    if (campaign.id_campaign_onchain) {
+      const onchainId = campaign.id_campaign_onchain;
       
       try {
-        // ✅ PANGGIL SERVICE: Ambil Data SC, Saldo, dan History Donasi
         const [scData, balances, donationEvents] = await Promise.all([
           vaultService.getScCampaign(onchainId),
           vaultService.getCampaignBalances(onchainId, [USDT, USDC]),
-          vaultService.getDonationHistory({ campaignId: onchainId }) // 🔥 Fitur Baru
+          vaultService.getDonationHistory({ campaignId: onchainId })
         ]);
 
         onchainDetails = {
-          ...scData, // creator, deadline, withdrawn
+          ...scData,
           balance_usdt: balances[USDT],
           balance_usdc: balances[USDC],
         };
         
-        history = donationEvents; // List pendonor
+        history = donationEvents;
 
       } catch (err) {
         console.error("Service Error:", err);
@@ -232,7 +190,7 @@ async function getCampaignById(req, res) {
     res.json({
       campaign,
       onchain_details: onchainDetails,
-      donation_history: history // Dikirim ke frontend
+      donation_history: history
     });
 
   } catch (err) {
@@ -267,7 +225,7 @@ async function getCampaignDetailFull(req, res) {
     res.json(data);
   } catch (err) {
     if (err.message === "CAMPAIGN_NOT_FOUND") {
-      return res.status(404).json({ message: "Campaign not found" });
+      return res.status(404).json({ message: "Kegiatan tidak ditemukan" });
     }
 
     console.error("GET CAMPAIGN DETAIL FULL ERROR:", err);
@@ -276,9 +234,8 @@ async function getCampaignDetailFull(req, res) {
 }
 
 module.exports = {
-  createCampaign,
+  syncCampaign,
   getMyCampaigns,
   getCampaignById,
   getCampaignDetailFull,
-  syncScOnlyCampaign
 };

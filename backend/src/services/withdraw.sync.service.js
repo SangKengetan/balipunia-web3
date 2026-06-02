@@ -38,7 +38,7 @@ async function syncVotingResult(withdrawRequestId) {
   );
 
   /**
-   * status mapping dari VotingV2:
+   * status mapping dari VotingV3:
    * 0 = PENDING
    * 1 = APPROVED
    * 2 = REJECTED
@@ -47,12 +47,13 @@ async function syncVotingResult(withdrawRequestId) {
   let newCampaignStatus = null;
 
   if (proposal.status === "APPROVED" && proposal.executed) {
-    newWithdrawStatus = "EXECUTED";
-    newCampaignStatus = "WITHDRAWN";
+    newWithdrawStatus = "PENDING_TRANSFER";
+    newCampaignStatus = "PENDING_TRANSFER";
   }
 
   if (proposal.status === "REJECTED") {
     newWithdrawStatus = "REJECTED";
+    newCampaignStatus = "ACTIVE";
   }
 
   /* ===============================

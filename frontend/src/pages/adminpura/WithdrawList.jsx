@@ -9,7 +9,10 @@ import {
   XCircle, 
   Vote, 
   Loader2,
-  AlertCircle
+  AlertCircle,
+  ArrowRightLeft,
+  FileCheck2,
+  FileText
 } from "lucide-react";
 
 export default function WithdrawList() {
@@ -56,9 +59,47 @@ export default function WithdrawList() {
   };
 
   // --- Render Parsed Amount ---
-  const renderAmount = (snapshot) => {
+  const renderAmount = (snapshot, totalIdr) => {
     if (!snapshot) return <span className="text-gray-400">-</span>;
-    // Regex simple parser
+
+    // Try parsing as JSON first (new format)
+    try {
+      const parsed = typeof snapshot === "string" ? JSON.parse(snapshot) : snapshot;
+      if (parsed && parsed.crypto) {
+        const formatCrypto = (val) => {
+          if (!val || val === "0") return "0.00";
+          return (parseFloat(val) / 1e18).toLocaleString("en-US", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 4,
+          });
+        };
+
+        const formatRupiah = (val) => {
+          const num = Number(val);
+          if (isNaN(num)) return "Rp 0";
+          return `Rp ${num.toLocaleString("id-ID")}`;
+        };
+
+        return (
+          <div className="flex flex-col gap-1 text-right">
+            {/* Total IDR (highlight) */}
+            <div className="text-base font-bold text-gray-900 font-mono">
+              {formatRupiah(totalIdr || parsed.total_idr)}
+            </div>
+            <div className="text-[10px] text-gray-400 mt-0.5">
+              USDT: {formatCrypto(parsed.crypto?.amount_usdt)} | USDC: {formatCrypto(parsed.crypto?.amount_usdc)}
+            </div>
+            <div className="text-[10px] text-gray-400">
+              Fiat: {formatRupiah(parsed.fiat?.amount_idr)}
+            </div>
+          </div>
+        );
+      }
+    } catch {
+      // Fallback to old string format
+    }
+
+    // Old string format fallback
     const usdt = snapshot.match(/USDT:\s*([\d.]+)/)?.[1] || "0";
     const usdc = snapshot.match(/USDC:\s*([\d.]+)/)?.[1] || "0";
 
@@ -97,6 +138,16 @@ export default function WithdrawList() {
         icon = <Loader2 size={12} className="animate-spin" />;
         label = "Voting Berjalan";
         break;
+      case "PENDING_TRANSFER":
+        style = "bg-amber-50 text-amber-700 border-amber-200";
+        icon = <ArrowRightLeft size={12} />;
+        label = "Menunggu Transfer";
+        break;
+      case "COMPLETED":
+        style = "bg-emerald-50 text-emerald-700 border-emerald-200";
+        icon = <CheckCircle2 size={12} />;
+        label = "Dana Diterima";
+        break;
       case "EXECUTED":
         style = "bg-emerald-50 text-emerald-700 border-emerald-200";
         icon = <CheckCircle2 size={12} />;
@@ -126,7 +177,7 @@ export default function WithdrawList() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
            <h1 className="text-2xl font-bold text-gray-800">Daftar Penarikan Dana</h1>
-           <p className="text-sm text-gray-500">Pantau status persetujuan (Voting) dan pencairan dana on-chain.</p>
+           <p className="text-sm text-gray-500">Pantau status persetujuan (Voting) dan pencairan dana.</p>
         </div>
         <button 
             onClick={fetchWithdraws}
@@ -160,7 +211,7 @@ export default function WithdrawList() {
                     <Wallet size={32} />
                 </div>
                 <h3 className="font-bold text-gray-700">Belum ada penarikan</h3>
-                <p className="text-sm mt-1">Permintaan withdraw yang Anda buat akan muncul di sini.</p>
+                <p className="text-sm mt-1">Permintaan pencairan dana yang Anda buat akan muncul di sini.</p>
              </div>
         )}
 
@@ -169,8 +220,8 @@ export default function WithdrawList() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-500 font-semibold uppercase tracking-wider text-xs border-b border-gray-200">
                 <tr>
-                  <th className="px-6 py-4">Nama Kampanye</th>
-                  <th className="px-6 py-4 text-right">Jumlah (Snapshot)</th>
+                  <th className="px-6 py-4">Nama Kegiatan</th>
+                  <th className="px-6 py-4 text-right">Jumlah Dana</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4 text-right">Aksi & Bukti</th>
                 </tr>
@@ -189,47 +240,80 @@ export default function WithdrawList() {
 
                     {/* Amount */}
                     <td className="px-6 py-4">
-                      {renderAmount(wr.amount_snapshot)}
+                      {renderAmount(wr.amount_snapshot, wr.total_idr)}
                     </td>
 
                     {/* Status Badge */}
                     <td className="px-6 py-4 text-center">
-                      {renderStatusBadge(wr.status)}
+                      {(() => {
+                        let effectiveStatus = wr.status;
+                        if (effectiveStatus !== "COMPLETED" && effectiveStatus !== "EXECUTED" && wr.voting) {
+                          if (wr.voting.status === "APPROVED") {
+                             effectiveStatus = "PENDING_TRANSFER";
+                          } else if (wr.voting.status === "REJECTED") {
+                             effectiveStatus = "REJECTED";
+                          }
+                        }
+                        return renderStatusBadge(effectiveStatus);
+                      })()}
                     </td>
 
                     {/* Actions */}
                     <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-3">
+                      {(() => {
+                        let effectiveStatus = wr.status;
+                        if (effectiveStatus !== "COMPLETED" && effectiveStatus !== "EXECUTED" && wr.voting) {
+                          if (wr.voting.status === "APPROVED") {
+                             effectiveStatus = "PENDING_TRANSFER";
+                          } else if (wr.voting.status === "REJECTED") {
+                             effectiveStatus = "REJECTED";
+                          }
+                        }
                         
-                        {/* 1. SYNC BUTTON (Only visible during voting) */}
-                        {wr.status === "VOTING_IN_PROGRESS" && (
-                          <button
-                            onClick={() => handleSync(wr.id)}
-                            disabled={syncingId === wr.id}
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-gray-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
-                          >
-                            <RefreshCw size={12} className={syncingId === wr.id ? "animate-spin" : ""} />
-                            {syncingId === wr.id ? "Syncing..." : "Sync Vote"}
-                          </button>
-                        )}
+                        return (
+                          <div className="flex items-center justify-end gap-3">
+                            {/* 1. SYNC BUTTON (Only visible during voting) */}
+                            {effectiveStatus === "VOTING_IN_PROGRESS" && (
+                              <button
+                                onClick={() => handleSync(wr.id)}
+                                disabled={syncingId === wr.id}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 text-white rounded-lg text-xs font-bold hover:bg-gray-900 transition-all disabled:opacity-70 disabled:cursor-not-allowed shadow-sm"
+                              >
+                                <RefreshCw size={12} className={syncingId === wr.id ? "animate-spin" : ""} />
+                                {syncingId === wr.id ? "Syncing..." : "Sync Vote"}
+                              </button>
+                            )}
 
-                        {/* 2. TX HASH LINK (Only if executed) */}
-                        {wr.executed_tx_hash ? (
-                          <a
-                            href={`https://testnet.bscscan.com/tx/${wr.executed_tx_hash}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-all"
-                            title="Lihat di Blockchain Explorer"
-                          >
-                            <ExternalLink size={12} />
-                            Lihat TX
-                          </a>
-                        ) : (
-                           // Placeholder agar layout tidak lompat jika tidak ada tombol
-                           wr.status !== "VOTING_IN_PROGRESS" && <span className="text-gray-300 text-xs">-</span>
-                        )}
-                      </div>
+                            {/* 2. TX HASH LINK (Only if executed) */}
+                            {wr.executed_tx_hash && (
+                              <a
+                                href={`https://testnet.bscscan.com/tx/${wr.executed_tx_hash}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-bold border border-blue-100 hover:bg-blue-100 transition-all"
+                                title="Lihat di Blockchain Explorer"
+                              >
+                                <ExternalLink size={12} />
+                                Lihat TX
+                              </a>
+                            )}
+
+                            {/* 3. TRANSFER PROOF LINK (Only if completed) */}
+                            {wr.transfer_proof_cid && (
+                              <a
+                                href={`https://gateway.pinata.cloud/ipfs/${wr.transfer_proof_cid}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold border border-emerald-100 hover:bg-emerald-100 transition-all"
+                                title="Lihat Bukti Transfer"
+                              >
+                                <FileText size={12} />
+                                Bukti
+                              </a>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                   </tr>
@@ -241,4 +325,4 @@ export default function WithdrawList() {
       </div>
     </div>
   );
-}
+}

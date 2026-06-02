@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { requestWithdraw } from "../../api/adminPura.api";
 import { fetchPublicCampaignDetail } from "../../api/public.api";
+import { proposeWithdraw } from "../../services/blockchain/voting";
 import { 
   ArrowLeft, 
   Wallet, 
@@ -13,7 +14,8 @@ import {
   CheckCircle2, 
   Loader2, 
   Info,
-  Send
+  Send,
+  Banknote
 } from "lucide-react";
 
 export default function WithdrawRequestForm() {
@@ -22,7 +24,9 @@ export default function WithdrawRequestForm() {
 
   // --- State Data ---
   const [onchain, setOnchain] = useState({ balances: { USDT: "0", USDC: "0" } });
+  const [offchain, setOffchain] = useState({ total: "0", txCount: 0 });
   const [campaign, setCampaign] = useState(null);
+  const [cryptoRateIdr, setCryptoRateIdr] = useState(0);
   
   // --- State UI ---
   const [isFetching, setIsFetching] = useState(true);
@@ -44,10 +48,21 @@ export default function WithdrawRequestForm() {
 
         if (data.campaign) setCampaign(data.campaign);
         if (data.onchain) setOnchain(data.onchain);
+        if (data.offchain) setOffchain(data.offchain);
+
+        try {
+          const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
+          const rateData = await rateRes.json();
+          if (rateData?.rates?.IDR) {
+            setCryptoRateIdr(rateData.rates.IDR);
+          }
+        } catch (e) {
+          console.error("Gagal fetch rate USD to IDR:", e);
+        }
 
       } catch (err) {
         console.error("Gagal ambil data:", err);
-        setError("Gagal memuat data campaign.");
+        setError("Gagal memuat data kegiatan.");
       } finally {
         setIsFetching(false);
       }
@@ -57,30 +72,55 @@ export default function WithdrawRequestForm() {
   }, [campaignId]);
 
   // 2. LOGIC HELPERS
-  const amountSnapshot = useMemo(() => {
-    const usdt = onchain?.balances?.USDT || "0";
-    const usdc = onchain?.balances?.USDC || "0";
-    return `USDT: ${usdt}, USDC: ${usdc}`;
-  }, [onchain]);
-
   const isDeadlinePassed = useMemo(() => {
     if (!campaign) return false;
+    if (!campaign.deadline) return true; // if no deadline
     const deadline = new Date(campaign.deadline);
     const now = new Date();
     return now >= deadline;
   }, [campaign]);
 
-  const isAlreadyRequested = campaign?.status === "REQUESTED";
+  const isAlreadyRequested = [
+    "REQUESTED",
+    "VOTING_IN_PROGRESS",
+    "PENDING_TRANSFER",
+    "COMPLETED",
+    "EXECUTED"
+  ].includes(campaign?.status);
+
   const isLocked = !isDeadlinePassed || isAlreadyRequested;
 
-  // Helper Format Crypto Display
+  // Helper Format
+  const formatCryptoRaw = (val) => {
+    if (!val) return 0;
+    return parseFloat(val) / 1e18;
+  };
+  
   const formatCrypto = (val) => {
-    if (!val) return "0.00";
-    return (parseFloat(val) / 1000000).toLocaleString("en-US", {
+    return formatCryptoRaw(val).toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
   };
+
+  const formatRupiah = (val) => {
+    return `Rp ${Number(val).toLocaleString("id-ID")}`;
+  };
+
+  // --- FEE CALCULATIONS ---
+  const usdtRaw = formatCryptoRaw(onchain?.balances?.USDT);
+  const usdcRaw = formatCryptoRaw(onchain?.balances?.USDC);
+  const totalCryptoUsd = usdtRaw + usdcRaw;
+  const cryptoGrossIdr = totalCryptoUsd * cryptoRateIdr;
+  const cryptoFeeIdr = totalCryptoUsd > 0 ? 10000 : 0; // Flat fee crypto
+  const cryptoNetIdr = Math.max(0, cryptoGrossIdr - cryptoFeeIdr);
+
+  const fiatGrossIdr = Number(offchain?.total || 0);
+  const fiatTxCount = offchain?.txCount || 0;
+  const fiatFeeIdr = fiatTxCount * 4400; // Fee Midtrans 4.400 per transaksi
+  const fiatNetIdr = Math.max(0, fiatGrossIdr - fiatFeeIdr);
+
+  const totalNetIdr = cryptoNetIdr + fiatNetIdr;
 
   // Helper File Change
   const handleFileChange = (e) => {
@@ -98,8 +138,8 @@ export default function WithdrawRequestForm() {
 
     if (isLocked) return;
 
-    if (!file) {
-      setError("Dokumen pendukung (RAB/Bukti) wajib diunggah.");
+    if (!reason.trim() || !file) {
+      setError("Semua inputan (Rencana Penggunaan Dana dan Dokumen Pendukung) wajib diisi.");
       return;
     }
 
@@ -108,19 +148,38 @@ export default function WithdrawRequestForm() {
 
       const formData = new FormData();
       formData.append("campaign_id", campaignId);
-      formData.append("amount", amountSnapshot); 
       formData.append("reason", reason || "");
+      
+      // Append payload values for unified withdraw
+      formData.append("crypto_usdt", onchain?.balances?.USDT || "0");
+      formData.append("crypto_usdc", onchain?.balances?.USDC || "0");
+      formData.append("crypto_fee_idr", cryptoFeeIdr);
+      formData.append("fiat_amount_idr", fiatGrossIdr);
+      formData.append("fiat_fee_idr", fiatFeeIdr);
+      formData.append("total_idr", totalNetIdr);
+
       formData.append("document", file);
+
+      let proposalId = null;
+      if (campaign.id_campaign_onchain) {
+        // Panggil MetaMask untuk membuat proposal di blockchain
+        proposalId = await proposeWithdraw(campaign.id_campaign_onchain);
+        formData.append("proposal_id", proposalId);
+      }
 
       await requestWithdraw(formData);
 
       // Feedback visual sebelum redirect
-      alert("Permintaan withdraw berhasil diajukan! Trustee akan segera melakukan voting.");
+      if (proposalId) {
+        alert("Permintaan pencairan dana berhasil diajukan dan Proposal Blockchain telah dibuat! Wali Amanat (Trustee) akan segera melakukan voting.");
+      } else {
+        alert("Permintaan pencairan dana berhasil diajukan!");
+      }
       navigate("/admin/pura/withdraws");
 
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Gagal mengajukan withdraw");
+      setError(err.message || err.response?.data?.message || "Gagal mengajukan pencairan dana");
     } finally {
       setLoading(false);
     }
@@ -134,10 +193,10 @@ export default function WithdrawRequestForm() {
     );
   }
 
-  if (!campaign) return <div className="p-8 text-center">Campaign tidak ditemukan.</div>;
+  if (!campaign) return <div className="p-8 text-center">Kegiatan tidak ditemukan.</div>;
 
   return (
-    <div className="max-w-2xl mx-auto py-8 font-sans px-4">
+    <div className="max-w-3xl mx-auto py-8 font-sans px-4">
       
       {/* HEADER */}
       <div className="flex items-center gap-4 mb-6">
@@ -148,8 +207,8 @@ export default function WithdrawRequestForm() {
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Request Withdraw</h1>
-          <p className="text-sm text-gray-500">Ajukan pencairan dana dari Smart Contract (On-Chain).</p>
+          <h1 className="text-2xl font-bold text-gray-800">Ajukan Pencairan Dana Terpadu</h1>
+          <p className="text-sm text-gray-500">Ajukan pencairan untuk total donasi Crypto (Smart Contract) & Fiat (Midtrans).</p>
         </div>
       </div>
 
@@ -183,9 +242,9 @@ export default function WithdrawRequestForm() {
                     <Info size={20} />
                 </div>
                 <div>
-                    <h3 className="font-bold text-sm">Sedang Dalam Proses</h3>
+                    <h3 className="font-bold text-sm">Pencairan Sedang Diproses</h3>
                     <p className="text-xs mt-0.5">
-                        Permintaan withdraw untuk campaign ini sudah diajukan sebelumnya.
+                        Permintaan pencairan dana untuk kegiatan ini sudah pernah diajukan. Status saat ini: {campaign.status}.
                     </p>
                 </div>
             </div>
@@ -195,39 +254,75 @@ export default function WithdrawRequestForm() {
       <form onSubmit={submitWithdraw} className="space-y-6">
         
         {/* 1. SNAPSHOT BALANCE CARD */}
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden border border-gray-700">
-            {/* Background pattern */}
-            <div className="absolute top-0 right-0 opacity-10">
-                <Wallet size={120} />
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+              <Banknote size={18} className="text-amber-500"/> Estimasi Pencairan
+            </h3>
+            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full font-bold">UNIFIED</span>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Crypto Section */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Donasi Crypto (On-Chain)</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Saldo USDT</span>
+                    <span className="font-mono font-bold">${formatCrypto(onchain?.balances?.USDT)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Saldo USDC</span>
+                    <span className="font-mono font-bold">${formatCrypto(onchain?.balances?.USDC)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-100 border-dashed">
+                    <span className="text-gray-500">Est. Kotor (Rate {cryptoRateIdr ? formatRupiah(cryptoRateIdr) : 'Menghitung...'})</span>
+                    <span className="font-mono">{formatRupiah(cryptoGrossIdr)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-500">
+                    <span>Est. Fee Jaringan</span>
+                    <span className="font-mono">-{formatRupiah(cryptoFeeIdr)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 font-bold text-gray-800">
+                    <span>Bersih Crypto</span>
+                    <span className="font-mono">{formatRupiah(cryptoNetIdr)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Fiat Section */}
+              <div>
+                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Donasi Fiat (Midtrans)</h4>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Total Masuk</span>
+                    <span className="font-mono font-bold">{formatRupiah(fiatGrossIdr)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-500">
+                    <span>Est. Fee (4.4k/Tx)</span>
+                    <span className="font-mono">-{formatRupiah(fiatFeeIdr)}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 mt-2 border-t border-gray-100 border-dashed font-bold text-gray-800">
+                    <span>Bersih Fiat</span>
+                    <span className="font-mono">{formatRupiah(fiatNetIdr)}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="relative z-10">
-                <h3 className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <Wallet size={14}/> Snapshot Saldo
-                </h3>
-                
-                <div className="grid grid-cols-2 gap-8">
-                    <div>
-                        <p className="text-xs text-gray-400 mb-1">USDT Balance</p>
-                        <p className="text-2xl font-mono font-bold text-amber-400">
-                            ${formatCrypto(onchain?.balances?.USDT)}
-                        </p>
-                    </div>
-                    <div>
-                        <p className="text-xs text-gray-400 mb-1">USDC Balance</p>
-                        <p className="text-2xl font-mono font-bold text-blue-400">
-                            ${formatCrypto(onchain?.balances?.USDC)}
-                        </p>
-                    </div>
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="block text-sm text-gray-500">Total Estimasi Dana Bersih</span>
+                  <span className="block text-xs text-gray-400 mt-1">Yang akan ditransfer Super Admin ke rekening Pura</span>
                 </div>
-
-                <div className="mt-4 pt-4 border-t border-gray-700">
-                    <p className="text-[10px] text-gray-400 flex items-center gap-1.5 bg-gray-800/50 w-fit px-2 py-1 rounded">
-                        <Info size={10} />
-                        Nominal ini akan dikunci dalam proposal voting Trustee.
-                    </p>
+                <div className="text-3xl font-bold text-emerald-600 font-mono">
+                  {formatRupiah(totalNetIdr)}
                 </div>
+              </div>
             </div>
+          </div>
         </div>
 
         {/* 2. FORM INPUTS */}

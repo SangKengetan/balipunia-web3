@@ -39,3 +39,11 @@ export const fetchOffchainWithdrawals = () =>
   api.get("/superadmin/offchain-withdrawals");
 export const updateOffchainStatus = (id, payload) =>
   api.patch(`/superadmin/offchain-withdrawals/${id}/status`, payload);
+
+/* Pencairan Dana (Withdraw Transfers) */
+export const fetchWithdrawTransfers = () =>
+  api.get("/superadmin/withdraws");
+export const completeWithdrawTransfer = (id, formData) =>
+  api.post(`/superadmin/withdraws/${id}/transfer`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });

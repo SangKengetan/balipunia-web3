@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { fetchPublicPuras } from "../../api/public.api";
 import PuraCard from "../../components/public/PuraCard";
+import Navbar from "../../components/Navbar";
+import useWallet from "../../hooks/useWallet";
 
 // Pastikan path image sesuai struktur folder project Anda.
 // Jika menggunakan Vite, terkadang lebih aman mengimportnya:
@@ -22,6 +24,7 @@ export default function PuraList() {
   const [puras, setPuras] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const { address, connectWallet } = useWallet();
 
   useEffect(() => {
     const fetchPuras = async () => {
@@ -48,7 +51,7 @@ export default function PuraList() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
+      <Navbar address={address} onConnect={connectWallet} />
       {/* === SECTION 1: HERO HEADER (Centered & Background) === */}
       <div 
         className="relative w-full h-[450px] flex items-center justify-center bg-cover bg-center"
@@ -59,7 +62,7 @@ export default function PuraList() {
         <div className="absolute inset-0 bg-gray-900/60"></div>
 
         {/* Hero Content */}
-        <div className="relative z-10 w-full max-w-4xl px-4 text-center">
+        <div className="relative z-10 w-full max-w-4xl px-4 text-center pt-20">
           <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4 drop-shadow-lg">
             Daftar Pura Terdaftar
           </h1>

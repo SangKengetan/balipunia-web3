@@ -28,10 +28,10 @@ async function getCampaignTimeline(campaignId) {
   // 2️⃣ REQUEST_WD
   const { rows: wdRows } = await pool.query(
     `
-    SELECT created_at
+    SELECT created_at, status
     FROM withdraw_requests
     WHERE campaign_id = $1
-      AND status = 'EXECUTED'
+      AND status IN ('EXECUTED', 'COMPLETED')
     ORDER BY created_at ASC
     LIMIT 1
     `,
@@ -41,7 +41,7 @@ async function getCampaignTimeline(campaignId) {
   if (wdRows.length) {
     timeline.push({
       type: 'REQUEST_WD',
-      title: 'Permohonan pencairan dana diajukan',
+      title: 'Sebagian/Seluruh dana telah dicairkan ke pengelola',
       timestamp: wdRows[0].created_at,
     });
   }

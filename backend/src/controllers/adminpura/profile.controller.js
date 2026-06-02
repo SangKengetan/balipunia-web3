@@ -1,7 +1,9 @@
+const fs = require("fs");
 const {
   getAdminPuraProfile,
   updateAdminPuraProfile
 } = require("../../services/adminpura/adminPuraProfile.service");
+const { uploadToIPFS } = require("../../services/ipfsService");
 
 async function getProfileHandler(req, res) {
   try {
@@ -43,7 +45,16 @@ async function updateProfileHandler(req, res) {
       }
     }
 
-    const data = await updateAdminPuraProfile(admin.id, req.body);
+    const payload = { ...req.body };
+    const file = req.file;
+
+    if (file) {
+      const ipfsHash = await uploadToIPFS(file);
+      payload.profile_picture = ipfsHash;
+      if (file.path) fs.unlinkSync(file.path);
+    }
+
+    const data = await updateAdminPuraProfile(admin.id, payload);
 
     return res.status(200).json({
       message: "Profil admin pura berhasil diperbarui",
