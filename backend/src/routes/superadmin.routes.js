@@ -9,7 +9,7 @@ const {
   getReports,  approveReport,  rejectReport,
   getDashboardSummary,
   listAdmins, createAdmin, toggleAdmin, deleteAdmin
-} = require("../controllers/superAdmin.controller");
+} = require("../controllers/superadmin.controller");
 
 const {
   listWithdrawTransfers,
