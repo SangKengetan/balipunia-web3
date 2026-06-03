@@ -26,7 +26,7 @@ export default function DonorDashboard() {
   const fetchHistory = async () => {
     try {
       setLoading(true);
-      const res = await fetch(\`${import.meta.env.VITE_API_BASE_URL}/api/payments/my-donations\`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/payments/my-donations`, {
         headers: {
           Authorization: `Bearer ${donorToken}`,
         },
@@ -64,7 +64,7 @@ export default function DonorDashboard() {
       }
 
       // Save to backend
-      const res = await fetch(\`${import.meta.env.VITE_API_BASE_URL}/auth/donor/wallet\`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/donor/wallet`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

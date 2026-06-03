@@ -22,7 +22,7 @@ export default function DonorLogin() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(\`${import.meta.env.VITE_API_BASE_URL}/auth/donor/login\`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/donor/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
