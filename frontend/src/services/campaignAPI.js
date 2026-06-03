@@ -4,7 +4,7 @@ import axios from "axios";
  * Axios instance khusus Campaign API
  */
 const campaignApi = axios.create({
-  baseURL: "http://localhost:5000",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
 });
 
 export async function getPublicCampaigns() {

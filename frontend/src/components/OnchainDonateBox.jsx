@@ -30,7 +30,7 @@ export default function OnchainDonateBox({ onchainCampaignId }) {
           const accounts = await window.ethereum.request({ method: "eth_accounts" });
           if (accounts && accounts[0]) {
             const walletAddr = accounts[0];
-            await fetch("http://localhost:5000/auth/donor/wallet", {
+            await fetch(\`${import.meta.env.VITE_API_BASE_URL}/auth/donor/wallet\`, {
               method: "PUT",
               headers: {
                 "Content-Type": "application/json",

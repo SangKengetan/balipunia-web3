@@ -41,7 +41,7 @@ export default function DonorRegister() {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:5000/auth/donor/register", {
+      const response = await fetch(\`${import.meta.env.VITE_API_BASE_URL}/auth/donor/register\`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name, contact }),
