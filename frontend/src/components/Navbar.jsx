@@ -26,6 +26,9 @@ export default function Navbar({ address, onConnect }) {
             <li>
               <Link to="/pura" className="hover:text-amber-500 transition-colors">Daftar Pura</Link>
             </li>
+            <li>
+              <Link to="/faq" className="hover:text-amber-500 transition-colors">FAQ</Link>
+            </li>
             {isDonorAuthenticated ? (
               <>
                 <li className="relative group">

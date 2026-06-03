@@ -18,7 +18,7 @@ app.use(cors());
 app.use(express.json());
 
 const leaderboardRoutes = require("./routes/leaderboard.routes");
-
+const faqRoutes = require("./routes/faq.routes");
 /**
  * AUTH
  */
@@ -29,6 +29,7 @@ app.use("/auth", authRoutes);
  */
 app.use("/public", publicRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/faqs", faqRoutes);
 app.use("/reports", reportRoutes);
 
 

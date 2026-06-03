@@ -9,6 +9,7 @@ import SuperAdminDashboard from "./pages/super-admin/SuperAdminDashboard";
 import AdminPuraLayout from "./components/adminpura/AdminPura";
 import Dashboard from "./pages/super-admin/Dashboard";
 import AdminManagement from "./pages/super-admin/AdminManagement";
+import FAQManagement from "./pages/super-admin/FAQManagement";
 import Reports from "./pages/super-admin/Report";
 import OffchainWithdrawals from "./pages/super-admin/OffchainWithdrawals";
 import WithdrawTransfers from "./pages/super-admin/WithdrawTransfers";
@@ -24,6 +25,7 @@ import PuraList from "./pages/public/PuraList";
 import PuraDetail from "./pages/public/PuraDetail";
 import CampaignDetailPublic from "./pages/public/CampaignDetail";
 import PuraFinancialReports from "./pages/public/PuraFinancialReport";
+import FAQ from "./pages/public/FAQ";
 // import CampaignSCDetail from "./pages/public/CampaignSCDetail";
 import WithdrawCampaignList from "./pages/adminpura/WithdrawList";
 import WithdrawRequestForm from "./pages/adminpura/WithdrawRequestForm";
@@ -55,6 +57,7 @@ function App() {
         <Route path="/pura/:id" element={<PuraDetail />} />
         <Route path="/campaign/:id" element={<CampaignDetailPublic />} />
         <Route path="/pura/:puraId/financial-reports" element={<PuraFinancialReports />} />
+        <Route path="/faq" element={<FAQ />} />
         {/* <Route path="/campaigns/sc/:id_campaign_onchain" element={<CampaignSCDetail />} /> */}
 
         {/* =====================
@@ -106,6 +109,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="admins" element={<AdminManagement />} />
+          <Route path="faqs" element={<FAQManagement />} />
           <Route path="reports" element={<Reports />} />
           <Route path="offchain" element={<OffchainWithdrawals />} />
           <Route path="withdraws" element={<WithdrawTransfers />} />
