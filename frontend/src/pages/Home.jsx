@@ -1,9 +1,10 @@
 import useWallet from "../hooks/useWallet";
 import Navbar from "../components/Navbar";
+import Leaderboard from "../components/Leaderboard";
 import bgHero from "../assets/BG-Hero.png";
 import { useNavigate } from "react-router-dom";
 import { showError } from "../utils/notification";
-
+import Swal from "sweetalert2";
 
 export default function Home() {
   const { address, connectWallet } = useWallet();
@@ -25,20 +26,33 @@ export default function Home() {
    * - Wallet = identitas admin
    */
   const handleRegisterPura = async () => {
-    if (!address) {
-      await connectWallet();
+    let currentAddress = address;
+    if (!currentAddress) {
+      const result = await Swal.fire({
+        icon: 'info',
+        title: 'Hubungkan Dompet Digital',
+        text: 'Untuk mendaftarkan Pura atau Yayasan, Anda diwajibkan untuk menghubungkan Dompet Digital (MetaMask) sebagai bukti identitas pengelola.',
+        showCancelButton: true,
+        confirmButtonColor: '#FBBF24',
+        cancelButtonColor: '#9ca3af',
+        confirmButtonText: 'Hubungkan MetaMask',
+        cancelButtonText: 'Batal'
+      });
+      
+      if (result.isConfirmed) {
+        currentAddress = await connectWallet();
+      } else {
+        return; // Dibatalkan oleh user
+      }
     }
 
-    // address sekarang tersedia (atau user cancel)
-    if (!address) {
+    if (!currentAddress) {
       showError("Akses Ditolak", "Dompet Digital (Wallet) diperlukan untuk mendaftar.", "Silakan pastikan ekstensi MetaMask terinstal dan berikan izin saat diminta.");
       return;
     }
 
     // Simpan address sementara (nanti bisa ke context / session)
-    sessionStorage.setItem("admin_wallet", address);
-
-    // alert(`Wallet ${address} terhubung. Lanjut ke pendaftaran pura`);
+    sessionStorage.setItem("admin_wallet", currentAddress);
     navigate("/register");
   };
 
@@ -190,6 +204,10 @@ export default function Home() {
                 Mulai Mepunia
               </button>
             </div>
+          </div>
+
+          <div className="mt-24 max-w-3xl mx-auto">
+            <Leaderboard level="global" />
           </div>
         </div>
       </section>

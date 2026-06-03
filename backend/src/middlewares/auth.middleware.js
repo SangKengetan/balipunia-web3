@@ -71,7 +71,7 @@ async function authenticateDonor(req, res, next) {
 
     const result = await pool.query(
       `
-      SELECT id, email, name, contact, wallet_address 
+      SELECT id, email, name, contact
       FROM donors 
       WHERE id = $1
       LIMIT 1
@@ -83,12 +83,17 @@ async function authenticateDonor(req, res, next) {
       return res.status(403).json({ message: "Donor not found" });
     }
 
+    const walletsResult = await pool.query(
+      "SELECT wallet_address FROM donor_wallets WHERE donor_id = $1",
+      [decoded.id]
+    );
+
     req.donor = {
       id: result.rows[0].id,
       email: result.rows[0].email,
       name: result.rows[0].name,
       contact: result.rows[0].contact,
-      wallet_address: result.rows[0].wallet_address,
+      wallets: walletsResult.rows.map(r => r.wallet_address),
     };
 
     next();

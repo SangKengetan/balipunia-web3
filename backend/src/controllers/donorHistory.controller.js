@@ -25,7 +25,9 @@ async function getMyDonations(req, res) {
 
     // 2. Fetch On-chain Donations (if wallet is linked)
     let onchainDonations = [];
-    if (walletAddress) {
+    const wallets = req.donor.wallets || [];
+    
+    if (wallets.length > 0) {
       // Get all campaigns with onchain enabled
       const campaignsQuery = `
         SELECT id, id_campaign_onchain, title 
@@ -39,9 +41,9 @@ async function getMyDonations(req, res) {
           const onchainCampaignId = BigInt(campaign.id_campaign_onchain);
           const donations = await getOnchainDonations(onchainCampaignId);
           
-          // Filter donations belonging to this wallet address
+          // Filter donations belonging to any of the user's wallets
           return donations
-            .filter((d) => d.donor.toLowerCase() === walletAddress.toLowerCase())
+            .filter((d) => wallets.some(w => w.toLowerCase() === d.donor.toLowerCase()))
             .map((d) => ({
               ...d,
               campaign_id: campaign.id,

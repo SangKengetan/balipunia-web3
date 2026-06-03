@@ -4,8 +4,11 @@ const { authenticateAdmin, authenticateDonor } = require("../middlewares/auth.mi
 const {
   registerDonor,
   loginDonor,
+  googleLoginDonor,
   getDonorProfile,
-  updateDonorWallet,
+  addDonorWallet,
+  getDonorWallets,
+  removeDonorWallet
 } = require("../controllers/donorAuth.controller");
 
 const {
@@ -30,7 +33,13 @@ router.get("/me", authenticateAdmin, (req, res) => {
 // === DONOR ROUTES ===
 router.post("/donor/register", registerDonor);
 router.post("/donor/login", loginDonor);
+router.post("/donor/google", googleLoginDonor);
 router.get("/donor/me", authenticateDonor, getDonorProfile);
-router.put("/donor/wallet", authenticateDonor, updateDonorWallet);
+
+router.get("/donor/wallets", authenticateDonor, getDonorWallets);
+router.post("/donor/wallet", authenticateDonor, addDonorWallet);
+// Support PUT as well just in case legacy frontend still uses it temporarily during transition
+router.put("/donor/wallet", authenticateDonor, addDonorWallet); 
+router.delete("/donor/wallet/:address", authenticateDonor, removeDonorWallet);
 
 module.exports = router;

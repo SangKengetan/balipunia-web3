@@ -28,28 +28,32 @@ export default function Navbar({ address, onConnect }) {
             </li>
             {isDonorAuthenticated ? (
               <>
-                <li>
-                  <Link to="/donor/dashboard" className="text-amber-600 hover:text-amber-700 transition-colors">Dashboard Donatur</Link>
-                </li>
-                <li>
-                  <button 
-                    onClick={handleLogout}
-                    className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-3 py-1.5 rounded-xl transition-all"
-                  >
-                    Keluar ({donorName?.split(" ")[0]})
+                <li className="relative group">
+                  <button className="text-gray-900 font-bold hover:text-amber-500 transition-colors flex items-center gap-1">
+                    {donorName?.split(" ")[0]}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                   </button>
+                  
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all flex flex-col overflow-hidden">
+                    <Link to="/donor/dashboard" className="px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 hover:text-amber-600 font-semibold border-b border-gray-50">
+                      Dashboard Donatur
+                    </Link>
+                    <button onClick={handleLogout} className="px-4 py-3 text-sm text-red-600 hover:bg-red-50 font-semibold text-left">
+                      Keluar
+                    </button>
+                  </div>
                 </li>
               </>
             ) : (
-              <li>
-                <Link to="/donor/login" className="bg-amber-400 hover:bg-amber-500 text-slate-900 font-extrabold px-4 py-2 rounded-xl transition-colors shadow-sm shadow-amber-100">
-                  Masuk Donatur
-                </Link>
-              </li>
+              <>
+                <li>
+                  <Link to="/donor/login" className="bg-amber-50 hover:bg-amber-100 text-amber-700 font-bold px-4 py-2.5 rounded-xl transition-colors">
+                    Masuk Donatur
+                  </Link>
+                </li>
+              </>
             )}
           </ul>
-
-          <ConnectWallet address={address} onConnect={onConnect} />
         </div>
       </div>
     </nav>

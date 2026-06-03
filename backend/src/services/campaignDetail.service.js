@@ -50,7 +50,7 @@ async function getCampaignDetailFullService({
     if (rawDonations.length > 0) {
       const uniqueWallets = [...new Set(rawDonations.map((d) => d.donor.toLowerCase()))];
       const { rows: donorRows } = await pool.query(
-        `SELECT name, LOWER(wallet_address) AS wallet_address FROM donors WHERE LOWER(wallet_address) = ANY($1)`,
+        `SELECT d.name, LOWER(dw.wallet_address) AS wallet_address FROM donor_wallets dw JOIN donors d ON d.id = dw.donor_id WHERE LOWER(dw.wallet_address) = ANY($1)`,
         [uniqueWallets]
       );
       
@@ -246,7 +246,7 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
     if (rawDonations.length > 0) {
       const uniqueWallets = [...new Set(rawDonations.map((d) => d.donor.toLowerCase()))];
       const { rows: donorRows } = await pool.query(
-        `SELECT name, LOWER(wallet_address) AS wallet_address FROM donors WHERE LOWER(wallet_address) = ANY($1)`,
+        `SELECT d.name, LOWER(dw.wallet_address) AS wallet_address FROM donor_wallets dw JOIN donors d ON d.id = dw.donor_id WHERE LOWER(dw.wallet_address) = ANY($1)`,
         [uniqueWallets]
       );
       

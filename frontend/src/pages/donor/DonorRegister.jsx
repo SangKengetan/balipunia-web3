@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 import useDonorAuth from "../../hooks/useDonorAuth";
 
 export default function DonorRegister() {
@@ -15,6 +16,36 @@ export default function DonorRegister() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      setError("");
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/donor/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credential: credentialResponse.credential }),
+      });
+      const res = await response.json();
+      if (!response.ok) throw new Error(res.message || "Gagal melakukan pendaftaran dengan Google");
+      
+      loginDonor({
+        token: res.token,
+        email: res.donor.email,
+        name: res.donor.name,
+        wallets: res.donor.wallets,
+      });
+      navigate("/donor/dashboard");
+    } catch (err) {
+      setError(err.message || "Pendaftaran Google gagal.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Pendaftaran Google dibatalkan atau gagal.");
+  };
 
   const handleChange = (e) => {
     setForm((prev) => ({
@@ -58,7 +89,7 @@ export default function DonorRegister() {
         token: res.token,
         email: res.donor.email,
         name: res.donor.name,
-        wallet_address: res.donor.wallet_address,
+        wallets: res.donor.wallets,
       });
 
       // Redirect to donor dashboard
@@ -194,6 +225,29 @@ export default function DonorRegister() {
             </button>
           </div>
         </form>
+
+        <div className="mt-6">
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="bg-white px-2 text-gray-500 font-medium">Atau daftar dengan</span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap
+              shape="pill"
+              theme="outline"
+              size="large"
+              text="signup_with"
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

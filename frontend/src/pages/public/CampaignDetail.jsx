@@ -5,10 +5,12 @@ import OnchainDonateBox from "../../components/OnchainDonateBox";
 import OffchainDonateBox from "../../components/OffchainDonateBox";
 import OffchainDonationHistory from "../../components/OffchainDonationHistory";
 import CampaignTimeline from "../../components/public/CampaignTimeline";
+import Leaderboard from "../../components/Leaderboard";
 import { ethers } from "ethers";
 import useDonorAuth from "../../hooks/useDonorAuth";
 import Navbar from "../../components/Navbar";
 import useWallet from "../../hooks/useWallet";
+import Swal from "sweetalert2";
 // --- KONFIGURASI TOKEN ---
 // Kita simpan address dalam variabel agar tidak salah copy-paste
 const USDT_ADDRESS = "0x337610d27c682e347c9cd60bd4b3b107c9d34ddd";
@@ -79,10 +81,20 @@ export default function CampaignDetail() {
 
   const handleToggleOffchain = () => {
     if (!isDonorAuthenticated) {
-      const wantToLogin = window.confirm("Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi. Apakah Anda ingin pergi ke halaman login?");
-      if (wantToLogin) {
-        navigate("/donor/login");
-      }
+      Swal.fire({
+        title: "Belum Login",
+        text: "Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#2563eb",
+        cancelButtonColor: "#d1d5db",
+        confirmButtonText: "Ke Halaman Login",
+        cancelButtonText: "Nanti Saja"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/donor/login");
+        }
+      });
       return;
     }
     setShowOffchainDonate(!showOffchainDonate);
@@ -91,10 +103,20 @@ export default function CampaignDetail() {
 
   const handleToggleOnchain = () => {
     if (!isDonorAuthenticated) {
-      const wantToLogin = window.confirm("Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi. Apakah Anda ingin pergi ke halaman login?");
-      if (wantToLogin) {
-        navigate("/donor/login");
-      }
+      Swal.fire({
+        title: "Belum Login",
+        text: "Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#2563eb",
+        cancelButtonColor: "#d1d5db",
+        confirmButtonText: "Ke Halaman Login",
+        cancelButtonText: "Nanti Saja"
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("/donor/login");
+        }
+      });
       return;
     }
     setShowOnchainDonate(!showOnchainDonate);
@@ -288,7 +310,7 @@ export default function CampaignDetail() {
                       const tokenMeta = getTokenMeta(tx.token);
                       return (
                         <tr key={i} className="bg-white border-b border-gray-100 hover:bg-gray-50">
-                          <td className="px-4 py-3 font-mono text-indigo-600 text-xs sm:text-sm">{short(tx.donor)}</td>
+                          <td className="px-4 py-3 font-bold text-gray-800 text-xs sm:text-sm">{tx.donor}</td>
                           <td className="px-4 py-3 text-sm">{tokenMeta.symbol}</td>
                           <td className="px-4 py-3 font-bold text-gray-800 text-sm">
                             {formatAmount(tx.amount, tx.token)}
@@ -451,6 +473,11 @@ export default function CampaignDetail() {
             </div>
           )}
 
+        </div>
+
+        {/* LEADERBOARD SECTION */}
+        <div className="mt-8">
+          <Leaderboard level="campaign" campaignId={id} />
         </div>
       </div>
     </div>

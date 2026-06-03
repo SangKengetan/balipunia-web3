@@ -4,7 +4,7 @@ import useDonorAuth from "../hooks/useDonorAuth";
 import { showError, showSuccess, showInfo } from "../utils/notification";
 
 export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess }) {
-  const { donorToken, donorWallet, updateWalletAddress } = useDonorAuth();
+  const { donorToken, donorWallets, addWalletAddress } = useDonorAuth();
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDT");
   const [loading, setLoading] = useState(false);
@@ -26,20 +26,26 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
       });
 
       // Automatically link wallet to donor account if not done yet
-      if (!donorWallet && window.ethereum) {
+      if (window.ethereum) {
         try {
           const accounts = await window.ethereum.request({ method: "eth_accounts" });
           if (accounts && accounts[0]) {
             const walletAddr = accounts[0];
-            await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/donor/wallet`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${donorToken}`,
-              },
-              body: JSON.stringify({ wallet_address: walletAddr }),
-            });
-            updateWalletAddress(walletAddr);
+            
+            // Check if not already linked and under limit
+            if (donorToken && (!donorWallets || !donorWallets.some(w => w.toLowerCase() === walletAddr.toLowerCase()))) {
+              if (donorWallets.length < 5) {
+                await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/donor/wallet`, {
+                  method: "POST", // was PUT, now POST
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${donorToken}`,
+                  },
+                  body: JSON.stringify({ wallet_address: walletAddr }),
+                });
+                addWalletAddress(walletAddr);
+              }
+            }
           }
         } catch (linkErr) {
           console.error("Gagal menautkan wallet secara otomatis:", linkErr);
