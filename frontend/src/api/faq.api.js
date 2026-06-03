@@ -1,36 +1,26 @@
-import axios from "axios";
-
-const API_URL = "http://localhost:5000/api/faqs";
-
-// Helper for admin token
-const getAuthHeaders = () => {
-  const token = localStorage.getItem("adminToken");
-  return {
-    headers: { Authorization: `Bearer ${token}` }
-  };
-};
+import api from "./axios";
 
 export const fetchFaqs = async () => {
-  const res = await axios.get(API_URL);
+  const res = await api.get("/api/faqs");
   return res.data;
 };
 
 export const getFaqById = async (id) => {
-  const res = await axios.get(`${API_URL}/${id}`);
+  const res = await api.get(`/api/faqs/${id}`);
   return res.data;
 };
 
 export const createFaq = async (data) => {
-  const res = await axios.post(API_URL, data, getAuthHeaders());
+  const res = await api.post("/api/faqs", data);
   return res.data;
 };
 
 export const updateFaq = async (id, data) => {
-  const res = await axios.put(`${API_URL}/${id}`, data, getAuthHeaders());
+  const res = await api.put(`/api/faqs/${id}`, data);
   return res.data;
 };
 
 export const deleteFaq = async (id) => {
-  const res = await axios.delete(`${API_URL}/${id}`, getAuthHeaders());
+  const res = await api.delete(`/api/faqs/${id}`);
   return res.data;
 };

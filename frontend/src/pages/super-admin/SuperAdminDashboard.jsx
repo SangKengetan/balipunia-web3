@@ -47,8 +47,8 @@ export default function SuperAdminDashboard() {
           <MenuLink to="/admin/super/admins" icon={<UsersIcon />}>
             Admin Management
           </MenuLink>
-          <MenuLink to="/admin/super/offchain" icon={<WalletIcon />}>
-            Offchain Withdrawal
+          <MenuLink to="/admin/super/faqs" icon={<FileTextIcon />}>
+            Manajemen FAQ
           </MenuLink>
           <MenuLink to="/admin/super/withdraws" icon={<BanknoteIcon />}>
             Pencairan Dana

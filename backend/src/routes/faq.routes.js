@@ -5,7 +5,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 
 // Middleware to check if user is superadmin
 const requireSuperAdmin = (req, res, next) => {
-  if (req.admin && req.admin.role === "SUPERADMIN") {
+  if (req.admin && req.admin.role === "SUPER_ADMIN") {
     next();
   } else {
     res.status(403).json({ message: "Forbidden: Superadmin only" });
