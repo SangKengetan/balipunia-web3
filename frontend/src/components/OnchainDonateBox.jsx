@@ -69,16 +69,16 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4" /><path d="M3 5v14a2 2 0 0 0 2 2h16v-5" /><path d="M18 12a2 2 0 0 0 0 4h4v-4Z" /></svg>
           </div>
           <div>
-            <h3 className="text-gray-900 font-bold text-xl tracking-tight">Donasi On-Chain</h3>
-            <p className="text-sm text-gray-400 font-medium">Transparan via BSC Testnet</p>
+            <h3 className="text-gray-900 font-bold text-xl tracking-tight">Donasi Kripto</h3>
+            <p className="text-sm text-gray-400 font-medium">Aman & Transparan</p>
           </div>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <div className="flex justify-between px-1">
-                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Jumlah Punia</label>
-                <span className="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">18 Decimals</span>
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-widest">Nominal Donasi</label>
+                <span className="text-[10px] font-bold text-yellow-600 bg-yellow-50 px-2 py-0.5 rounded-full">Pilih Mata Uang</span>
             </div>
             
             <div className="relative group">
@@ -115,7 +115,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
               </>
             ) : (
               <>
-                <span>Salurkan Punia</span>
+                <span>Kirim Donasi</span>
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
               </>
             )}
@@ -127,7 +127,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           </div>
           <p className="text-[11px] leading-relaxed text-gray-500 font-medium">
-            Dana akan dikirim langsung ke <span className="text-gray-800 font-bold">Donation Vault</span>. Pastikan saldo BSC Testnet Anda cukup untuk gas fee.
+            Donasi akan dikirim secara otomatis ke dompet kampanye. Pastikan dompet kripto Anda memiliki sedikit saldo untuk biaya transaksi (gas fee).
           </p>
         </div>
       </div>

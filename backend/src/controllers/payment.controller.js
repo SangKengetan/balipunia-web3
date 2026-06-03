@@ -73,6 +73,29 @@ async function createBankPayment(req, res) {
   }
 }
 
+// GET PAYMENT STATUS
+async function getPaymentStatus(req, res) {
+  try {
+    const { orderId } = req.params;
+    const donorId = req.donor.id;
+
+    const result = await pool.query(
+      `SELECT system_status FROM offchain_transactions WHERE order_id = $1 AND donor_id = $2`,
+      [orderId, donorId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
+    return res.status(200).json({ status: result.rows[0].system_status });
+  } catch (err) {
+    console.error('[GET PAYMENT STATUS ERROR]', err);
+    return res.status(500).json({ message: 'Failed to fetch status' });
+  }
+}
+
 module.exports = {
-  createBankPayment
+  createBankPayment,
+  getPaymentStatus
 };
