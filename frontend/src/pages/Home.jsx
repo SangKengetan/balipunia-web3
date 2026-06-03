@@ -2,6 +2,7 @@ import useWallet from "../hooks/useWallet";
 import Navbar from "../components/Navbar";
 import bgHero from "../assets/BG-Hero.png";
 import { useNavigate } from "react-router-dom";
+import { showError } from "../utils/notification";
 
 
 export default function Home() {
@@ -30,7 +31,7 @@ export default function Home() {
 
     // address sekarang tersedia (atau user cancel)
     if (!address) {
-      alert("Wallet diperlukan untuk mendaftarkan pura");
+      showError("Akses Ditolak", "Dompet Digital (Wallet) diperlukan untuk mendaftar.", "Silakan pastikan ekstensi MetaMask terinstal dan berikan izin saat diminta.");
       return;
     }
 

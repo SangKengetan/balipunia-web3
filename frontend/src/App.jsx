@@ -35,6 +35,7 @@ import TrusteeWithdrawDetail from "./pages/trustee/WithdrawDetail";
 import DonorLogin from "./pages/donor/DonorLogin";
 import DonorRegister from "./pages/donor/DonorRegister";
 import DonorDashboard from "./pages/donor/DonorDashboard";
+import PaymentResult from "./pages/donor/PaymentResult";
 import ProtectedDonorRoute from "./components/ProtectedDonorRoute";
 
 // Route guard
@@ -69,6 +70,7 @@ function App() {
             </ProtectedDonorRoute>
           }
         />
+        <Route path="/payment/result" element={<PaymentResult />} />
 
         {/* <Route path="/public/campaigns" element={<PublicCampaignList />} />
         <Route path="/campaigns/:id" element={<PublicCampaignDetail />}/> */}

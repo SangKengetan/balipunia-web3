@@ -6,7 +6,7 @@ import useWallet from "../../hooks/useWallet";
 
 // Pastikan path image sesuai struktur folder project Anda.
 // Jika menggunakan Vite, terkadang lebih aman mengimportnya:
-// import heroBg from "../../assets/BG-Hero.png";
+import heroBg from "../../assets/BG-Hero.png";
 
 // Komponen Skeleton (Tetap sama, karena sudah bagus)
 const PuraSkeleton = () => (
@@ -56,7 +56,7 @@ export default function PuraList() {
       <div 
         className="relative w-full h-[450px] flex items-center justify-center bg-cover bg-center"
         // Menggunakan inline style untuk background image agar dinamis
-        style={{ backgroundImage: "url('/src/assets/BG-Hero.png')" }}
+        style={{ backgroundImage: `url(${heroBg})` }}
       >
         {/* Dark Overlay: Supaya teks putih terbaca di atas foto apapun */}
         <div className="absolute inset-0 bg-gray-900/60"></div>

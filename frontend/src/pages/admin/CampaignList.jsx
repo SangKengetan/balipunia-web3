@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMyCampaigns } from "../../services/campaignApi";
+import { showError } from "../../utils/notification";
 import DashboardShell from "../../components/DashboardShell";
 
 export default function CampaignList() {
@@ -12,8 +13,9 @@ export default function CampaignList() {
       try {
         const res = await getMyCampaigns();
         setCampaigns(res.data);
-      } catch {
-        alert("Gagal mengambil campaign");
+      } catch (err) {
+        console.error(err);
+        showError("Gagal Memuat", "Gagal mengambil data campaign.", "Silakan muat ulang halaman atau coba beberapa saat lagi.");
       } finally {
         setLoading(false);
       }

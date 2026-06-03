@@ -1,14 +1,18 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../api/axios";
 import { createCampaign } from "../../services/campaignApi";
+import { showError, showSuccess, showInfo } from "../../utils/notification";
 
 export default function CreateCampaign() {
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     title: "",
     description: "",
     purpose: "UPACARA_ADAT",
     is_onchain_enabled: true,
     is_offchain_enabled: true,
-    deadline: "", // ⬅ TAMBAHKAN
+    deadline: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -25,14 +29,15 @@ export default function CreateCampaign() {
     e.preventDefault();
 
     if (!form.deadline) {
-      alert("Deadline wajib diisi!");
+      showInfo("Informasi", "Deadline wajib diisi!");
       return;
     }
 
     try {
       setLoading(true);
-      await createCampaign(form);
-      alert("Campaign berhasil dibuat");
+      await api.post("/admin/campaigns", form);
+      showSuccess("Berhasil", "Campaign berhasil dibuat");
+      navigate("/admin");
 
       // Reset form setelah submit
       setForm({
@@ -45,7 +50,8 @@ export default function CreateCampaign() {
       });
 
     } catch (err) {
-      alert(err.response?.data?.message || "Gagal membuat campaign");
+      console.error(err);
+      showError("Gagal", err.response?.data?.message || "Gagal membuat campaign", "Silakan periksa data yang Anda masukkan.");
     } finally {
       setLoading(false);
     }

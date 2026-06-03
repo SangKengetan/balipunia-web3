@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ethers } from "ethers";
+import { showError } from "../utils/notification";
 
 export default function useWallet() {
   const [address, setAddress] = useState(null);
@@ -7,7 +8,7 @@ export default function useWallet() {
 
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert("MetaMask tidak terdeteksi");
+      showError("Dompet Digital Tidak Ditemukan", "MetaMask tidak terdeteksi di browser ini.", "Pastikan Anda telah memasang ekstensi browser MetaMask.");
       return null;
     }
 

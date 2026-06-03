@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import DashboardShell from "../../components/DashboardShell";
 import { getCampaignById } from "../../services/campaignApi";
+import { showError } from "../../utils/notification";
 
 export default function CampaignDetail() {
   const { id } = useParams();
@@ -13,8 +14,9 @@ export default function CampaignDetail() {
       try {
         const res = await getCampaignById(id);
         setCampaign(res.data);
-      } catch {
-        alert("Gagal mengambil detail campaign");
+      } catch (err) {
+        console.error(err);
+        showError("Gagal Memuat", "Gagal mengambil detail campaign.", "Silakan muat ulang halaman atau coba beberapa saat lagi.");
       } finally {
         setLoading(false);
       }

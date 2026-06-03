@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { showError } from "../../utils/notification";
 import {
   fetchWithdrawTransfers,
   completeWithdrawTransfer,
@@ -89,7 +90,7 @@ export default function WithdrawTransfers() {
       setModalOpen(false);
       loadData();
     } catch (e) {
-      alert(e.response?.data?.message || "Gagal mengunggah bukti transfer");
+      showError("Gagal Mengunggah", e.response?.data?.message || "Gagal mengunggah bukti transfer", "Pastikan file yang diunggah valid dan ukurannya tidak terlalu besar.");
     } finally {
       setSubmitting(false);
     }

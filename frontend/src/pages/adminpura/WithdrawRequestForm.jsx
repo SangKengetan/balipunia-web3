@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { requestWithdraw } from "../../api/adminPura.api";
 import { fetchPublicCampaignDetail } from "../../api/public.api";
 import { proposeWithdraw } from "../../services/blockchain/voting";
+import { showError, showSuccess } from "../../utils/notification";
 import { 
   ArrowLeft, 
   Wallet, 
@@ -171,15 +172,16 @@ export default function WithdrawRequestForm() {
 
       // Feedback visual sebelum redirect
       if (proposalId) {
-        alert("Permintaan pencairan dana berhasil diajukan dan Proposal Blockchain telah dibuat! Wali Amanat (Trustee) akan segera melakukan voting.");
+        showSuccess("Berhasil Diajukan", "Permintaan pencairan dana berhasil diajukan dan Proposal Blockchain telah dibuat! Wali Amanat (Trustee) akan segera melakukan voting.");
       } else {
-        alert("Permintaan pencairan dana berhasil diajukan!");
+        showSuccess("Berhasil Diajukan", "Permintaan pencairan dana berhasil diajukan!");
       }
       navigate("/admin/pura/withdraws");
 
     } catch (err) {
       console.error(err);
       setError(err.message || err.response?.data?.message || "Gagal mengajukan pencairan dana");
+      showError("Gagal Mengajukan", err.message || err.response?.data?.message || "Gagal mengajukan pencairan dana", "Silakan coba beberapa saat lagi.");
     } finally {
       setLoading(false);
     }

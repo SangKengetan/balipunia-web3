@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMyCampaigns, getProfile } from "../../api/adminPura.api"; 
 import { Link } from "react-router-dom";
+import { showInfo } from "../../utils/notification";
 import { 
   Calendar, 
   Coins, 
@@ -81,7 +82,7 @@ export default function CampaignList() {
           </Link>
         ) : (
           <button
-            onClick={() => alert("Harap lengkapi profil Anda hingga 100% (termasuk pendaftaran Trustee) di menu Profil untuk dapat membuat kegiatan baru.")}
+            onClick={() => showInfo("Profil Belum Lengkap", "Harap lengkapi profil Anda hingga 100% (termasuk pendaftaran Trustee) di menu Profil untuk dapat membuat kegiatan baru.")}
             className="flex items-center gap-2 bg-gray-300 text-gray-500 px-5 py-3 rounded-xl font-medium cursor-not-allowed"
           >
             <Plus size={20} />

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Upload, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { showError, showSuccess } from "../../utils/notification";
 
 // API backend (sync metadata ke database)
 import { syncCampaign } from "../../api/adminPura.api";
@@ -68,7 +70,7 @@ export default function CampaignCreate() {
       });
 
       // B. Sync metadata ke Database
-      await syncCampaign({
+      const formData = {
         id_campaign_onchain: campaignId,
         tx_hash: txHash,
         title: form.title,
@@ -76,12 +78,14 @@ export default function CampaignCreate() {
         purpose: form.purpose,
         deadline: deadlineIsoString,
         campaign_type: mode, // 'HYBRID' | 'MIDTRANS_ONLY' | 'CRYPTO_ONLY'
-      });
+      };
 
+      await syncCampaign(formData);
+      showSuccess("Berhasil", "Kegiatan baru berhasil dibuat!");
       navigate("/admin/pura/campaigns");
     } catch (err) {
-      console.error("SUBMIT ERROR:", err);
-      alert(err.message || "Gagal membuat kegiatan. Cek konsol untuk detail.");
+      console.error(err);
+      showError("Gagal Membuat Kegiatan", err.message || "Gagal membuat kegiatan. Cek konsol untuk detail.", "Silakan periksa kembali data yang dimasukkan.");
     } finally {
       setIsLoading(false);
     }

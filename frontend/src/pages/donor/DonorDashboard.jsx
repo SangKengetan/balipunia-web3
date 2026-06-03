@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import useDonorAuth from "../../hooks/useDonorAuth";
 import useWallet from "../../hooks/useWallet";
 import Navbar from "../../components/Navbar";
+import { showError, showSuccess } from "../../utils/notification";
 
 export default function DonorDashboard() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function DonorDashboard() {
       setLinking(true);
       const walletAddr = await connectWallet();
       if (!walletAddr) {
-        alert("Gagal menghubungkan wallet");
+        showError("Gagal Terhubung", "Gagal menghubungkan Dompet Digital (Wallet).", "Silakan periksa koneksi internet Anda atau coba muat ulang halaman.");
         return;
       }
 
@@ -78,10 +79,10 @@ export default function DonorDashboard() {
       }
 
       updateWalletAddress(walletAddr);
-      alert("Wallet berhasil dikaitkan ke akun donatur Anda!");
+      showSuccess("Berhasil", "Dompet Digital (Wallet) berhasil dikaitkan ke akun donatur Anda!");
+      window.location.reload();
     } catch (err) {
-      console.error(err);
-      alert(err.message || "Gagal mengaitkan wallet.");
+      showError("Gagal Mengaitkan", err.message || "Gagal mengaitkan wallet.", "Silakan coba beberapa saat lagi.");
     } finally {
       setLinking(false);
     }
@@ -231,7 +232,15 @@ export default function DonorDashboard() {
                                   : "bg-red-50 text-red-700 border border-red-100"
                               }`}
                             >
-                              {tx.system_status === "PAID_LOCKED" ? "BERHASIL" : tx.system_status}
+                              {tx.system_status === "PAID_LOCKED" || tx.system_status === "SETTLED"
+                                ? "BERHASIL"
+                                : tx.system_status === "PENDING_PAYMENT"
+                                ? "MENUNGGU PEMBAYARAN"
+                                : tx.system_status === "EXPIRED"
+                                ? "KEDALUWARSA"
+                                : tx.system_status === "FAILED"
+                                ? "GAGAL"
+                                : tx.system_status}
                             </span>
                           </td>
                           <td className="py-4 text-xs text-gray-400">

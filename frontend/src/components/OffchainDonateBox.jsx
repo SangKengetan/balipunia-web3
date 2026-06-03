@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createBankTransferPayment } from "../services/paymentApi";
+import { showError, showInfo } from "../utils/notification";
 import useDonorAuth from "../hooks/useDonorAuth";
 
 export default function OffchainDonateBox({ campaignId }) {
@@ -34,8 +35,9 @@ export default function OffchainDonateBox({ campaignId }) {
   };
 
   async function handleDonate() {
-    if (!amount || parseInt(amount) < 10000) {
-      alert("Mohon maaf, minimal donasi adalah Rp10.000");
+    const numAmount = parseInt(amount);
+    if (!amount || numAmount < 10000) {
+      showInfo("Minimal Donasi", "Mohon maaf, minimal donasi adalah Rp10.000");
       return;
     }
 
@@ -53,7 +55,7 @@ export default function OffchainDonateBox({ campaignId }) {
       setVaInfo(res.data);
     } catch (error) {
       console.error(error);
-      alert("Gagal membuat pembayaran. Silakan coba sesaat lagi.");
+      showError("Gagal Membayar", "Gagal membuat pembayaran. Silakan coba sesaat lagi.", "Periksa koneksi internet Anda atau hubungi dukungan jika masalah berlanjut.");
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ import useWallet from "../../hooks/useWallet";
 import useAdminAuth from "../../hooks/useAdminAuth";;
 import { requestNonce, verifySignature } from "../../services/authApi";
 import { ethers } from "ethers";
+import { showError } from "../../utils/notification";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export default function AdminLogin() {
       // 1️⃣ Connect wallet (MetaMask popup)
       const walletAddress = address || (await connectWallet());
       if (!walletAddress) {
-        alert("Wallet diperlukan untuk login admin");
+        showError("Akses Ditolak", "Dompet Digital (Wallet) diperlukan untuk login admin.", "Pastikan Anda menghubungkan wallet MetaMask atau dompet lain yang didukung.");
         return;
       }
 
@@ -43,9 +44,10 @@ export default function AdminLogin() {
       navigate("/admin");
     } catch (err) {
       console.error(err);
-      alert(
-        err.message ||
-          "Gagal autentikasi admin. Pastikan wallet terdaftar."
+      showError(
+        "Gagal Autentikasi", 
+        err.message || "Gagal autentikasi admin. Pastikan wallet terdaftar.",
+        "Silakan periksa kembali apakah dompet (wallet) Anda telah didaftarkan sebagai Admin."
       );
     }
   };

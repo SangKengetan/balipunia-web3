@@ -35,7 +35,7 @@ async function createBankPayment(req, res) {
         is_anonymous,
         donor_id
       )
-      VALUES ($1, $2, $3, 'PAID_LOCKED', $4, $5, $6, $7)
+      VALUES ($1, $2, $3, 'PENDING_PAYMENT', $4, $5, $6, $7)
       `,
       [
         campaign_id,

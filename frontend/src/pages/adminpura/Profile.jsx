@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { getProfile, updateProfile } from "../../api/adminPura.api";
+import { registerTrustees } from "../../services/blockchain/onchainTrustee";
+import { showError, showSuccess, showInfo } from "../../utils/notification";
 import { 
   Building2, 
   MapPin, 
@@ -15,7 +17,6 @@ import {
   Users,
   ShieldCheck
 } from "lucide-react";
-import { registerTrustees } from "../../services/blockchain/onchainTrustee";
 
 export default function Profile() {
   const [form, setForm] = useState({
@@ -31,7 +32,7 @@ export default function Profile() {
     profile_picture: null,
   });
 
-  const [trustees, setTrustees] = useState(["", "", ""]);
+  const [trusteeAddresses, setTrusteeAddresses] = useState(["", "", ""]);
   const [registeringTrustee, setRegisteringTrustee] = useState(false);
 
   const [file, setFile] = useState(null);
@@ -39,49 +40,47 @@ export default function Profile() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Fetch Data
-  useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await getProfile();
-        const data = res.data?.data || res.data || {};
-        setForm(data);
-        if (data.profile_picture) {
-          setPreview(`https://gateway.pinata.cloud/ipfs/${data.profile_picture}`);
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data profil:", err);
-        setError("Gagal memuat data profil. Silakan coba lagi.");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchProfile();
-  }, []);
-
-  const handleTrusteeChange = (index, value) => {
-    const newTrustees = [...trustees];
-    newTrustees[index] = value;
-    setTrustees(newTrustees);
-  };
-
-  const handleRegisterTrustee = async () => {
-    if (trustees.some(t => !t || t.trim() === "")) {
-      return alert("Harap isi ketiga alamat trustee");
-    }
-    setRegisteringTrustee(true);
+  async function loadProfile() {
     try {
-      await registerTrustees(trustees);
-      alert("Trustee berhasil didaftarkan di Blockchain!");
-      // Refresh profile untuk update persentase dan status
       const res = await getProfile();
       const data = res.data?.data || res.data || {};
       setForm(data);
+      if (data.profile_picture) {
+        setPreview(`https://gateway.pinata.cloud/ipfs/${data.profile_picture}`);
+      }
     } catch (err) {
-      console.error(err);
-      alert("Gagal mendaftarkan trustee: " + (err.reason || err.message));
+      console.error("Gagal mengambil data profil:", err);
+      showError("Gagal Memuat", "Gagal memuat data profil. Silakan coba lagi.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Fetch Data
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const handleTrusteeChange = (index, value) => {
+    const newTrustees = [...trusteeAddresses];
+    newTrustees[index] = value;
+    setTrusteeAddresses(newTrustees);
+  };
+
+  const handleRegisterTrustee = async () => {
+    if (!trusteeAddresses[0] || !trusteeAddresses[1] || !trusteeAddresses[2]) {
+      showInfo("Data Tidak Lengkap", "Harap isi ketiga alamat Trustee (Wali Amanat).");
+      return;
+    }
+    setRegisteringTrustee(true);
+    try {
+      await registerTrustees(trusteeAddresses);
+      showSuccess("Berhasil", "Trustee (Wali Amanat) berhasil didaftarkan di Blockchain!");
+      loadProfile();
+    } catch (err) {
+      console.error("Gagal setup trustee:", err);
+      showError("Gagal Mendaftar", "Gagal mendaftarkan trustee: " + (err.reason || err.message), "Pastikan alamat valid dan dompet Anda memiliki saldo untuk transaksi Blockchain.");
     } finally {
       setRegisteringTrustee(false);
     }
@@ -118,14 +117,13 @@ export default function Profile() {
       if (file) {
         formData.append("profile_picture", file);
       }
-      const res = await updateProfile(formData);
-      const updatedData = res.data?.data || res.data || {};
-      setForm(updatedData);
-      alert("Profil berhasil diperbarui!"); 
-    } catch (error) {
-      console.error(error);
-      const errMsg = error.response?.data?.message || "Gagal memperbarui profil.";
-      alert(errMsg);
+      await updateProfile(formData);
+      showSuccess("Berhasil", "Profil berhasil diperbarui!"); 
+      loadProfile();
+    } catch (err) {
+      console.error(err);
+      const errMsg = err.response?.data?.message || err.message;
+      showError("Gagal Memperbarui", errMsg, "Silakan periksa kembali data yang dimasukkan.");
     } finally {
       setSaving(false);
     }
@@ -425,7 +423,7 @@ export default function Profile() {
                                   </span>
                                   <input
                                       type="text"
-                                      value={trustees[index]}
+                                      value={trusteeAddresses[index]}
                                       onChange={(e) => handleTrusteeChange(index, e.target.value)}
                                       className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 transition-all outline-none font-mono text-sm"
                                       placeholder="0x..."

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getWithdraws, syncVotingResult } from "../../api/adminPura.api";
+import { showError } from "../../utils/notification";
 import { 
   RefreshCw, 
   ExternalLink, 
@@ -52,7 +53,8 @@ export default function WithdrawList() {
       await syncVotingResult(id);
       await fetchWithdraws(); // Refresh data setelah sync
     } catch (err) {
-      alert("Gagal melakukan sinkronisasi voting. Silakan coba lagi.");
+      console.error("Gagal sync:", err);
+      showError("Gagal Sinkronisasi", "Gagal melakukan sinkronisasi voting.", "Silakan periksa koneksi internet Anda atau coba muat ulang halaman.");
     } finally {
       setSyncingId(null);
     }

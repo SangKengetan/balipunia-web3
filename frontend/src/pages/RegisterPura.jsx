@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { submitPengajuanPura } from "../services/pengajuanApi";
+import { showError, showSuccess, showInfo } from "../utils/notification";
 
 export default function RegisterPura() {
   const navigate = useNavigate();
@@ -18,7 +19,7 @@ export default function RegisterPura() {
   useEffect(() => {
     const storedWallet = sessionStorage.getItem("admin_wallet");
     if (!storedWallet) {
-      alert("Wallet belum terhubung");
+      showError("Akses Ditolak", "Dompet Digital (Wallet) belum terhubung.", "Silakan hubungkan wallet Anda terlebih dahulu di halaman utama.");
       navigate("/");
       return;
     }
@@ -43,7 +44,7 @@ export default function RegisterPura() {
     e.preventDefault();
 
     if (!form.file) {
-      alert("File pendukung wajib diunggah");
+      showInfo("Peringatan", "File pendukung wajib diunggah.");
       return;
     }
 
@@ -59,11 +60,11 @@ export default function RegisterPura() {
       setLoading(true);
       await submitPengajuanPura(formData);
 
-      alert("Pengajuan berhasil dikirim. Menunggu verifikasi Super Admin.");
+      showSuccess("Berhasil", "Pengajuan berhasil dikirim. Menunggu verifikasi dari Super Admin.");
       sessionStorage.removeItem("admin_wallet");
       navigate("/");
     } catch (err) {
-      alert(err.message || "Gagal mengirim pengajuan");
+      showError("Gagal", err.message || "Gagal mengirim pengajuan", "Silakan periksa koneksi internet Anda atau coba lagi nanti.");
     } finally {
       setLoading(false);
     }

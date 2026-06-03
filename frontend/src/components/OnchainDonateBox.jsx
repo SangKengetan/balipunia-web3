@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { donateOnChain } from "../services/blockchain/onchainDonation";
 import useDonorAuth from "../hooks/useDonorAuth";
+import { showError, showSuccess, showInfo } from "../utils/notification";
 
-export default function OnchainDonateBox({ onchainCampaignId }) {
+export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess }) {
   const { donorToken, donorWallet, updateWalletAddress } = useDonorAuth();
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDT");
@@ -11,7 +12,7 @@ export default function OnchainDonateBox({ onchainCampaignId }) {
   async function handleDonate() {
     // Validasi dasar di UI
     if (!amount || parseFloat(amount) <= 0) {
-      alert("Masukkan jumlah donasi yang valid");
+      showInfo("Nominal Tidak Valid", "Silakan masukkan jumlah donasi yang valid.");
       return;
     }
     
@@ -45,12 +46,13 @@ export default function OnchainDonateBox({ onchainCampaignId }) {
         }
       }
 
-      alert("Matur Suksma! Donasi berhasil.\nHash: " + txHash);
+      if (onDonateSuccess) onDonateSuccess();
+      showSuccess("Matur Suksma!", "Donasi Anda berhasil dikirim.\nHash: " + txHash);
       setAmount("");
     } catch (err) {
       console.error(err);
       // Menampilkan pesan error yang lebih user-friendly (termasuk saldo kurang)
-      alert(err?.reason || err?.message || "Terjadi kesalahan pada transaksi");
+      showError("Transaksi Gagal", err?.reason || err?.message || "Terjadi kesalahan pada transaksi", "Pastikan saldo Kripto Anda cukup dan Anda menyetujui transaksi di Dompet Digital (Wallet).");
     } finally {
       setLoading(false);
     }
