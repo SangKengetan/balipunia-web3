@@ -1,6 +1,7 @@
 import useWallet from "../hooks/useWallet";
 import Navbar from "../components/Navbar";
 import Leaderboard from "../components/Leaderboard";
+import Footer from "../components/Footer";
 import bgHero from "../assets/BG-Hero.png";
 import { useNavigate } from "react-router-dom";
 import { showError } from "../utils/notification";
@@ -169,54 +170,63 @@ export default function Home() {
             </div>
           </div>
           
-          {/* DASAR-DASAR WEB3 & KRIPTO */}
-          <div className="mb-20">
-            <div className="text-center mb-10">
-              <h3 className="text-2xl font-bold text-slate-800 mb-3">Memahami Dasar Kripto & Web3</h3>
-              <p className="text-slate-600 max-w-2xl mx-auto">
-                Bali Punia adalah jembatan antara tradisi dan teknologi modern. Berikut adalah hal dasar yang perlu Anda ketahui.
-              </p>
-            </div>
+          {/* DASAR-DASAR WEB3 & LEADERBOARD SPLIT */}
+          <div className="flex flex-col lg:flex-row gap-10 mb-20 items-start">
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-                </div>
-                <h4 className="font-bold text-lg mb-2">Apa itu Kripto?</h4>
-                <p className="text-sm text-slate-600">Mata uang digital yang aman dan dapat digunakan untuk bertransaksi secara online di seluruh dunia tanpa bank perantara.</p>
+            {/* KIRI: DASAR WEB3 & KRIPTO */}
+            <div className="w-full lg:w-7/12">
+              <div className="mb-8">
+                <h3 className="text-3xl font-bold text-slate-800 mb-3">Memahami Dasar Kripto & Web3</h3>
+                <p className="text-slate-600">
+                  Bali Punia adalah jembatan antara tradisi dan teknologi modern. Berikut adalah hal dasar yang perlu Anda ketahui.
+                </p>
               </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
+                  <div className="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-base mb-2">Apa itu Kripto?</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">Mata uang digital yang aman dan dapat digunakan untuk bertransaksi secara online di seluruh dunia tanpa bank perantara.</p>
                 </div>
-                <h4 className="font-bold text-lg mb-2">Apa itu Blockchain?</h4>
-                <p className="text-sm text-slate-600">Buku kas digital publik tempat semua transaksi dicatat permanen, transparan, dan tidak bisa dipalsukan.</p>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
+                  <div className="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                  </div>
+                  <h4 className="font-bold text-base mb-2">Apa itu Blockchain?</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">Buku kas digital publik tempat semua transaksi dicatat permanen, transparan, dan tidak bisa dipalsukan.</p>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
+                  <div className="w-10 h-10 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-base mb-2">Dompet Kripto?</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed">Identitas digital Anda (seperti MetaMask) yang digunakan untuk menyimpan aset kripto dengan aman.</p>
+                </div>
+
+                <div className="bg-yellow-50 p-5 rounded-2xl border border-yellow-200 shadow-sm hover:shadow-md transition-all">
+                  <div className="w-10 h-10 bg-yellow-400 text-slate-900 rounded-xl flex items-center justify-center mb-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  </div>
+                  <h4 className="font-bold text-base mb-2 text-slate-800">Wajib Punya Kripto?</h4>
+                  <p className="text-xs text-slate-700 leading-relaxed"><strong>TIDAK.</strong> Anda tetap bisa mepunia menggunakan Rupiah (Bank/E-Wallet). Kripto hanyalah opsi tambahan.</p>
+                </div>
               </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:border-yellow-400 hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-yellow-100 text-yellow-600 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                </div>
-                <h4 className="font-bold text-lg mb-2">Dompet Kripto?</h4>
-                <p className="text-sm text-slate-600">Identitas digital Anda (seperti MetaMask) yang digunakan untuk menyimpan aset kripto dengan aman.</p>
-              </div>
-
-              <div className="bg-yellow-50 p-6 rounded-2xl border border-yellow-200 shadow-sm hover:shadow-md transition-all">
-                <div className="w-12 h-12 bg-yellow-400 text-slate-900 rounded-xl flex items-center justify-center mb-4">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </div>
-                <h4 className="font-bold text-lg mb-2 text-slate-800">Wajib Punya Kripto?</h4>
-                <p className="text-sm text-slate-700"><strong>TIDAK.</strong> Anda tetap bisa mepunia menggunakan Rupiah (Bank/E-Wallet). Kripto hanyalah opsi tambahan.</p>
+              
+              <div className="mt-6">
+                <a href="/faq" className="inline-flex items-center gap-2 text-yellow-600 font-bold hover:text-yellow-700 transition-colors">
+                  Baca Pertanyaan Seputar Bali Punia Lainnya di FAQ
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                </a>
               </div>
             </div>
-            
-            <div className="text-center mt-8">
-              <a href="/faq" className="inline-flex items-center gap-2 text-yellow-600 font-bold hover:text-yellow-700 transition-colors">
-                Baca Pertanyaan Seputar Bali Punia Lainnya di FAQ
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-              </a>
+
+            {/* KANAN: LEADERBOARD */}
+            <div className="w-full lg:w-5/12">
+              <Leaderboard level="global" />
             </div>
           </div>
 
@@ -257,11 +267,10 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="mt-24 max-w-3xl mx-auto">
-            <Leaderboard level="global" />
-          </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }
