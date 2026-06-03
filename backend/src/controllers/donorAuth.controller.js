@@ -124,8 +124,8 @@ async function googleLoginDonor(req, res) {
     if (result.rowCount === 0) {
       // Auto register
       const insertResult = await pool.query(
-        `INSERT INTO donors (email, name) VALUES ($1, $2) RETURNING id, email, name, contact`,
-        [email, name]
+        `INSERT INTO donors (email, name, password_hash) VALUES ($1, $2, $3) RETURNING id, email, name, contact`,
+        [email, name, '']
       );
       donor = insertResult.rows[0];
       donor.wallets = [];
