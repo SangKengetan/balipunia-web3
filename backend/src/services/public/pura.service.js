@@ -55,7 +55,10 @@ async function getPuraDetail(puraId) {
       purpose,
       campaign_type,
       status,
-      deadline,
+      CASE WHEN deadline IS NOT NULL 
+        THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+        ELSE NULL 
+      END as deadline,
       id_campaign_onchain,
       image_url
     FROM campaigns
@@ -75,7 +78,10 @@ async function getPuraDetail(puraId) {
       purpose,
       campaign_type,
       status,
-      deadline,
+      CASE WHEN deadline IS NOT NULL 
+        THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+        ELSE NULL 
+      END as deadline,
       id_campaign_onchain,
       image_url
     FROM campaigns

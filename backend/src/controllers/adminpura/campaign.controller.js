@@ -99,7 +99,13 @@ async function getMyCampaigns(req, res) {
 
     // 1. Ambil List dari Database
     const { rows } = await pool.query(
-      `SELECT * FROM campaigns WHERE admin_pura_id = $1 ORDER BY created_at DESC`,
+      `SELECT id, admin_pura_id, title, description, purpose, fund_mechanism, campaign_type, 
+              id_campaign_onchain, tx_hash, image_url, status, created_at, updated_at,
+              CASE WHEN deadline IS NOT NULL 
+                THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+                ELSE NULL 
+              END as deadline
+       FROM campaigns WHERE admin_pura_id = $1 ORDER BY created_at DESC`,
       [admin.admin_pura_id]
     );
 
@@ -157,7 +163,13 @@ async function getCampaignById(req, res) {
 
     // 1. Ambil DB
     const { rows } = await pool.query(
-      `SELECT * FROM campaigns WHERE id = $1 AND admin_pura_id = $2 LIMIT 1`,
+      `SELECT id, admin_pura_id, title, description, purpose, fund_mechanism, campaign_type, 
+              id_campaign_onchain, tx_hash, image_url, status, created_at, updated_at, payout_wallet,
+              CASE WHEN deadline IS NOT NULL 
+                THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+                ELSE NULL 
+              END as deadline
+       FROM campaigns WHERE id = $1 AND admin_pura_id = $2 LIMIT 1`,
       [id, admin.admin_pura_id]
     );
 

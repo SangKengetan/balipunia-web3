@@ -16,7 +16,12 @@ async function getCampaignDetailFullService({
    */
   const { rows: campaignRows } = await pool.query(
     `
-    SELECT *
+    SELECT id, admin_pura_id, title, description, purpose, fund_mechanism, campaign_type, 
+           id_campaign_onchain, tx_hash, image_url, status, created_at, updated_at, payout_wallet,
+           CASE WHEN deadline IS NOT NULL 
+             THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+             ELSE NULL 
+           END as deadline
     FROM campaigns
     WHERE id = $1
       AND admin_pura_id = $2
@@ -212,7 +217,12 @@ async function getCampaignDetailFullPublicService({ campaignId }) {
    */
   const { rows: campaignRows } = await pool.query(
     `
-    SELECT *
+    SELECT id, admin_pura_id, title, description, purpose, fund_mechanism, campaign_type, 
+           id_campaign_onchain, tx_hash, image_url, status, created_at, updated_at, payout_wallet,
+           CASE WHEN deadline IS NOT NULL 
+             THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+             ELSE NULL 
+           END as deadline
     FROM campaigns
     WHERE id = $1
       AND status = 'ACTIVE'

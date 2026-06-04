@@ -204,19 +204,7 @@ export default function CampaignDetail() {
 
         {/* DONATION ACTION SECTION */}
         {(() => {
-          const now = new Date();
-          // Jika deadline tidak mengandung timezone info, interpret sebagai WITA (GMT+8)
-          let deadlineDate = null;
-          if (campaign.deadline) {
-            const dl = campaign.deadline;
-            // Jika string tidak mengandung 'Z' atau '+' timezone indicator, append +08:00
-            if (!dl.includes('Z') && !dl.includes('+') && !/\d{2}:\d{2}:\d{2}-/.test(dl)) {
-              deadlineDate = new Date(dl + '+08:00');
-            } else {
-              deadlineDate = new Date(dl);
-            }
-          }
-          const isEnded = campaign.status !== 'ACTIVE' || (deadlineDate && deadlineDate < now);
+          const isEnded = campaign.status !== 'ACTIVE' || (campaign.deadline && new Date(campaign.deadline) < new Date());
 
           if (isEnded) {
             return (
