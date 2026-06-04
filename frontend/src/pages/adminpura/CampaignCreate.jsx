@@ -21,8 +21,9 @@ export default function CampaignCreate() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    purpose: "UPACARA_ADAT",
+    purpose: "PRA_KEGIATAN",
     deadline: "",
+    file: null,
   });
 
   // =========================
@@ -44,6 +45,10 @@ export default function CampaignCreate() {
       const adminWallet = rawWallet.trim();
       console.log("ADMIN WALLET FINAL:", adminWallet);
 
+      if (form.purpose === "PASCA_KEGIATAN" && !form.deadline) {
+        throw new Error("Untuk mekanisme Pasca-Kegiatan, Anda wajib menentukan Batas Waktu Donasi (Deadline).");
+      }
+
       // 2. Generate unique campaign ID
       const campaignId = Date.now();
       
@@ -51,9 +56,7 @@ export default function CampaignCreate() {
       let deadlineUnix = 0;
       let deadlineIsoString = null;
       if (form.deadline) {
-        // Set ke 23:59:59 WITA (WITA = UTC+8). 23:59:59 WITA = 15:59:59 UTC
-        const utcDateStr = `${form.deadline}T15:59:59Z`; 
-        const dateObj = new Date(utcDateStr);
+        const dateObj = new Date(form.deadline);
         deadlineUnix = Math.floor(dateObj.getTime() / 1000);
         deadlineIsoString = dateObj.toISOString();
       }
@@ -69,16 +72,23 @@ export default function CampaignCreate() {
         deadlineUnix,
       });
 
-      // B. Sync metadata ke Database
-      const formData = {
-        id_campaign_onchain: campaignId,
-        tx_hash: txHash,
-        title: form.title,
-        description: form.description,
-        purpose: form.purpose,
-        deadline: deadlineIsoString,
-        campaign_type: mode, // 'HYBRID' | 'MIDTRANS_ONLY' | 'CRYPTO_ONLY'
-      };
+      // B. Sync metadata ke Database menggunakan FormData
+      const formData = new FormData();
+      formData.append("id_campaign_onchain", campaignId);
+      formData.append("tx_hash", txHash);
+      formData.append("title", form.title);
+      formData.append("description", form.description);
+      formData.append("purpose", form.purpose);
+      if (deadlineIsoString) {
+        formData.append("deadline", deadlineIsoString);
+      }
+      formData.append("campaign_type", mode);
+      
+      if (form.file) {
+        formData.append("image", form.file);
+      } else {
+        throw new Error("Foto atau dokumen pendukung wajib diisi (minimal 1).");
+      }
 
       await syncCampaign(formData);
       showSuccess("Berhasil", "Kegiatan baru berhasil dibuat!");
@@ -192,19 +202,46 @@ export default function CampaignCreate() {
               />
             </div>
 
-            {/* Kategori */}
+            {/* Mekanisme Pencairan */}
             <div>
-              <label htmlFor="purpose" className={labelClass}>Tujuan Penggalangan</label>
-              <select
-                id="purpose"
-                className={inputClass}
-                value={form.purpose}
-                onChange={(e) => setForm({ ...form, purpose: e.target.value })}
-              >
-                <option value="UPACARA_ADAT">Upacara Adat</option>
-                <option value="PEMBANGUNAN">Pembangunan & Renovasi</option>
-                <option value="LAINNYA">Lainnya</option>
-              </select>
+              <label className={labelClass}>Mekanisme Pencairan Dana</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {/* Opsi A: Pra-Kegiatan */}
+                <div
+                  onClick={() => setForm({ ...form, purpose: "PRA_KEGIATAN" })}
+                  className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                    form.purpose === "PRA_KEGIATAN"
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-sm">Pengajuan Dana Awal (Pra-Kegiatan)</span>
+                    {form.purpose === "PRA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Pilih opsi ini untuk kegiatan yang pengumpulan dana punianya dilakukan sebelum kegiatan dimulai, seperti proyek pembangunan atau renovasi pura. Anda perlu mengajukan Rencana Anggaran Biaya (RAB) terlebih dahulu dan wajib membuat laporan bukti setelah kegiatan selesai.
+                  </p>
+                </div>
+
+                {/* Opsi B: Pasca-Kegiatan */}
+                <div
+                  onClick={() => setForm({ ...form, purpose: "PASCA_KEGIATAN" })}
+                  className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                    form.purpose === "PASCA_KEGIATAN"
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-sm">Lapor & Cairkan Dana (Pasca-Kegiatan)</span>
+                    {form.purpose === "PASCA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Pilih opsi ini untuk kegiatan yang pengumpulan dana punianya dilakukan saat kegiatan berlangsung, seperti penerimaan dana punia ketika upacara Odalan. Anda dapat langsung mengunggah nota pengeluaran asli dan foto kegiatan untuk mencairkan dana sekaligus membuat laporan.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Deskripsi */}
@@ -228,14 +265,48 @@ export default function CampaignCreate() {
               <div className="relative">
                 <input
                   id="deadline"
-                  type="date"
+                  type="datetime-local"
                   className={`${inputClass} cursor-pointer`}
                   value={form.deadline}
                   onChange={(e) => setForm({ ...form, deadline: e.target.value })}
                 />
                 <p className="text-xs text-gray-400 mt-1 ml-1">
-                  Kosongkan jika kegiatan bersifat selamanya (tanpa batas waktu). Jika diisi, kegiatan akan ditutup otomatis pada tanggal tersebut tepat pukul 23:59 WITA.
+                  Kosongkan jika kegiatan bersifat selamanya (tanpa batas waktu). Jika diisi, kegiatan akan ditutup otomatis pada tanggal dan jam tersebut.
                 </p>
+              </div>
+            </div>
+
+            {/* Foto atau Dokumen Pendukung */}
+            <div>
+              <label htmlFor="file" className={labelClass}>
+                Foto atau Dokumen Pendukung (Wajib)
+              </label>
+              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                <div className="space-y-1 text-center">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="flex text-sm text-gray-600 justify-center">
+                    <label
+                      htmlFor="file-upload"
+                      className="relative cursor-pointer bg-white rounded-md font-medium text-yellow-600 hover:text-yellow-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-yellow-500 p-1"
+                    >
+                      <span>Upload a file</span>
+                      <input
+                        id="file-upload"
+                        name="file-upload"
+                        type="file"
+                        className="sr-only"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={(e) => setForm({ ...form, file: e.target.files[0] })}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-gray-500">PNG, JPG, WEBP, PDF up to 5MB</p>
+                  {form.file && (
+                    <p className="text-sm font-medium text-green-600 mt-2 flex items-center justify-center gap-1">
+                      <CheckCircle2 className="w-4 h-4" /> {form.file.name}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           </div>

@@ -17,6 +17,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
     purpose,
     campaign_type,
     deadline,
+    image_url,
   } = payload;
 
   const deadlineValue = deadline ? deadline : null;
@@ -32,9 +33,10 @@ async function syncCampaignFromChain(adminPuraId, payload) {
       id_campaign_onchain,
       tx_hash,
       deadline,
+      image_url,
       status
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, 'ACTIVE'
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE'
     )
     RETURNING *
     `,
@@ -47,6 +49,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
       id_campaign_onchain,
       tx_hash,
       deadlineValue,
+      image_url,
     ]
   );
 

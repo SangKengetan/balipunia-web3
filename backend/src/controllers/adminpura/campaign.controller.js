@@ -39,6 +39,12 @@ async function syncCampaign(req, res) {
       campaign_type,
     } = req.body;
 
+    let image_url = null;
+    if (req.file) {
+      image_url = `/uploads/campaigns/${req.file.filename}`;
+      req.body.image_url = image_url;
+    }
+
     // Validasi campaign_type
     const validTypes = ['HYBRID', 'MIDTRANS_ONLY', 'CRYPTO_ONLY'];
     if (!validTypes.includes(campaign_type)) {

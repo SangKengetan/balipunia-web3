@@ -54,7 +54,7 @@ export default function WithdrawRequestForm() {
   }
 
   // Branching based on purpose
-  if (campaign.purpose === "UPACARA") {
+  if (campaign.purpose === "PASCA_KEGIATAN") {
     return (
       <UnifiedWithdrawRequestForm 
         campaignId={campaignId}

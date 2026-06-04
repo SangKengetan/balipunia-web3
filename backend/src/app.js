@@ -16,6 +16,8 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 const leaderboardRoutes = require("./routes/leaderboard.routes");
 const faqRoutes = require("./routes/faq.routes");

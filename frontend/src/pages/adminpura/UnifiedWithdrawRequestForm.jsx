@@ -216,7 +216,7 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Lapor & Tarik Dana Punia (Upacara Adat)</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Lapor & Cairkan Dana (Pasca-Kegiatan)</h1>
           <p className="text-sm text-gray-500">Laporkan rincian pengeluaran sekaligus ajukan pencairan ke sistem terpadu.</p>
         </div>
       </div>

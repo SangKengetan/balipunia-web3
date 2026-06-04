@@ -176,7 +176,7 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
           <ArrowLeft size={20} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Rencana Pencairan Dana (Pembangunan)</h1>
+          <h1 className="text-2xl font-bold text-gray-800">Pengajuan Dana Awal (Pra-Kegiatan)</h1>
           <p className="text-sm text-gray-500">Ajukan pencairan untuk total donasi Kripto & Fiat (Midtrans) dan unggah RAB/Estimasi.</p>
         </div>
       </div>

@@ -14,8 +14,10 @@ export const updateProfile = (formData) =>
 export const getMyCampaigns = () =>
   api.get("/adminpura/campaigns");
 
-export const syncCampaign = (payload) =>
-  api.post("/adminpura/campaigns/sync", payload);
+export const syncCampaign = (formData) =>
+  api.post("/adminpura/campaigns/sync", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 export const getCampaignDetailFull = (id) =>
   api.get(`/adminpura/campaigns/${id}/detail-full`);
 

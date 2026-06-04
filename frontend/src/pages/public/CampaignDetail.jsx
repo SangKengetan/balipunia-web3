@@ -168,19 +168,38 @@ export default function CampaignDetail() {
 
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight mb-2">
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight mb-3">
                 {campaign.title}
               </h1>
-              <div className="flex items-center text-gray-500 text-sm gap-4">
-                <span className="bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs font-bold border border-gray-200">
+              <div className="flex flex-wrap items-center text-gray-500 text-sm gap-3">
+                <span className={`px-2.5 py-1 rounded-md text-xs font-bold border ${campaign.status === 'ACTIVE' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-gray-100 text-gray-700 border-gray-200'}`}>
                   {campaign.status}
                 </span>
-                <span>
-                  Deadline: <span className="font-medium text-gray-700">{new Date(campaign.deadline).toLocaleDateString()}</span>
+                <span className="flex items-center gap-1">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  Batas Waktu: <span className="font-medium text-gray-800">{campaign.deadline ? new Date(campaign.deadline).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Selamanya'}</span>
                 </span>
               </div>
             </div>
           </div>
+          
+          {/* Campaign Image */}
+          {campaign.image_url && (
+            <div className="mt-6 w-full rounded-xl overflow-hidden shadow-sm border border-gray-100">
+              <img 
+                src={campaign.image_url.startsWith('http') ? campaign.image_url : `http://localhost:5000${campaign.image_url}`} 
+                alt={campaign.title} 
+                className="w-full h-[300px] md:h-[400px] object-cover hover:scale-105 transition-transform duration-500"
+              />
+            </div>
+          )}
+          
+          {campaign.description && (
+            <div className="mt-6 pt-6 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-2">Deskripsi Kegiatan</h3>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{campaign.description}</p>
+            </div>
+          )}
         </div>
 
         {/* DONATION ACTION SECTION */}
