@@ -4,11 +4,14 @@ import { useNavigate } from "react-router-dom";
 // Helper sederhana untuk tanggal
 const formatDate = (dateString) => {
   if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("id-ID", {
+  return new Date(dateString).toLocaleString("id-ID", {
+    timeZone: "Asia/Makassar",
     day: "numeric",
     month: "long",
     year: "numeric",
-  });
+    hour: "2-digit",
+    minute: "2-digit"
+  }) + " WITA";
 };
 
 const getStatusDisplay = (status) => {
@@ -23,7 +26,7 @@ const getStatusDisplay = (status) => {
 export default function CampaignCardDB({ campaign }) {
   const navigate = useNavigate();
 
-  const { id, id_campaign_onchain, title, deadline, status } = campaign;
+  const { id, id_campaign_onchain, title, purpose, deadline, status } = campaign;
   const statusInfo = getStatusDisplay(status);
 
   // Jika campaign SC-only, id_campaign_onchain yang ada. Kita navigasi ke id database kalau ada, atau id onchain.
@@ -47,9 +50,16 @@ export default function CampaignCardDB({ campaign }) {
       )}
 
       <div className="flex justify-between items-start mb-4 px-2">
-         <span className={`px-2.5 py-1 text-xs font-bold rounded-full border ${statusInfo.style}`}>
-           {statusInfo.label}
-         </span>
+         <div className="flex flex-col gap-2">
+           <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md border ${statusInfo.style} self-start`}>
+             {statusInfo.label}
+           </span>
+           {purpose && (
+             <span className="px-2.5 py-1 text-[10px] font-bold rounded-md border bg-purple-50 text-purple-700 border-purple-200 self-start uppercase tracking-wider">
+               {purpose.replace("_", " ")}
+             </span>
+           )}
+         </div>
       </div>
 
       <div className="flex flex-col flex-1 px-2">

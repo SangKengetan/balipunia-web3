@@ -59,7 +59,8 @@ export default function CampaignCreate() {
       if (form.deadline) {
         const dateObj = new Date(form.deadline);
         deadlineUnix = Math.floor(dateObj.getTime() / 1000);
-        deadlineIsoString = dateObj.toISOString();
+        // Force the time string to be interpreted as GMT+8 by appending the timezone offset
+        deadlineIsoString = `${form.deadline}:00+08:00`;
       }
 
       // 4. Map mode ke contract enum

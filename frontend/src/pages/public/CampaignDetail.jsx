@@ -177,7 +177,7 @@ export default function CampaignDetail() {
                 </span>
                 <span className="flex items-center gap-1">
                   <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  Batas Waktu: <span className="font-medium text-gray-800">{campaign.deadline ? new Date(campaign.deadline).toLocaleString('id-ID', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Selamanya'}</span>
+                  Batas Waktu: <span className="font-medium text-gray-800">{campaign.deadline ? new Date(campaign.deadline).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WITA' : 'Selamanya'}</span>
                 </span>
               </div>
             </div>
