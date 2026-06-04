@@ -208,7 +208,7 @@ export default function Dashboard() {
                 <Megaphone size={18} /> Buat Kegiatan
             </Link>
             <Link to="/admin/pura/campaigns" className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium transition-colors">
-                <ArrowUpRight size={18} /> Ajukan Pencairan Dana
+                <ArrowUpRight size={18} /> Kelola Kegiatan
             </Link>
         </div>
       </div>

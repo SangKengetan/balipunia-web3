@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const {
-  requestWithdraw, listWithdrawRequests
+  requestWithdraw, listWithdrawRequests, unifiedWithdrawReport
 } = require("../../controllers/adminpura/withdraw.controller");
 const { syncVotingResult } = require("../../controllers/adminpura/withdraw.sync.controller");
 const { authenticateAdmin } = require("../../middlewares/auth.middleware");
@@ -22,6 +22,12 @@ router.post(
   "/sync",
   authenticateAdmin,
   syncVotingResult
+);
+router.post(
+  "/unified-report",
+  authenticateAdmin,
+  upload.array("media", 5),
+  unifiedWithdrawReport
 );
 
 

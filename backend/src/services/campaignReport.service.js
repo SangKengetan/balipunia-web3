@@ -10,7 +10,7 @@ const { uploadToIPFS, uploadJSONToIPFS } = require("./ipfsService");
  * 3. Upload JSON metadata ke IPFS → dapatkan Master CID
  * 4. Simpan Master CID di database (untuk di-anchor ke blockchain nanti)
  */
-async function uploadCampaignReport({ adminPuraId, campaignId, files, description, totalIncome, totalExpense }) {
+async function uploadCampaignReport({ adminPuraId, campaignId, files, description, totalIncome, incomeSystem, incomeOutside, incomePeturunan, totalExpense }) {
   const client = await pool.connect();
 
   try {
@@ -84,6 +84,11 @@ async function uploadCampaignReport({ adminPuraId, campaignId, files, descriptio
       campaign_title: campaign.title,
       description: description || "",
       total_income: parseFloat(totalIncome) || 0,
+      income_details: {
+        system: parseFloat(incomeSystem) || 0,
+        outside: parseFloat(incomeOutside) || 0,
+        peturunan: parseFloat(incomePeturunan) || 0,
+      },
       total_expense: parseFloat(totalExpense) || 0,
       media: mediaFiles.map(m => ({
         cid: m.cid,
@@ -119,9 +124,12 @@ async function uploadCampaignReport({ adminPuraId, campaignId, files, descriptio
         file_name,
         mime_type,
         total_income,
+        income_system,
+        income_outside,
+        income_peturunan,
         total_expense
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
       )
       RETURNING *
       `,
@@ -137,6 +145,9 @@ async function uploadCampaignReport({ adminPuraId, campaignId, files, descriptio
         mediaFiles[0]?.file_name || "metadata",   // file_name (first file or fallback)
         "application/json",                       // mime_type (metadata is JSON)
         totalIncome || 0,
+        incomeSystem || 0,
+        incomeOutside || 0,
+        incomePeturunan || 0,
         totalExpense || 0,
       ]
     );

@@ -376,7 +376,7 @@ export default function CampaignDetail() {
                                 title="Verifikasi data asli di IPFS — hash ini tercatat permanen di Blockchain"
                               >
                                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                                Verifikasi IPFS
+                                Cek Keaslian Data (Blockchain)
                               </a>
                             )}
                           </div>
@@ -435,12 +435,15 @@ export default function CampaignDetail() {
                         )}
 
                         {/* Post Footer: Financial Summary */}
-                        <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-4">
+                        <div className="px-5 py-4 border-t border-gray-100 flex flex-wrap items-center gap-4">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                            ↓ {formatRupiah(r.total_income)}
+                            Total Dana Cair: {formatRupiah(r.total_income)}
                           </span>
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-100">
-                            ↑ {formatRupiah(r.total_expense)}
+                            Total Pengeluaran: {formatRupiah(r.total_expense)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
+                            Sisa Dana: {formatRupiah(r.total_income - r.total_expense)}
                           </span>
                         </div>
                       </div>

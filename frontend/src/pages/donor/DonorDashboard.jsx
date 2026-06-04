@@ -259,7 +259,7 @@ export default function DonorDashboard() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              Donasi Crypto (On-chain)
+              Donasi Kripto (Aset Digital)
             </button>
           </div>
 

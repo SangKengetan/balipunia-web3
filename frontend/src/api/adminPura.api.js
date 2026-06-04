@@ -25,6 +25,12 @@ export const getCampaignById = (id) =>
   api.get(`/adminpura/campaigns/${id}`);
 export const requestWithdraw = (formData) =>
   api.post("/adminpura/withdraws", formData);
+export const unifiedWithdrawReport = (formData) =>
+  api.post("/adminpura/withdraws/unified-report", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 
 export const getWithdraws = () =>
   api.get("/adminpura/withdraws");

@@ -1,6 +1,6 @@
 const pool = require("../db/pool");
 const votingService = require("./voting.service");
-const { uploadToIPFS } = require("./ipfsService");
+const { uploadToIPFS, uploadJSONToIPFS } = require("./ipfsService");
 
 /**
  * CREATE WITHDRAW REQUEST (UNIFIED: CRYPTO + FIAT)
@@ -275,8 +275,174 @@ async function getWithdrawRequestsByAdmin(adminPuraId) {
   return enriched;
 }
 
+/**
+ * CREATE UNIFIED WITHDRAW REPORT (UPACARA ADAT)
+ * Combined flow: creates withdrawal request + LPJ report in one go.
+ */
+async function createUnifiedWithdrawReport({
+  adminPuraId,
+  campaignId,
+  payload,
+  files,
+}) {
+  const {
+    reason,
+    crypto_usdt = "0",
+    crypto_usdc = "0",
+    crypto_fee_idr = 0,
+    fiat_amount_idr = "0",
+    fiat_fee_idr = 0,
+    total_idr = "0",
+    proposal_id = null,
+    
+    // LPJ fields
+    description,
+    totalIncome,
+    incomeSystem,
+    incomeOutside,
+    incomePeturunan,
+    totalExpense
+  } = payload;
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // 0. Ambil Wallet
+    const { rows: adminRows } = await client.query(
+      `SELECT wallet_address FROM admin_pura WHERE id = $1 LIMIT 1`,
+      [adminPuraId]
+    );
+    if (!adminRows.length || !adminRows[0].wallet_address) {
+      throw new Error("ADMIN_WALLET_NOT_FOUND");
+    }
+    const walletAddress = adminRows[0].wallet_address;
+
+    // 1. Ambil Campaign
+    const { rows: campaignRows } = await client.query(
+      `SELECT * FROM campaigns WHERE id = $1 AND admin_pura_id = $2 LIMIT 1`,
+      [campaignId, adminPuraId]
+    );
+    if (!campaignRows.length) {
+      throw new Error("CAMPAIGN_NOT_FOUND");
+    }
+    const campaign = campaignRows[0];
+    if (!campaign.id_campaign_onchain) {
+      throw new Error("CAMPAIGN_NOT_REGISTERED_ONCHAIN");
+    }
+
+    const activeStatuses = ["REQUESTED", "VOTING_IN_PROGRESS", "PENDING_TRANSFER"];
+    if (activeStatuses.includes(campaign.status)) {
+      throw new Error("WITHDRAW_ALREADY_REQUESTED");
+    }
+
+    if (!files || files.length === 0) {
+      throw new Error("DOCUMENT_REQUIRED");
+    }
+
+    // 2. IPFS LPJ (Metadata)
+    const mediaFiles = [];
+    const uploadPromises = files.map(async (f) => {
+      const cid = await uploadToIPFS(f);
+      return { cid, file_name: f.originalname, mime_type: f.mimetype };
+    });
+    const results = await Promise.all(uploadPromises);
+    mediaFiles.push(...results);
+
+    const metadataJson = {
+      campaign_id: campaign.id,
+      campaign_title: campaign.title,
+      description: description || reason || "",
+      total_income: parseFloat(totalIncome) || 0,
+      income_details: {
+        system: parseFloat(incomeSystem) || 0,
+        outside: parseFloat(incomeOutside) || 0,
+        peturunan: parseFloat(incomePeturunan) || 0,
+      },
+      total_expense: parseFloat(totalExpense) || 0,
+      media: mediaFiles.map(m => ({
+        cid: m.cid,
+        file_name: m.file_name,
+        mime_type: m.mime_type,
+        ipfs_url: `ipfs://${m.cid}`,
+      })),
+      timestamp: new Date().toISOString(),
+    };
+    const metadataCid = await uploadJSONToIPFS(metadataJson, `report_${campaign.id}_${Date.now()}.json`);
+
+    // 3. Amount Snapshot
+    const amountSnapshot = JSON.stringify({
+      crypto: { amount_usdt: crypto_usdt, amount_usdc: crypto_usdc, fee_idr: Number(crypto_fee_idr) },
+      fiat: { amount_idr: fiat_amount_idr, fee_idr: Number(fiat_fee_idr) },
+      total_idr,
+    });
+
+    // 4. Insert Withdraw Request
+    const initialStatus = proposal_id ? 'VOTING_IN_PROGRESS' : 'REQUESTED';
+    const { rows: wdRows } = await client.query(
+      `
+      INSERT INTO withdraw_requests (
+        admin_pura_id, campaign_id, onchain_campaign_id, campaign_title,
+        withdraw_type, amount_snapshot, total_idr, wallet_address,
+        reason, ipfs_cid, governance_proposal_id, status
+      ) VALUES (
+        $1, $2, $3, $4, 'UNIFIED', $5, $6, $7, $8, $9, $10, $11
+      ) RETURNING *
+      `,
+      [
+        adminPuraId, campaign.id, campaign.id_campaign_onchain, campaign.title,
+        amountSnapshot, total_idr, walletAddress,
+        reason || description, metadataCid, proposal_id, initialStatus
+      ]
+    );
+    const withdrawRequest = wdRows[0];
+
+    // 5. Insert Campaign Report
+    await client.query(
+      `
+      INSERT INTO campaign_reports (
+        admin_pura_id, campaign_id, withdraw_request_id, campaign_title,
+        ipfs_cid, metadata_cid, description, media_files, file_name, mime_type,
+        total_income, income_system, income_outside, income_peturunan, total_expense
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+      )
+      `,
+      [
+        adminPuraId, campaign.id, withdrawRequest.id, campaign.title,
+        metadataCid, metadataCid, description || reason || "",
+        JSON.stringify(mediaFiles), mediaFiles[0]?.file_name || "metadata", "application/json",
+        totalIncome || 0, incomeSystem || 0, incomeOutside || 0, incomePeturunan || 0, totalExpense || 0
+      ]
+    );
+
+    // 6. Update Campaign Status
+    await client.query(
+      `UPDATE campaigns SET status = 'REQUEST WITHDRAW', updated_at = NOW() WHERE id = $1`,
+      [campaign.id]
+    );
+
+    await client.query("COMMIT");
+    return {
+      withdrawRequestId: withdrawRequest.id,
+      campaignId: campaign.id,
+      onchainCampaignId: campaign.id_campaign_onchain,
+      walletAddress,
+      ipfsCid: metadataCid,
+      status: withdrawRequest.status,
+      amountSnapshot: JSON.parse(amountSnapshot),
+    };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
 module.exports = {
   createWithdrawRequest,
   markWithdrawExecuted,
   getWithdrawRequestsByAdmin,
+  createUnifiedWithdrawReport,
 };
