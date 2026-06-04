@@ -1,27 +1,50 @@
 import { ethers } from "ethers";
+import { EthereumProvider } from "@walletconnect/ethereum-provider";
 import DonationVaultABI from "./abi/DonationVaultABI.json";
 import { DONATION_VAULT_ADDRESS, TOKENS } from "./constants";
 
-function getProvider() {
-  if (!window.ethereum) throw new Error("MetaMask tidak ditemukan");
-  return new ethers.BrowserProvider(window.ethereum);
+const projectId = "63eefcbe5a9ac605c0e402cdc619fa0b";
+
+async function getProvider() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  let walletProvider;
+
+  if (!window.ethereum || isMobile) {
+    walletProvider = await EthereumProvider.init({
+      projectId, 
+      metadata: {
+        name: "BaliPunia",
+        description: "Platform Manajemen Pura dan Donasi",
+        url: window.location.origin, 
+        icons: [`${window.location.origin}/logo.png`],
+      },
+      showQrModal: true,
+      optionalChains: [1, 97],
+      rpcMap: {
+        97: "https://data-seed-prebsc-1-s1.binance.org:8545/",
+        1: "https://eth.llamarpc.com",
+      },
+    });
+  } else {
+    walletProvider = window.ethereum;
+  }
+
+  if (!walletProvider) throw new Error("Dompet digital tidak ditemukan");
+  return new ethers.BrowserProvider(walletProvider);
 }
 
 async function ensureBscTestnet() {
-  const provider = getProvider();
+  const provider = await getProvider();
   const network = await provider.getNetwork();
   if (network.chainId !== 97n) {
-    await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
-      params: [{ chainId: "0x61" }],
-    });
+    await provider.send("wallet_switchEthereumChain", [{ chainId: "0x61" }]);
   }
 }
 
 export async function donateOnChain({ campaignId, tokenKey, amount }) {
   await ensureBscTestnet();
 
-  const provider = getProvider();
+  const provider = await getProvider();
   const signer = await provider.getSigner();
   const owner = await signer.getAddress();
   const token = TOKENS[tokenKey];

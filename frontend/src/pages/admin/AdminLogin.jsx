@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import useWallet from "../../hooks/useWallet";
-import useAdminAuth from "../../hooks/useAdminAuth";;
+import useAdminAuth from "../../hooks/useAdminAuth";
 import { requestNonce, verifySignature } from "../../services/authApi";
 import { ethers } from "ethers";
+import { getProvider } from "../../services/blockchain/provider";
 import { showError } from "../../utils/notification";
 
 export default function AdminLogin() {
@@ -23,8 +24,8 @@ export default function AdminLogin() {
       const { nonce } = await requestNonce(walletAddress);
 
       // 3️⃣ Sign message (nonce)
-      const ethProvider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await ethProvider.getSigner()
+      const ethProvider = await getProvider();
+      const signer = await ethProvider.getSigner();
       const message = `Login admin punia: ${nonce}`;
       const signature = await signer.signMessage(message);
 

@@ -7,8 +7,8 @@ import {
 import VotingABI from "./abi/VotingABI.json";
 
 /** Read-only contract instance (tidak perlu MetaMask) */
-function getReadOnlyVotingContract() {
-  const provider = getProvider();
+async function getReadOnlyVotingContract() {
+  const provider = await getProvider();
   return new ethers.Contract(VOTING_ADDRESS, VotingABI, provider);
 }
 
@@ -157,7 +157,7 @@ export async function voteProposal(proposalId, support) {
 
 export async function getProposal(proposalId) {
   // Gunakan read-only contract (tidak perlu MetaMask/Signer)
-  const contract = getReadOnlyVotingContract();
+  const contract = await getReadOnlyVotingContract();
   const [
     campaignId,
     adminPura,

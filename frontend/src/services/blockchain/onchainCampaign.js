@@ -14,28 +14,53 @@ export const CAMPAIGN_TYPE = {
   CRYPTO_ONLY: 2,
 };
 
-function getProvider() {
-  if (!window.ethereum) {
-    throw new Error("MetaMask tidak ditemukan");
+import { EthereumProvider } from "@walletconnect/ethereum-provider";
+
+const projectId = "63eefcbe5a9ac605c0e402cdc619fa0b";
+
+async function getProvider() {
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  let walletProvider;
+
+  if (!window.ethereum || isMobile) {
+    walletProvider = await EthereumProvider.init({
+      projectId,
+      metadata: {
+        name: "BaliPunia",
+        description: "Platform Manajemen Pura dan Donasi",
+        url: window.location.origin,
+        icons: [`${window.location.origin}/logo.png`],
+      },
+      showQrModal: true,
+      optionalChains: [1, 97],
+      rpcMap: {
+        97: "https://data-seed-prebsc-1-s1.binance.org:8545/",
+        1: "https://eth.llamarpc.com",
+      },
+    });
+  } else {
+    walletProvider = window.ethereum;
   }
-  return new ethers.BrowserProvider(window.ethereum);
+
+  if (!walletProvider) {
+    throw new Error("MetaMask atau WalletConnect tidak ditemukan");
+  }
+  return new ethers.BrowserProvider(walletProvider);
 }
 
 async function ensureWalletConnected() {
-  if (!window.ethereum) {
-    throw new Error("MetaMask tidak ditemukan");
-  }
-
-  // 🔑 Memunculkan popup MetaMask
-  const accounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  });
-
-  if (!accounts || accounts.length === 0) {
+  const provider = await getProvider();
+  
+  // 🔑 Memunculkan popup MetaMask / WalletConnect
+  await provider.send("eth_requestAccounts", []);
+  const signer = await provider.getSigner();
+  const address = await signer.getAddress();
+  
+  if (!address) {
     throw new Error("Tidak ada wallet yang terhubung");
   }
 
-  return accounts[0];
+  return address;
 }
 
 /**
@@ -72,7 +97,7 @@ export async function createCampaignOnChain({
     );
   }
 
-  const provider = getProvider();
+  const provider = await getProvider();
   const signer = await provider.getSigner();
 
   const vault = new ethers.Contract(
