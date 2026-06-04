@@ -183,16 +183,30 @@ export default function CampaignDetail() {
             </div>
           </div>
           
-          {/* Campaign Image */}
-          {campaign.image_url && (
-            <div className="mt-6 w-full rounded-xl overflow-hidden shadow-sm border border-gray-100">
-              <img 
-                src={campaign.image_url.startsWith('http') ? campaign.image_url : `${import.meta.env.VITE_API_BASE_URL}${campaign.image_url}`} 
-                alt={campaign.title} 
-                className="w-full h-[300px] md:h-[400px] object-cover hover:scale-105 transition-transform duration-500"
-              />
-            </div>
-          )}
+          {/* Campaign Image / PDF Viewer */}
+          {campaign.image_url && (() => {
+            const fullUrl = campaign.image_url.startsWith('http') ? campaign.image_url : `${import.meta.env.VITE_API_BASE_URL}${campaign.image_url}`;
+            const isPdf = campaign.image_url.toLowerCase().endsWith('.pdf');
+
+            return (
+              <div className="mt-6 w-full rounded-xl overflow-hidden shadow-sm border border-gray-100 bg-gray-50">
+                {isPdf ? (
+                  <iframe 
+                    src={`${fullUrl}#view=FitH`}
+                    className="w-full h-[500px] md:h-[700px]"
+                    title="Dokumen Kegiatan"
+                    frameBorder="0"
+                  ></iframe>
+                ) : (
+                  <img 
+                    src={fullUrl} 
+                    alt={campaign.title} 
+                    className="w-full h-[300px] md:h-[400px] object-cover hover:scale-105 transition-transform duration-500"
+                  />
+                )}
+              </div>
+            );
+          })()}
           
           {campaign.description && (
             <div className="mt-6 pt-6 border-t border-gray-100">

@@ -38,16 +38,35 @@ export default function CampaignCardDB({ campaign }) {
       onClick={() => navigate(`/campaign/${targetId}`)}
       className="group relative flex flex-col w-full h-full bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-pointer p-5"
     >
-      {/* Campaign Image */}
-      {campaign.image_url && (
-        <div className="w-full h-32 mb-4 rounded-lg overflow-hidden shrink-0">
-          <img 
-            src={campaign.image_url.startsWith('http') ? campaign.image_url : `${import.meta.env.VITE_API_BASE_URL}${campaign.image_url}`} 
-            alt={title} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
-        </div>
-      )}
+      {/* Campaign Image / PDF Preview */}
+      {campaign.image_url && (() => {
+        const fullUrl = campaign.image_url.startsWith('http') ? campaign.image_url : `${import.meta.env.VITE_API_BASE_URL}${campaign.image_url}`;
+        const isPdf = campaign.image_url.toLowerCase().endsWith('.pdf');
+        
+        return (
+          <div className="w-full h-32 mb-4 rounded-lg overflow-hidden shrink-0 relative bg-gray-50">
+            {isPdf ? (
+              <div className="w-full h-full relative group-hover:scale-105 transition-transform duration-500">
+                {/* Overlay to prevent interaction with PDF viewer inside card */}
+                <div className="absolute inset-0 z-10"></div>
+                <iframe 
+                  src={`${fullUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                  className="w-full h-[150%] -mt-[25%] pointer-events-none"
+                  title={title}
+                  frameBorder="0"
+                  scrolling="no"
+                ></iframe>
+              </div>
+            ) : (
+              <img 
+                src={fullUrl} 
+                alt={title} 
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              />
+            )}
+          </div>
+        );
+      })()}
 
       <div className="flex justify-between items-start mb-4 px-2">
          <div className="flex flex-col gap-2">
