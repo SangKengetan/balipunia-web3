@@ -64,7 +64,7 @@ async function completeTransfer({
     // 1. Ambil withdraw request dan info deadline campaign
     const { rows } = await client.query(
       `
-      SELECT wr.id, wr.campaign_id, wr.status, c.deadline
+      SELECT wr.id, wr.campaign_id, wr.admin_pura_id, wr.campaign_title, wr.status, wr.amount_snapshot, c.deadline
       FROM withdraw_requests wr
       JOIN campaigns c ON c.id = wr.campaign_id
       WHERE wr.id = $1
@@ -97,7 +97,6 @@ async function completeTransfer({
       [transferProofCid, adminId, withdrawRequestId]
     );
 
-    // 3. Update campaign status → WITHDRAWN (jika ada deadline) atau ACTIVE (jika tidak ada deadline)
     const newCampaignStatus = wr.deadline ? 'WITHDRAWN' : 'ACTIVE';
     await client.query(
       `
@@ -108,6 +107,33 @@ async function completeTransfer({
       `,
       [newCampaignStatus, wr.campaign_id]
     );
+
+    // 4. Jika withdraw bertipe UNIFIED (ada unified_lpj di amount_snapshot), buat laporan otomatis
+    let snapshot = {};
+    try {
+      snapshot = typeof wr.amount_snapshot === 'string' ? JSON.parse(wr.amount_snapshot) : wr.amount_snapshot;
+    } catch (e) {}
+
+    if (snapshot.unified_lpj) {
+      const lpj = snapshot.unified_lpj;
+      await client.query(
+        `
+        INSERT INTO campaign_reports (
+          admin_pura_id, campaign_id, withdraw_request_id, campaign_title,
+          ipfs_cid, metadata_cid, description, media_files, file_name, mime_type,
+          total_income, income_system, income_outside, income_peturunan, total_expense
+        ) VALUES (
+          $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
+        )
+        `,
+        [
+          wr.admin_pura_id, wr.campaign_id, wr.id, wr.campaign_title,
+          lpj.metadata_cid, lpj.metadata_cid, lpj.description,
+          JSON.stringify(lpj.media_files || []), (lpj.media_files && lpj.media_files[0]?.file_name) || "metadata", "application/json",
+          lpj.total_income || 0, lpj.income_system || 0, lpj.income_outside || 0, lpj.income_peturunan || 0, lpj.total_expense || 0
+        ]
+      );
+    }
 
     await client.query("COMMIT");
 

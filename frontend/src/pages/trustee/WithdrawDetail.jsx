@@ -236,6 +236,75 @@ export default function TrusteeWithdrawDetail() {
                 {renderAmountSnapshot(data.amount_snapshot)}
               </div>
             </div>
+
+            {/* CARD: UNIFIED LPJ (PASCA-KEGIATAN) */}
+            {(() => {
+              let snapshot = null;
+              if (typeof data.amount_snapshot === "string") {
+                try { snapshot = JSON.parse(data.amount_snapshot); } catch (e) {}
+              } else {
+                snapshot = data.amount_snapshot;
+              }
+
+              if (snapshot && snapshot.unified_lpj) {
+                const lpj = snapshot.unified_lpj;
+                const formatRp = (val) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(val);
+                return (
+                  <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-gray-100 bg-amber-50 flex justify-between items-center">
+                      <h3 className="text-sm font-semibold text-amber-900 uppercase tracking-wider">Rincian Laporan (Pasca-Kegiatan)</h3>
+                      <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Combined Proposal</span>
+                    </div>
+                    <div className="p-6 space-y-4 text-sm text-gray-700">
+                      <div>
+                        <span className="block font-medium text-gray-500 mb-1">Deskripsi Pelaksanaan:</span>
+                        <p className="bg-gray-50 p-3 rounded-lg border border-gray-100 whitespace-pre-wrap">{lpj.description || "-"}</p>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <p className="font-bold text-gray-800 border-b pb-1">Sumber Dana (Pemasukan)</p>
+                          <div className="flex justify-between"><span>Sistem (Otomatis)</span> <span className="font-mono">{formatRp(lpj.income_system)}</span></div>
+                          <div className="flex justify-between"><span>Luar Sistem</span> <span className="font-mono">{formatRp(lpj.income_outside)}</span></div>
+                          <div className="flex justify-between"><span>Peturunan Wali</span> <span className="font-mono">{formatRp(lpj.income_peturunan)}</span></div>
+                          <div className="flex justify-between font-bold text-emerald-700 pt-2 border-t border-gray-100">
+                            <span>Total Pemasukan</span> <span className="font-mono">{formatRp(lpj.total_income)}</span>
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <p className="font-bold text-gray-800 border-b pb-1">Pengeluaran & Sisa</p>
+                          <div className="flex justify-between font-bold text-red-600">
+                            <span>Total Pengeluaran</span> <span className="font-mono">{formatRp(lpj.total_expense)}</span>
+                          </div>
+                          <div className="flex justify-between font-bold text-blue-600 mt-4 pt-4 border-t border-gray-100">
+                            <span>Sisa Dana</span> <span className="font-mono">{formatRp(lpj.total_income - lpj.total_expense)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {lpj.media_files && lpj.media_files.length > 0 && (
+                        <div className="pt-4 border-t border-gray-100">
+                          <span className="block font-medium text-gray-500 mb-3">Lampiran Dokumentasi & Nota:</span>
+                          <div className="flex flex-wrap gap-3">
+                            {lpj.media_files.map((m, idx) => (
+                              <a key={idx} href={`https://gateway.pinata.cloud/ipfs/${m.cid}`} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80">
+                                {m.mime_type?.startsWith("image/") ? (
+                                  <img src={`https://gateway.pinata.cloud/ipfs/${m.cid}`} alt="Lampiran" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">PDF</div>
+                                )}
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
           </div>
 
           {/* RIGHT COLUMN: ACTION CENTER */}

@@ -375,6 +375,16 @@ async function createUnifiedWithdrawReport({
       crypto: { amount_usdt: crypto_usdt, amount_usdc: crypto_usdc, fee_idr: Number(crypto_fee_idr) },
       fiat: { amount_idr: fiat_amount_idr, fee_idr: Number(fiat_fee_idr) },
       total_idr,
+      unified_lpj: {
+        metadata_cid: metadataCid,
+        description: description || reason || "",
+        total_income: parseFloat(totalIncome) || 0,
+        income_system: parseFloat(incomeSystem) || 0,
+        income_outside: parseFloat(incomeOutside) || 0,
+        income_peturunan: parseFloat(incomePeturunan) || 0,
+        total_expense: parseFloat(totalExpense) || 0,
+        media_files: mediaFiles
+      }
     });
 
     // 4. Insert Withdraw Request
@@ -392,31 +402,12 @@ async function createUnifiedWithdrawReport({
       [
         adminPuraId, campaign.id, campaign.id_campaign_onchain, campaign.title,
         amountSnapshot, total_idr, walletAddress,
-        reason || description, metadataCid, proposal_id, initialStatus
+        reason || description, mediaFiles[0]?.cid || metadataCid, proposal_id, initialStatus
       ]
     );
     const withdrawRequest = wdRows[0];
 
-    // 5. Insert Campaign Report
-    await client.query(
-      `
-      INSERT INTO campaign_reports (
-        admin_pura_id, campaign_id, withdraw_request_id, campaign_title,
-        ipfs_cid, metadata_cid, description, media_files, file_name, mime_type,
-        total_income, income_system, income_outside, income_peturunan, total_expense
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15
-      )
-      `,
-      [
-        adminPuraId, campaign.id, withdrawRequest.id, campaign.title,
-        metadataCid, metadataCid, description || reason || "",
-        JSON.stringify(mediaFiles), mediaFiles[0]?.file_name || "metadata", "application/json",
-        totalIncome || 0, incomeSystem || 0, incomeOutside || 0, incomePeturunan || 0, totalExpense || 0
-      ]
-    );
-
-    // 6. Update Campaign Status
+    // 5. Update Campaign Status
     await client.query(
       `UPDATE campaigns SET status = 'REQUEST WITHDRAW', updated_at = NOW() WHERE id = $1`,
       [campaign.id]
