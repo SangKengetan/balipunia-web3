@@ -35,6 +35,7 @@ async function syncCampaign(req, res) {
       title,
       description,
       purpose,
+      fund_mechanism,
       deadline,
       campaign_type,
     } = req.body;

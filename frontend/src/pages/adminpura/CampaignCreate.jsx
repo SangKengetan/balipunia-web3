@@ -21,7 +21,8 @@ export default function CampaignCreate() {
   const [form, setForm] = useState({
     title: "",
     description: "",
-    purpose: "PRA_KEGIATAN",
+    purpose: "UPACARA_ADAT",
+    fund_mechanism: "PRA_KEGIATAN",
     deadline: "",
     file: null,
   });
@@ -45,7 +46,7 @@ export default function CampaignCreate() {
       const adminWallet = rawWallet.trim();
       console.log("ADMIN WALLET FINAL:", adminWallet);
 
-      if (form.purpose === "PASCA_KEGIATAN" && !form.deadline) {
+      if (form.fund_mechanism === "PASCA_KEGIATAN" && !form.deadline) {
         throw new Error("Untuk mekanisme Pasca-Kegiatan, Anda wajib menentukan Batas Waktu Donasi (Deadline).");
       }
 
@@ -79,6 +80,7 @@ export default function CampaignCreate() {
       formData.append("title", form.title);
       formData.append("description", form.description);
       formData.append("purpose", form.purpose);
+      formData.append("fund_mechanism", form.fund_mechanism);
       if (deadlineIsoString) {
         formData.append("deadline", deadlineIsoString);
       }
@@ -124,70 +126,8 @@ export default function CampaignCreate() {
 
         <div className="px-8 pb-8 space-y-6">
           
-          {/* 🔀 MODE SELECTION (Visual Cards) */}
-          <div>
-            <label className={labelClass}>Tipe Donasi Kegiatan</label>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
-              {/* Option: Hybrid */}
-              <div
-                onClick={() => setMode("HYBRID")}
-                className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                  mode === "HYBRID"
-                    ? "border-yellow-400 bg-yellow-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800 text-sm">Keduanya (Hybrid)</span>
-                  {mode === "HYBRID" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
-                </div>
-                <p className="text-[11px] text-gray-500 leading-snug">
-                  Menerima donasi menggunakan mata uang Rupiah maupun Kripto. Data transparan dan tercatat dengan aman.
-                </p>
-              </div>
-
-              {/* Option: Fiat Only */}
-              <div
-                onClick={() => setMode("MIDTRANS_ONLY")}
-                className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                  mode === "MIDTRANS_ONLY"
-                    ? "border-yellow-400 bg-yellow-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800 text-sm">Hanya Rupiah</span>
-                  {mode === "MIDTRANS_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
-                </div>
-                <p className="text-[11px] text-gray-500 leading-snug">
-                  Hanya menerima donasi Rupiah melalui sistem transfer bank, QRIS, atau e-wallet (GoPay, OVO, dll).
-                </p>
-              </div>
-
-              {/* Option: Crypto Only */}
-              <div
-                onClick={() => setMode("CRYPTO_ONLY")}
-                className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                  mode === "CRYPTO_ONLY"
-                    ? "border-yellow-400 bg-yellow-50"
-                    : "border-gray-200 hover:border-gray-300"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-gray-800 text-sm">Hanya Kripto</span>
-                  {mode === "CRYPTO_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
-                </div>
-                <p className="text-[11px] text-gray-500 leading-snug">
-                  Hanya menerima donasi menggunakan mata uang digital Kripto (Web3). Data tersimpan penuh secara desentralisasi.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <hr className="border-gray-100" />
-
           {/* FORM INPUTS */}
-          <div className="space-y-4">
+          <div className="space-y-6">
             
             {/* Judul */}
             <div>
@@ -202,22 +142,37 @@ export default function CampaignCreate() {
               />
             </div>
 
-            {/* Mekanisme Pencairan */}
+            {/* Kategori Kegiatan (Purpose) */}
             <div>
-              <label className={labelClass}>Mekanisme Pencairan Dana</label>
+              <label htmlFor="purpose" className={labelClass}>Kategori Kegiatan</label>
+              <select
+                id="purpose"
+                className={inputClass}
+                value={form.purpose}
+                onChange={(e) => setForm({ ...form, purpose: e.target.value })}
+              >
+                <option value="UPACARA_ADAT">Upacara Adat</option>
+                <option value="PEMBANGUNAN">Pembangunan</option>
+                <option value="LAINNYA">Lainnya</option>
+              </select>
+            </div>
+
+            {/* Jenis Kegiatan */}
+            <div>
+              <label className={labelClass}>Jenis Kegiatan (Mekanisme Pencairan)</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 {/* Opsi A: Pra-Kegiatan */}
                 <div
-                  onClick={() => setForm({ ...form, purpose: "PRA_KEGIATAN" })}
+                  onClick={() => setForm({ ...form, fund_mechanism: "PRA_KEGIATAN" })}
                   className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                    form.purpose === "PRA_KEGIATAN"
+                    form.fund_mechanism === "PRA_KEGIATAN"
                       ? "border-yellow-400 bg-yellow-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-gray-800 text-sm">Pengajuan Dana Awal (Pra-Kegiatan)</span>
-                    {form.purpose === "PRA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                    {form.fund_mechanism === "PRA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                   </div>
                   <p className="text-[11px] text-gray-500 leading-snug">
                     Pilih opsi ini untuk kegiatan yang pengumpulan dana punianya dilakukan sebelum kegiatan dimulai, seperti proyek pembangunan atau renovasi pura. Anda perlu mengajukan Rencana Anggaran Biaya (RAB) terlebih dahulu dan wajib membuat laporan bukti setelah kegiatan selesai.
@@ -226,19 +181,79 @@ export default function CampaignCreate() {
 
                 {/* Opsi B: Pasca-Kegiatan */}
                 <div
-                  onClick={() => setForm({ ...form, purpose: "PASCA_KEGIATAN" })}
+                  onClick={() => setForm({ ...form, fund_mechanism: "PASCA_KEGIATAN" })}
                   className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
-                    form.purpose === "PASCA_KEGIATAN"
+                    form.fund_mechanism === "PASCA_KEGIATAN"
                       ? "border-yellow-400 bg-yellow-50"
                       : "border-gray-200 hover:border-gray-300"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-gray-800 text-sm">Lapor & Cairkan Dana (Pasca-Kegiatan)</span>
-                    {form.purpose === "PASCA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                    {form.fund_mechanism === "PASCA_KEGIATAN" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                   </div>
                   <p className="text-[11px] text-gray-500 leading-snug">
                     Pilih opsi ini untuk kegiatan yang pengumpulan dana punianya dilakukan saat kegiatan berlangsung, seperti penerimaan dana punia ketika upacara Odalan. Anda dapat langsung mengunggah nota pengeluaran asli dan foto kegiatan untuk mencairkan dana sekaligus membuat laporan.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* 🔀 MODE SELECTION (Metode Pembayaran) */}
+            <div>
+              <label className={labelClass}>Metode Pembayaran yang Diterima</label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                {/* Option: Hybrid */}
+                <div
+                  onClick={() => setMode("HYBRID")}
+                  className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                    mode === "HYBRID"
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-sm">Keduanya (Hybrid)</span>
+                    {mode === "HYBRID" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Menerima donasi menggunakan mata uang Rupiah maupun Kripto. Data transparan dan tercatat dengan aman.
+                  </p>
+                </div>
+
+                {/* Option: Fiat Only */}
+                <div
+                  onClick={() => setMode("MIDTRANS_ONLY")}
+                  className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                    mode === "MIDTRANS_ONLY"
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-sm">Hanya Rupiah</span>
+                    {mode === "MIDTRANS_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Hanya menerima donasi Rupiah melalui sistem transfer bank, QRIS, atau e-wallet (GoPay, OVO, dll).
+                  </p>
+                </div>
+
+                {/* Option: Crypto Only */}
+                <div
+                  onClick={() => setMode("CRYPTO_ONLY")}
+                  className={`cursor-pointer border-2 rounded-lg p-4 flex flex-col gap-2 transition-all ${
+                    mode === "CRYPTO_ONLY"
+                      ? "border-yellow-400 bg-yellow-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-800 text-sm">Hanya Kripto</span>
+                    {mode === "CRYPTO_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
+                  </div>
+                  <p className="text-[11px] text-gray-500 leading-snug">
+                    Hanya menerima donasi menggunakan mata uang digital Kripto (Web3). Data tersimpan penuh secara desentralisasi.
                   </p>
                 </div>
               </div>

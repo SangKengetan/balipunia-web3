@@ -15,6 +15,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
     title,
     description,
     purpose,
+    fund_mechanism,
     campaign_type,
     deadline,
     image_url,
@@ -29,6 +30,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
       title,
       description,
       purpose,
+      fund_mechanism,
       campaign_type,
       id_campaign_onchain,
       tx_hash,
@@ -36,7 +38,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
       image_url,
       status
     ) VALUES (
-      $1, $2, $3, $4, $5, $6, $7, $8, $9, 'ACTIVE'
+      $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'ACTIVE'
     )
     RETURNING *
     `,
@@ -45,6 +47,7 @@ async function syncCampaignFromChain(adminPuraId, payload) {
       title,
       description,
       purpose,
+      fund_mechanism,
       campaign_type, // 'HYBRID' | 'MIDTRANS_ONLY' | 'CRYPTO_ONLY'
       id_campaign_onchain,
       tx_hash,
