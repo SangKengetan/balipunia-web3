@@ -15,7 +15,7 @@ export default function PaymentResult() {
         </svg>
       ),
       title: "Pembayaran Berhasil!",
-      subtitle: "Terima kasih atas donasi Anda. Dana telah diterima dan akan disalurkan ke kampanye yang Anda pilih.",
+      subtitle: "Terima kasih atas punia Anda. Dana telah diterima dan akan disalurkan ke kampanye yang Anda pilih.",
       bgGradient: "from-emerald-50 to-green-50",
       borderColor: "border-emerald-200",
       titleColor: "text-emerald-800",
@@ -86,7 +86,7 @@ export default function PaymentResult() {
               to="/donor/dashboard"
               className="w-full py-3.5 bg-amber-400 hover:bg-amber-500 text-gray-900 font-bold rounded-2xl shadow-sm transition-all active:scale-[0.98] text-sm"
             >
-              Lihat Riwayat Donasi
+              Lihat Riwayat Punia
             </Link>
 
             <Link
@@ -109,7 +109,7 @@ export default function PaymentResult() {
               <li>Pilih menu <strong>Transfer → Virtual Account</strong></li>
               <li>Masukkan nomor Virtual Account yang telah diberikan sebelumnya</li>
               <li>Konfirmasi jumlah pembayaran dan selesaikan transaksi</li>
-              <li>Status donasi Anda akan otomatis diperbarui setelah pembayaran dikonfirmasi</li>
+              <li>Status punia Anda akan otomatis diperbarui setelah pembayaran dikonfirmasi</li>
             </ol>
           </div>
         )}

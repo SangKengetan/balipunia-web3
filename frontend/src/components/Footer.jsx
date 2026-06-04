@@ -7,7 +7,7 @@ export default function Footer() {
             Bali<span className="text-yellow-400">Punia</span>
           </h2>
           <p className="text-sm leading-relaxed mb-6">
-            Platform donasi transparan untuk pura dan kegiatan keagamaan Hindu di Bali, menggunakan teknologi Blockchain, Web3, IPFS, dan Payment Gateaway untuk akuntabilitas.
+            Platform punia transparan untuk pura dan kegiatan keagamaan Hindu di Bali, menggunakan teknologi Blockchain, Web3, IPFS, dan Payment Gateaway untuk akuntabilitas.
           </p>
         </div>
         <div>

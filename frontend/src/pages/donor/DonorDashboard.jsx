@@ -4,6 +4,7 @@ import useDonorAuth from "../../hooks/useDonorAuth";
 import useWallet from "../../hooks/useWallet";
 import Navbar from "../../components/Navbar";
 import { showError, showSuccess } from "../../utils/notification";
+import { ethers } from "ethers";
 
 export default function DonorDashboard() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function DonorDashboard() {
       });
 
       if (!res.ok) {
-        throw new Error("Gagal mengambil riwayat donasi");
+        throw new Error("Gagal mengambil riwayat punia");
       }
 
       const data = await res.json();
@@ -230,7 +231,7 @@ export default function DonorDashboard() {
             </button>
             {donorWallets.length === 0 && (
               <p className="mt-3 text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 leading-snug">
-                💡 <strong>Tips:</strong> Kaitkan MetaMask Anda agar sistem dapat memindai donasi On-chain.
+                💡 <strong>Tips:</strong> Kaitkan MetaMask Anda agar sistem dapat memindai punia On-chain.
               </p>
             )}
           </div>
@@ -249,7 +250,7 @@ export default function DonorDashboard() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              Donasi Rupiah
+              Punia Rupiah
             </button>
             <button
               onClick={() => setActiveTab("onchain")}
@@ -259,7 +260,7 @@ export default function DonorDashboard() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              Donasi Kripto
+              Punia Kripto
             </button>
           </div>
 
@@ -274,9 +275,9 @@ export default function DonorDashboard() {
               // OFF-CHAIN TABLE
               donations.offchain.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
-                  <p className="text-sm italic">Belum ada riwayat donasi transfer bank.</p>
+                  <p className="text-sm italic">Belum ada riwayat punia transfer bank.</p>
                   <Link to="/pura" className="mt-4 inline-block text-xs font-bold text-amber-600 hover:underline">
-                    Mulai Berdonasi →
+                    Mulai Mepunia →
                   </Link>
                 </div>
               ) : (
@@ -370,7 +371,7 @@ export default function DonorDashboard() {
                 <div className="text-center py-12 text-gray-400">
                   <p className="text-sm italic">Belum ada riwayat punia kripto yang terdeteksi pada wallet Anda.</p>
                   <Link to="/pura" className="mt-4 inline-block text-xs font-bold text-amber-600 hover:underline">
-                    Mulai Mapunia →
+                    Mulai Mepunia →
                   </Link>
                 </div>
               ) : (
@@ -395,7 +396,7 @@ export default function DonorDashboard() {
                             </Link>
                           </td>
                           <td className="py-4 font-mono font-bold text-gray-800">
-                            {parseFloat(tx.amount).toLocaleString("en-US", { maximumFractionDigits: 4 })}
+                            {parseFloat(ethers.formatUnits(tx.amount?.toString() || "0", 18)).toLocaleString("en-US", { maximumFractionDigits: 4 })}
                           </td>
                           <td className="py-4 font-semibold text-indigo-600">USDT/USDC</td>
                           <td className="py-4 font-mono text-xs text-gray-500">

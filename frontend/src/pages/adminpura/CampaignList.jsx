@@ -98,7 +98,7 @@ export default function CampaignList() {
             <Calendar size={32} />
           </div>
           <h3 className="text-lg font-medium text-gray-900">Belum ada kegiatan</h3>
-          <p className="text-gray-500 mt-1">Silakan buat kegiatan baru untuk mulai menerima donasi.</p>
+          <p className="text-gray-500 mt-1">Silakan buat kegiatan baru untuk mulai menerima punia.</p>
         </div>
       )}
 

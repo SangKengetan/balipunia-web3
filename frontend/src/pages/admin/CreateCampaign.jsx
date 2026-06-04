@@ -124,7 +124,7 @@ export default function CreateCampaign() {
               checked={form.is_onchain_enabled}
               onChange={handleChange}
             />
-            Donasi On-chain (USDT)
+            Punia On-chain (USDT)
           </label>
 
           <label className="flex items-center gap-2 text-sm">
@@ -134,7 +134,7 @@ export default function CreateCampaign() {
               checked={form.is_offchain_enabled}
               onChange={handleChange}
             />
-            Donasi Off-chain
+            Punia Off-chain
           </label>
         </div>
 

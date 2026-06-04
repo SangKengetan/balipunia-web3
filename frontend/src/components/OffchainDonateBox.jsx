@@ -79,7 +79,7 @@ export default function OffchainDonateBox({ campaignId }) {
   async function handleDonate() {
     const numAmount = parseInt(amount);
     if (!amount || numAmount < 10000) {
-      showInfo("Minimal Donasi", "Mohon maaf, minimal donasi adalah Rp 10.000");
+      showInfo("Minimal Punia", "Mohon maaf, minimal punia adalah Rp 10.000");
       return;
     }
 
@@ -121,7 +121,7 @@ export default function OffchainDonateBox({ campaignId }) {
         const data = await res.json();
         if (data.status === "SETTLED" || data.status === "PAID_LOCKED") {
           setPaymentSuccess(true);
-          showSuccess("Pembayaran Berhasil!", "Terima kasih atas donasi Anda. Dana telah kami terima.");
+          showSuccess("Pembayaran Berhasil!", "Terima kasih atas punia Anda. Dana telah kami terima.");
         } else if (data.status === "EXPIRED" || data.status === "FAILED") {
           setIsExpired(true);
           showInfo("Pembayaran Gagal", "Waktu pembayaran telah kedaluwarsa atau dibatalkan.");
@@ -146,7 +146,7 @@ export default function OffchainDonateBox({ campaignId }) {
           <div className="space-y-5">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
-                Nominal Donasi <span className="text-red-500">*</span>
+                Nominal Punia <span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">Rp</span>
@@ -229,7 +229,7 @@ export default function OffchainDonateBox({ campaignId }) {
               </svg>
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">Pembayaran Berhasil!</h3>
-            <p className="text-gray-600 mb-6 text-sm">Terima kasih atas donasi Anda.</p>
+            <p className="text-gray-600 mb-6 text-sm">Terima kasih atas punia Anda.</p>
             <button
               onClick={() => { setVaInfo(null); setAmount(""); }}
               className="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium rounded-lg transition-colors"

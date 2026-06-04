@@ -82,7 +82,7 @@ export default function Leaderboard({ level = "global", campaignId = null, puraI
         ) : currentList.length === 0 ? (
           <div className="text-center py-10 text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="mx-auto mb-3 opacity-50"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M8 12h8"/></svg>
-            <p className="font-medium">Belum ada data donasi</p>
+            <p className="font-medium">Belum ada data punia</p>
           </div>
         ) : (
           <div className="space-y-4">

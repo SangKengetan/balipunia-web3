@@ -22,13 +22,13 @@ export default function DonationHistory({ campaignId }) {
     })();
   }, [campaignId]);
 
-  if (loading) return <p className="text-sm">Memuat donasi...</p>;
+  if (loading) return <p className="text-sm">Memuat punia...</p>;
   if (!donations.length)
-    return <p className="text-sm text-gray-500">Belum ada donasi</p>;
+    return <p className="text-sm text-gray-500">Belum ada punia</p>;
 
   return (
     <div className="mt-6">
-      <h3 className="font-semibold mb-2">Riwayat Donasi</h3>
+      <h3 className="font-semibold mb-2">Riwayat Punia</h3>
 
       <div className="space-y-2">
         {donations.map((d, i) => (

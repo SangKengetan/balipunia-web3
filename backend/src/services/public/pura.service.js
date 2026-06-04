@@ -16,8 +16,9 @@ async function listPura() {
   return rows;
 }
 const {
-  getAllScOnlyCampaigns, getOnchainBalances
+  getOnchainBalances, getCampaignBalancesRaw
 } = require('../../services/vault.service');
+const { ethers } = require("ethers");
 
 async function getPuraDetail(puraId) {
   /* ========================= */
@@ -44,169 +45,151 @@ async function getPuraDetail(puraId) {
     throw new Error("PURA_NOT_FOUND");
   }
 
-  // Use the actual integer ID for subsequent queries
   const actualPuraId = pura.id;
 
-  /* ========================= */
-  /* 2. CAMPAIGN DB (HYBRID)   */
-  /* ========================= */
-  const dbCampaignQuery = `
-    SELECT
-      id,
-      title,
-      description,
-      purpose,
-      campaign_type,
-      status,
-      CASE WHEN deadline IS NOT NULL 
-        THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
-        ELSE NULL 
-      END as deadline,
-      id_campaign_onchain,
-      image_url
-    FROM campaigns
-    WHERE admin_pura_id = $1
-      AND campaign_type IN ('HYBRID', 'MIDTRANS_ONLY')
-  `;
-  const dbCampaigns = await pool.query(dbCampaignQuery, [actualPuraId]);
+  /* ======================================================= */
+  /* 2. PARALLEL: Campaigns + Stats DB queries sekaligus     */
+  /* ======================================================= */
+  const [
+    dbCampaignsResult,
+    scCampaignsResult,
+    offchainRes,
+    withdrawnOffchainRes,
+    pendingTransferRes,
+    onchainIdsRes
+  ] = await Promise.all([
+    // Campaign HYBRID/MIDTRANS_ONLY
+    pool.query(`
+      SELECT id, title, description, purpose, campaign_type, status,
+        CASE WHEN deadline IS NOT NULL 
+          THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+          ELSE NULL 
+        END as deadline,
+        id_campaign_onchain, image_url
+      FROM campaigns
+      WHERE admin_pura_id = $1
+        AND campaign_type IN ('HYBRID', 'MIDTRANS_ONLY')
+    `, [actualPuraId]),
+
+    // Campaign CRYPTO_ONLY
+    pool.query(`
+      SELECT id, title, description, purpose, campaign_type, status,
+        CASE WHEN deadline IS NOT NULL 
+          THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
+          ELSE NULL 
+        END as deadline,
+        id_campaign_onchain, image_url
+      FROM campaigns
+      WHERE admin_pura_id = $1
+        AND campaign_type = 'CRYPTO_ONLY'
+    `, [actualPuraId]),
+
+    // Stats: Offchain total
+    pool.query(`
+      SELECT COALESCE(SUM(gross_amount), 0) AS total_offchain
+      FROM offchain_transactions t
+      JOIN campaigns c ON c.id = t.campaign_id
+      WHERE c.admin_pura_id = $1
+        AND t.system_status IN ('PAID_LOCKED','APPROVED','WITHDRAWN')
+    `, [actualPuraId]),
+
+    // Stats: Offchain withdrawn
+    pool.query(`
+      SELECT COALESCE(SUM(((amount_snapshot::jsonb)->'fiat'->>'amount_idr')::numeric), 0) AS total_withdrawn_offchain
+      FROM withdraw_requests
+      WHERE admin_pura_id = $1
+        AND status IN ('EXECUTED', 'COMPLETED')
+    `, [actualPuraId]),
+
+    // Stats: Offchain pending
+    pool.query(`
+      SELECT COALESCE(SUM(((amount_snapshot::jsonb)->'fiat'->>'amount_idr')::numeric), 0) AS total_pending_transfer
+      FROM withdraw_requests
+      WHERE admin_pura_id = $1
+        AND status NOT IN ('REJECTED', 'EXECUTED', 'COMPLETED')
+    `, [actualPuraId]),
+
+    // Stats: Onchain campaign IDs
+    pool.query(`
+      SELECT id_campaign_onchain
+      FROM campaigns
+      WHERE admin_pura_id = $1
+        AND id_campaign_onchain IS NOT NULL
+    `, [actualPuraId]),
+  ]);
 
   /* ========================= */
-  /* 3. CAMPAIGN SC-ONLY (DB)  */
+  /* 3. FORMAT SC CAMPAIGNS    */
   /* ========================= */
-  const scCampaignQuery = `
-    SELECT
-      id,
-      title,
-      description,
-      purpose,
-      campaign_type,
-      status,
-      CASE WHEN deadline IS NOT NULL 
-        THEN TO_CHAR(deadline + interval '8 hours', 'YYYY-MM-DD"T"HH24:MI:SS"+08:00"')
-        ELSE NULL 
-      END as deadline,
-      id_campaign_onchain,
-      image_url
-    FROM campaigns
-    WHERE admin_pura_id = $1
-      AND campaign_type = 'CRYPTO_ONLY'
-  `;
-  const scCampaignsDb = await pool.query(scCampaignQuery, [actualPuraId]);
-
-  /* ========================= */
-  /* 4. FORMAT ID ONCHAIN      */
-  /* ========================= */
-  const formattedScCampaigns = scCampaignsDb.rows.map((campaign) => ({
+  const formattedScCampaigns = scCampaignsResult.rows.map((campaign) => ({
     ...campaign,
     id_campaign_onchain: campaign.id_campaign_onchain
       ? campaign.id_campaign_onchain.toString()
       : null,
   }));
 
-  /* ========================= */
-  /* 5. AMBIL SALDO ONCHAIN    */
-  /* ========================= */
-  const scCampaignsWithBalance = await Promise.all(
-    formattedScCampaigns.map(async (campaign) => {
-      if (!campaign.id_campaign_onchain) {
-        return {
-          ...campaign,
-          balances: { USDT: "0", USDC: "0" },
-        };
-      }
-
-      try {
-        const balances = await getOnchainBalances(
-          BigInt(campaign.id_campaign_onchain)
-        );
-
-        return {
-          ...campaign,
-          balances,
-        };
-      } catch (err) {
-        // ❗ blockchain error tidak boleh bikin API gagal
-        return {
-          ...campaign,
-          balances: { USDT: "0", USDC: "0" },
-        };
-      }
-    })
-  );
-
-  /* ========================= */
-  /* 5.5. HITUNG STATS DANA BELUM DICAIRKAN */
-  /* ========================= */
-  // 1. Offchain total
-  const offchainRes = await pool.query(
-    `
-    SELECT COALESCE(SUM(gross_amount), 0) AS total_offchain
-    FROM offchain_transactions t
-    JOIN campaigns c ON c.id = t.campaign_id
-    WHERE c.admin_pura_id = $1
-      AND t.system_status IN ('PAID_LOCKED','APPROVED','WITHDRAWN')
-    `,
-    [actualPuraId]
-  );
-  const totalOffchain = offchainRes.rows[0].total_offchain;
-
-  // 2. Offchain withdrawn
-  const withdrawnOffchainRes = await pool.query(
-    `
-    SELECT COALESCE(SUM(((amount_snapshot::jsonb)->'fiat'->>'amount_idr')::numeric), 0) AS total_withdrawn_offchain
-    FROM withdraw_requests
-    WHERE admin_pura_id = $1
-      AND status IN ('EXECUTED', 'COMPLETED')
-    `,
-    [actualPuraId]
-  );
-  const totalWithdrawnOffchain = withdrawnOffchainRes.rows[0].total_withdrawn_offchain;
-
-  // 3. Offchain pending
-  const pendingTransferRes = await pool.query(
-    `
-    SELECT COALESCE(SUM(((amount_snapshot::jsonb)->'fiat'->>'amount_idr')::numeric), 0) AS total_pending_transfer
-    FROM withdraw_requests
-    WHERE admin_pura_id = $1
-      AND status NOT IN ('REJECTED', 'EXECUTED', 'COMPLETED')
-    `,
-    [actualPuraId]
-  );
-  const totalPendingTransferOffchain = pendingTransferRes.rows[0].total_pending_transfer;
-
-  const totalAvailableOffchain = totalOffchain - totalWithdrawnOffchain - totalPendingTransferOffchain;
-
-  // 4. Crypto Total
-  const { ethers } = require("ethers");
+  /* ============================================================ */
+  /* 4. PARALLEL: SC balances + Onchain stats (blockchain calls)  */
+  /* ============================================================ */
   const USDT = process.env.USDT_ADDRESS;
   const USDC = process.env.USDC_ADDRESS;
-  
-  const onchainIdsRes = await pool.query(
-    `
-    SELECT id_campaign_onchain
-    FROM campaigns
-    WHERE admin_pura_id = $1
-      AND id_campaign_onchain IS NOT NULL
-    `,
-    [actualPuraId]
-  );
 
-  let totalOnchainUSDT = 0n;
-  let totalOnchainUSDC = 0n;
+  // Jalankan SC balance dan onchain stats secara paralel
+  const [scCampaignsWithBalance, onchainTotals] = await Promise.all([
+    // A. SC Campaign balances
+    Promise.all(
+      formattedScCampaigns.map(async (campaign) => {
+        if (!campaign.id_campaign_onchain) {
+          return { ...campaign, balances: { USDT: "0", USDC: "0" } };
+        }
+        try {
+          const balances = await getOnchainBalances(BigInt(campaign.id_campaign_onchain));
+          return { ...campaign, balances };
+        } catch (err) {
+          return { ...campaign, balances: { USDT: "0", USDC: "0" } };
+        }
+      })
+    ),
 
-  for (const row of onchainIdsRes.rows) {
-    const cid = row.id_campaign_onchain;
-    if (!cid) continue;
+    // B. Onchain totals — PARALLEL instead of sequential for-loop
+    (async () => {
+      const rows = onchainIdsRes.rows.filter(r => r.id_campaign_onchain);
+      if (rows.length === 0) return { usdt: 0n, usdc: 0n };
 
-    try {
-      const balances = await require('../../services/vault.service').getCampaignBalancesRaw(
-        cid,
-        [USDT, USDC]
+      const results = await Promise.all(
+        rows.map(async (row) => {
+          try {
+            const balances = await getCampaignBalancesRaw(
+              row.id_campaign_onchain,
+              [USDT, USDC]
+            );
+            return {
+              usdt: balances[USDT] || 0n,
+              usdc: balances[USDC] || 0n,
+            };
+          } catch (e) {
+            return { usdt: 0n, usdc: 0n };
+          }
+        })
       );
-      totalOnchainUSDT += balances[USDT] || 0n;
-      totalOnchainUSDC += balances[USDC] || 0n;
-    } catch(e) {}
-  }
+
+      return results.reduce(
+        (acc, cur) => ({
+          usdt: acc.usdt + cur.usdt,
+          usdc: acc.usdc + cur.usdc,
+        }),
+        { usdt: 0n, usdc: 0n }
+      );
+    })(),
+  ]);
+
+  /* ========================= */
+  /* 5. HITUNG STATS OFFCHAIN  */
+  /* ========================= */
+  const totalOffchain = offchainRes.rows[0].total_offchain;
+  const totalWithdrawnOffchain = withdrawnOffchainRes.rows[0].total_withdrawn_offchain;
+  const totalPendingTransferOffchain = pendingTransferRes.rows[0].total_pending_transfer;
+  const totalAvailableOffchain = totalOffchain - totalWithdrawnOffchain - totalPendingTransferOffchain;
 
   /* ========================= */
   /* 6. RETURN FINAL           */
@@ -214,15 +197,15 @@ async function getPuraDetail(puraId) {
   return {
     pura,
     campaigns: {
-      db: dbCampaigns.rows,
+      db: dbCampaignsResult.rows,
       sc_only: scCampaignsWithBalance,
     },
     stats: {
       total_available_offchain: totalAvailableOffchain,
       total_pending_transfer_offchain: totalPendingTransferOffchain,
       total_onchain: {
-        usdt: ethers.formatUnits(totalOnchainUSDT, 18),
-        usdc: ethers.formatUnits(totalOnchainUSDC, 18),
+        usdt: ethers.formatUnits(onchainTotals.usdt, 18),
+        usdc: ethers.formatUnits(onchainTotals.usdc, 18),
       }
     }
   };

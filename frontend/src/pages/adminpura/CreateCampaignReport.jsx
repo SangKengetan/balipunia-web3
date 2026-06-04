@@ -330,7 +330,7 @@ export default function CreateCampaignReport() {
                       className="w-full rounded-xl border border-gray-300 pl-11 pr-4 py-3 text-sm focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 outline-none transition-all font-mono font-medium text-gray-700"
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Isi jika ada sumbangan/donasi tunai di luar sistem BaliPunia.</p>
+                  <p className="text-xs text-gray-400 mt-1">Isi jika ada sumbangan/punia tunai di luar sistem BaliPunia.</p>
                 </div>
 
                 {/* Expense Input */}

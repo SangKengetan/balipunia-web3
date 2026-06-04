@@ -166,7 +166,7 @@ export default function CampaignDetail() {
                   <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-amber-50/50">
                       <div className="flex items-center gap-2 font-bold text-gray-800">
                           <History size={20} className="text-amber-500" />
-                          <h2>Riwayat Donasi Rupiah</h2>
+                          <h2>Riwayat Punia Rupiah</h2>
                       </div>
                       <span className="bg-white text-gray-600 text-xs px-2 py-1 rounded-full font-medium border border-gray-200">
                           {offchain_donations.length} Transaksi
@@ -207,7 +207,7 @@ export default function CampaignDetail() {
                       ) : (
                           <div className="p-8 text-center text-gray-400">
                               <History size={32} className="mx-auto mb-2 opacity-50"/>
-                              <p>Belum ada donasi rupiah tercatat.</p>
+                              <p>Belum ada punia rupiah tercatat.</p>
                           </div>
                       )}
                   </div>
@@ -220,7 +220,7 @@ export default function CampaignDetail() {
                   <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-amber-50/30">
                       <div className="flex items-center gap-2 font-bold text-gray-800">
                           <History size={20} className="text-amber-500" />
-                          <h2>Riwayat Donasi Kripto</h2>
+                          <h2>Riwayat Punia Kripto</h2>
                       </div>
                       <span className="bg-white text-gray-600 text-xs px-2 py-1 rounded-full font-medium border border-gray-200">
                           {onchain_donations.length} Transaksi
@@ -271,7 +271,7 @@ export default function CampaignDetail() {
                       ) : (
                           <div className="p-8 text-center text-gray-400">
                               <History size={32} className="mx-auto mb-2 opacity-50"/>
-                              <p>Belum ada donasi kripto tercatat.</p>
+                              <p>Belum ada punia kripto tercatat.</p>
                           </div>
                       )}
                   </div>

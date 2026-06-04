@@ -81,7 +81,7 @@ export default function CampaignDetail() {
     if (!isDonorAuthenticated) {
       Swal.fire({
         title: "Belum Login",
-        text: "Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi.",
+        text: "Anda harus login sebagai donatur terlebih dahulu sebelum mepunia.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#FBBF24",
@@ -103,7 +103,7 @@ export default function CampaignDetail() {
     if (!isDonorAuthenticated) {
       Swal.fire({
         title: "Belum Login",
-        text: "Anda harus login sebagai donatur terlebih dahulu sebelum berdonasi.",
+        text: "Anda harus login sebagai donatur terlebih dahulu sebelum mepunia.",
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#FBBF24",
@@ -398,7 +398,7 @@ export default function CampaignDetail() {
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-900">Donasi Masuk (Tunai)</h2>
+                    <h2 className="text-2xl font-bold text-slate-900">Punia Masuk (Tunai)</h2>
                     <p className="text-sm text-slate-500">Daftar donatur yang telah berpartisipasi</p>
                   </div>
                 </div>
@@ -458,7 +458,7 @@ export default function CampaignDetail() {
                           </div>
                           <div>
                             <span className="block font-bold text-slate-900 text-lg">Tunai / Transfer</span>
-                            <span className="text-sm text-slate-500 font-medium">Donasi Rupiah konvensional</span>
+                            <span className="text-sm text-slate-500 font-medium">Punia Rupiah konvensional</span>
                           </div>
                         </button>
                       )}

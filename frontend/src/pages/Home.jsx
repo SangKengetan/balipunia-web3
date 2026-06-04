@@ -11,7 +11,7 @@ export default function Home() {
   const { address, connectWallet } = useWallet();
   const navigate = useNavigate();
   /**
-   * Donasi:
+   * Punia:
    * - Tidak wajib wallet
    * - Wallet diminta nanti jika pilih on-chain
    */
@@ -131,9 +131,9 @@ export default function Home() {
       <section className="w-full bg-white py-20">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Mengapa Berdonasi Melalui BaliPunia?</h2>
+            <h2 className="text-3xl font-bold mb-4">Mengapa Mepunia Melalui BaliPunia?</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
-              Platform transparansi donasi pura di Bali yang memanfaatkan teknologi modern 
+              Platform transparansi punia pura di Bali yang memanfaatkan teknologi modern 
               untuk memastikan dana punia Anda tercatat secara aman dan dapat dipertanggungjawabkan.
             </p>
           </div>
@@ -155,7 +155,7 @@ export default function Home() {
               </div>
               <h3 className="text-xl font-bold mb-2">Mudah & Cepat</h3>
               <p className="text-gray-600 text-sm">
-                Berdonasi hanya dengan beberapa klik. Mendukung berbagai metode pembayaran yang fleksibel sesuai kebutuhan Anda.
+                Mepunia hanya dengan beberapa klik. Mendukung berbagai metode pembayaran yang fleksibel sesuai kebutuhan Anda.
               </p>
             </div>
             <div className="bg-gray-50 p-6 rounded-2xl text-center border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -234,25 +234,25 @@ export default function Home() {
             <div className="md:w-2/3">
               <h3 className="text-2xl font-bold mb-6 text-[#FBBF24]">Bagaimana Mekanisme Mepunia?</h3>
               <ul className="space-y-6">
-                <li className="flex items-start">
-                  <span className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-4">1</span>
-                  <div className="pt-1">
-                    <strong className="block text-lg mb-1">Pilih Pura atau Program</strong>
-                    <span className="text-gray-300">Telusuri daftar pura atau program pembangunan/upacara yang sedang membutuhkan dana.</span>
+                <li className="flex gap-4">
+                  <div className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5">1</div>
+                  <div>
+                    <strong className="block text-lg mb-1 leading-none">Pilih Pura atau Program</strong>
+                    <span className="text-gray-300 mt-1 block">Telusuri daftar pura atau program pembangunan/upacara yang sedang membutuhkan dana.</span>
                   </div>
                 </li>
-                <li className="flex items-start">
-                  <span className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-4">2</span>
-                  <div className="pt-1">
-                    <strong className="block text-lg mb-1">Tentukan Nominal & Metode</strong>
-                    <span className="text-gray-300">Masukkan jumlah punia dan pilih metode yang Anda inginkan (Kripto atau Transfer Bank).</span>
+                <li className="flex gap-4">
+                  <div className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5">2</div>
+                  <div>
+                    <strong className="block text-lg mb-1 leading-none">Tentukan Nominal & Metode</strong>
+                    <span className="text-gray-300 mt-1 block">Masukkan jumlah punia dan pilih metode yang Anda inginkan (Kripto atau Transfer Bank).</span>
                   </div>
                 </li>
-                <li className="flex items-start">
-                  <span className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mr-4">3</span>
-                  <div className="pt-1">
-                    <strong className="block text-lg mb-1">Pantau Penyaluran Dana</strong>
-                    <span className="text-gray-300">Lihat progres program dan laporan penggunaan dana yang diunggah oleh pengurus Pura secara berkala.</span>
+                <li className="flex gap-4">
+                  <div className="bg-[#FBBF24] text-black font-bold w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5">3</div>
+                  <div>
+                    <strong className="block text-lg mb-1 leading-none">Pantau Penyaluran Dana</strong>
+                    <span className="text-gray-300 mt-1 block">Lihat progres program dan laporan penggunaan dana yang diunggah oleh pengurus Pura secara berkala.</span>
                   </div>
                 </li>
               </ul>

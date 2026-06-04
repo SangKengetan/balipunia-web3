@@ -47,7 +47,7 @@ export default function CampaignCreate() {
       console.log("ADMIN WALLET FINAL:", adminWallet);
 
       if (form.fund_mechanism === "PASCA_KEGIATAN" && !form.deadline) {
-        throw new Error("Untuk mekanisme Pasca-Kegiatan, Anda wajib menentukan Batas Waktu Donasi (Deadline).");
+        throw new Error("Untuk mekanisme Pasca-Kegiatan, Anda wajib menentukan Batas Waktu Punia (Deadline).");
       }
 
       // 2. Generate unique campaign ID
@@ -217,7 +217,7 @@ export default function CampaignCreate() {
                     {mode === "HYBRID" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                   </div>
                   <p className="text-[11px] text-gray-500 leading-snug">
-                    Menerima donasi menggunakan mata uang Rupiah maupun Kripto. Data transparan dan tercatat dengan aman.
+                    Menerima punia menggunakan mata uang Rupiah maupun Kripto. Data transparan dan tercatat dengan aman.
                   </p>
                 </div>
 
@@ -235,7 +235,7 @@ export default function CampaignCreate() {
                     {mode === "MIDTRANS_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                   </div>
                   <p className="text-[11px] text-gray-500 leading-snug">
-                    Hanya menerima donasi Rupiah melalui sistem transfer bank, QRIS, atau e-wallet (GoPay, OVO, dll).
+                    Hanya menerima punia Rupiah melalui sistem transfer bank, QRIS, atau e-wallet (GoPay, OVO, dll).
                   </p>
                 </div>
 
@@ -253,7 +253,7 @@ export default function CampaignCreate() {
                     {mode === "CRYPTO_ONLY" && <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>}
                   </div>
                   <p className="text-[11px] text-gray-500 leading-snug">
-                    Hanya menerima donasi menggunakan mata uang digital Kripto (Web3). Data tersimpan penuh secara desentralisasi.
+                    Hanya menerima punia menggunakan mata uang digital Kripto (Web3). Data tersimpan penuh secara desentralisasi.
                   </p>
                 </div>
               </div>
@@ -275,7 +275,7 @@ export default function CampaignCreate() {
             {/* Deadline dengan Helper Text */}
             <div>
               <label htmlFor="deadline" className={labelClass}>
-                Batas Waktu Donasi
+                Batas Waktu Punia
               </label>
               <div className="relative">
                 <input

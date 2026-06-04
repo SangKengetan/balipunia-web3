@@ -60,14 +60,14 @@ export default function CampaignDetail() {
           </div>
 
           <div>
-            <span className="text-gray-500">Donasi On-chain</span>
+            <span className="text-gray-500">Punia On-chain</span>
             <div className="font-medium">
               {campaign.is_onchain_enabled ? "Aktif" : "Nonaktif"}
             </div>
           </div>
 
           <div>
-            <span className="text-gray-500">Donasi Off-chain</span>
+            <span className="text-gray-500">Punia Off-chain</span>
             <div className="font-medium">
               {campaign.is_offchain_enabled ? "Aktif" : "Nonaktif"}
             </div>

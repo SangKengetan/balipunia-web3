@@ -274,7 +274,7 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div>
-                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Donasi Kripto (Aset Digital)</h4>
+                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Punia Kripto (Aset Digital)</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Saldo USDT</span>
@@ -300,7 +300,7 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
               </div>
 
               <div>
-                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Donasi Fiat (Rupiah/Bank)</h4>
+                <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Punia Fiat (Rupiah/Bank)</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Total Masuk</span>

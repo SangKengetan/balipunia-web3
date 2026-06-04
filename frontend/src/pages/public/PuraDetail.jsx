@@ -49,50 +49,65 @@ export default function PuraDetail() {
   const [sortOrder, setSortOrder] = useState("newest");
 
   useEffect(() => {
-    // Ambil rate USDT to IDR dari CoinGecko
-    fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr')
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.tether && data.tether.idr) {
-          setExchangeRate(data.tether.idr);
-        }
-      })
-      .catch(err => console.error("Gagal mengambil rate USDT", err));
+    const controller = new AbortController();
 
+    // Semua fetch dijalankan PARALEL
     const fetchAllData = async () => {
       try {
-        // 1. Fetch Detail Pura & Campaign
-        const resDetail = await fetchPublicPuraDetail(id);
-        const data = resDetail?.data || resDetail;
+        // Jalankan semua API calls secara paralel
+        const [detailResult, reportsResult, rateResult] = await Promise.allSettled([
+          // 1. Detail Pura & Campaign (utama)
+          fetchPublicPuraDetail(id),
+          // 2. Financial Reports
+          fetchFinancialReportsByPura(id),
+          // 3. CoinGecko rate dengan timeout 3 detik agar tidak blocking
+          Promise.race([
+            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr', 
+              { signal: controller.signal }
+            ).then(res => res.json()),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+          ])
+        ]);
 
-        setPura(data.pura);
-        setStats(data.stats || {
-          total_available_offchain: 0,
-          total_pending_transfer_offchain: 0,
-          total_onchain: { usdt: "0", usdc: "0" }
-        });
-        setCampaignDB(Array.isArray(data.campaigns?.db) ? data.campaigns.db : []);
-        setCampaignSC(Array.isArray(data.campaigns?.sc_only) ? data.campaigns.sc_only : []);
+        // Process detail pura
+        if (detailResult.status === 'fulfilled') {
+          const data = detailResult.value?.data || detailResult.value;
+          setPura(data.pura);
+          setStats(data.stats || {
+            total_available_offchain: 0,
+            total_pending_transfer_offchain: 0,
+            total_onchain: { usdt: "0", usdc: "0" }
+          });
+          setCampaignDB(Array.isArray(data.campaigns?.db) ? data.campaigns.db : []);
+          setCampaignSC(Array.isArray(data.campaigns?.sc_only) ? data.campaigns.sc_only : []);
+        } else {
+          console.error("Failed fetch pura detail:", detailResult.reason);
+        }
 
-        // 2. Fetch Financial Reports (Parallel)
-        try {
-            const resReports = await fetchFinancialReportsByPura(id);
-            setReports(resReports.data || []);
-        } catch (reportErr) {
-            console.error("Failed fetch reports (non-blocking):", reportErr);
-            setReports([]); // Fallback empty
-        } finally {
-            setLoadingReports(false);
+        // Process reports
+        if (reportsResult.status === 'fulfilled') {
+          setReports(reportsResult.value?.data || reportsResult.value || []);
+        } else {
+          console.error("Failed fetch reports (non-blocking):", reportsResult.reason);
+          setReports([]);
+        }
+
+        // Process exchange rate
+        if (rateResult.status === 'fulfilled' && rateResult.value?.tether?.idr) {
+          setExchangeRate(rateResult.value.tether.idr);
         }
 
       } catch (err) {
         console.error("Failed fetch pura detail:", err);
       } finally {
         setLoading(false);
+        setLoadingReports(false);
       }
     };
 
     fetchAllData();
+
+    return () => controller.abort();
   }, [id]);
 
   const handleDonateOnchain = (campaignId) => {
@@ -291,7 +306,7 @@ export default function PuraDetail() {
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-900">Program Berbatas Waktu</h2>
-                                        <p className="text-sm text-gray-500">Program donasi dengan target waktu tertentu.</p>
+                                        <p className="text-sm text-gray-500">Program punia dengan target waktu tertentu.</p>
                                     </div>
                                 </div>
                                 {renderCampaignCards(campaignsWithDeadline)}
@@ -305,7 +320,7 @@ export default function PuraDetail() {
                                     </div>
                                     <div>
                                         <h2 className="text-xl font-bold text-gray-900">Program Rutin / Terbuka</h2>
-                                        <p className="text-sm text-gray-500">Program yang selalu menerima donasi kapan saja.</p>
+                                        <p className="text-sm text-gray-500">Program yang selalu menerima punia kapan saja.</p>
                                     </div>
                                 </div>
                                 {renderCampaignCards(campaignsWithoutDeadline)}

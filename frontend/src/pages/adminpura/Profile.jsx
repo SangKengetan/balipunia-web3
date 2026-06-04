@@ -206,7 +206,7 @@ export default function Profile() {
                   </div>
                   {form.profile_completion_percentage < 100 && (
                     <p className="text-[10px] text-red-500 mt-2">
-                      Lengkapi profil 100% untuk dapat membuat kampanye donasi.
+                      Lengkapi profil 100% untuk dapat membuat kampanye punia.
                     </p>
                   )}
                 </div>
@@ -383,7 +383,7 @@ export default function Profile() {
                             />
                         </div>
                         <p className="text-xs text-gray-400 mt-2">
-                            Alamat wallet ini akan digunakan sebagai penerima dana donasi crypto (USDT/USDC).
+                            Alamat wallet ini akan digunakan sebagai penerima dana punia crypto (USDT/USDC).
                         </p>
                     </div>
                 </div>
@@ -409,7 +409,7 @@ export default function Profile() {
                           <p className="text-amber-800 text-sm flex items-start gap-2">
                             <AlertCircle size={16} className="mt-0.5 shrink-0" />
                             <span>
-                              Anda diwajibkan mendaftarkan tepat 3 alamat wallet Trustee. Trustee ini akan bertugas memverifikasi dan menyetujui setiap pencairan dana donasi kripto (USDT/USDC). <b>Pastikan Anda menggunakan Metamask dan berada di jaringan yang tepat.</b>
+                              Anda diwajibkan mendaftarkan tepat 3 alamat wallet Trustee. Trustee ini akan bertugas memverifikasi dan menyetujui setiap pencairan dana punia kripto (USDT/USDC). <b>Pastikan Anda menggunakan Metamask dan berada di jaringan yang tepat.</b>
                             </span>
                           </p>
                         </div>

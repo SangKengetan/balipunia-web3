@@ -12,7 +12,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
   async function handleDonate() {
     // Validasi dasar di UI (Minimal 1)
     if (!amount || parseFloat(amount) < 1) {
-      showInfo("Minimal Donasi", "Silakan masukkan minimal donasi 1 USDT/USDC.");
+      showInfo("Minimal Punia", "Silakan masukkan minimal punia 1 USDT/USDC.");
       return;
     }
     
@@ -53,7 +53,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
       }
 
       if (onDonateSuccess) onDonateSuccess();
-      showSuccess("Matur Suksma!", "Donasi Anda berhasil dikirim.\nHash: " + txHash);
+      showSuccess("Matur Suksma!", "Punia Anda berhasil dikirim.\nHash: " + txHash);
       setAmount("");
     } catch (err) {
       console.error(err);
@@ -67,7 +67,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
   return (
     <div className="w-full bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-5 md:p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Donasi Kripto</h3>
+        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Punia Kripto</h3>
 
         <div className="space-y-5">
           <div>
@@ -106,12 +106,12 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
             disabled={loading || !amount || parseFloat(amount) < 1}
             className="w-full py-3 bg-[#FBBF24] hover:bg-yellow-500 text-slate-900 font-bold rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
           >
-            {loading ? "Memproses..." : "Kirim Donasi"}
+            {loading ? "Memproses..." : "Kirim Punia"}
           </button>
         </div>
 
         <div className="mt-5 p-3 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100 leading-relaxed">
-          Donasi akan dikirim secara otomatis ke dompet kampanye. Pastikan Anda memiliki saldo koin native (misal BNB/ETH) untuk biaya jaringan (gas fee).
+          Punia akan dikirim secara otomatis ke smart contract. Pastikan Anda memiliki saldo BNB untuk biaya jaringan BSC(gas fee).
         </div>
       </div>
     </div>
