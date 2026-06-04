@@ -529,15 +529,11 @@ export default function CampaignDetail() {
                               {campaign?.fund_mechanism === 'pasca' ? (
                                 <>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Income Sistem</span>
-                                    <span className="font-bold text-emerald-600">{formatRupiah(r.income_system)}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Income Outside</span>
+                                    <span className="text-sm font-semibold text-slate-600">Dana Diluar Sistem</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_outside)}</span>
                                   </div>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Income Peturunan</span>
+                                    <span className="text-sm font-semibold text-slate-600">Dana Peturunan</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_peturunan)}</span>
                                   </div>
                                 </>
