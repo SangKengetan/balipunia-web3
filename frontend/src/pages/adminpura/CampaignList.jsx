@@ -130,7 +130,7 @@ export default function CampaignList() {
               }
               return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
             }
-            if (status === 'REQUEST WITHDRAW') return { label: 'Pencairan Diproses', style: 'bg-orange-100 text-orange-800 border-orange-200' };
+            if (status === 'REQUEST WITHDRAW') return { label: 'Pengajuan Tarik Dana', style: 'bg-orange-100 text-orange-800 border-orange-200' };
             if (status === 'COMPLETED') return { label: 'Telah Selesai', style: 'bg-blue-100 text-blue-800 border-blue-200' };
             return { label: status || 'Unknown', style: 'bg-gray-100 text-gray-800 border-gray-200' };
           };

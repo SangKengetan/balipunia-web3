@@ -123,24 +123,36 @@ export default function CampaignDetail() {
         </div>
       </div>
 
-      {/* 2. Quick Actions */}
-      {campaign.status === "WITHDRAWN" && (!data?.reports || data.reports.length === 0) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
-          <div>
-            <h3 className="font-bold text-amber-800">Laporan Kegiatan Diperlukan</h3>
-            <p className="text-sm text-amber-700 mt-1">
-              Dana telah ditarik. Harap segera unggah laporan dokumentasi dan mutasi keuangan terkait penggunaan dana ini.
-            </p>
+      {/* 2. Quick Actions & Reports */}
+      {(() => {
+        const completedWithdraws = data?.withdraws?.filter(w => ['COMPLETED', 'EXECUTED'].includes(w.status)) || [];
+        const hasUnreportedWithdrawal = completedWithdraws.length > (data?.reports?.length || 0);
+        const hasReports = data?.reports && data.reports.length > 0;
+
+        if (!hasUnreportedWithdrawal) return null;
+
+        return (
+          <div className={`border rounded-xl p-4 flex items-center justify-between shadow-sm ${!hasReports ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}>
+            <div>
+              <h3 className={`font-bold ${!hasReports ? 'text-amber-800' : 'text-gray-800'}`}>
+                {!hasReports ? 'Laporan Kegiatan Diperlukan' : 'Laporan Kegiatan Diperlukan'}
+              </h3>
+              <p className={`text-sm mt-1 ${!hasReports ? 'text-amber-700' : 'text-gray-600'}`}>
+                {!hasReports 
+                  ? 'Dana telah ditarik. Harap segera unggah laporan dokumentasi dan mutasi keuangan terkait penggunaan dana ini.'
+                  : 'Terdapat pencairan dana baru yang belum dilaporkan. Harap segera unggah laporan penggunaan dana tambahan.'}
+              </p>
+            </div>
+            <Link 
+              to={`/admin/pura/campaigns/${id}/report`}
+              className={`flex items-center gap-2 px-5 py-2.5 hover:bg-opacity-90 text-white text-sm font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap ${!hasReports ? 'bg-amber-500' : 'bg-gray-800'}`}
+            >
+              <FileText size={18} />
+              {!hasReports ? 'Buat Laporan' : 'Tambah Laporan'}
+            </Link>
           </div>
-          <Link 
-            to={`/admin/pura/campaigns/${id}/report`}
-            className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold rounded-lg shadow-sm transition-colors whitespace-nowrap"
-          >
-            <FileText size={18} />
-            Buat Laporan
-          </Link>
-        </div>
-      )}
+        );
+      })()}
 
       {/* 3. Main Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">

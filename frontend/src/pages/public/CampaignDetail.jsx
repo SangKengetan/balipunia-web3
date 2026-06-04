@@ -175,6 +175,9 @@ export default function CampaignDetail() {
       }
       return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
     }
+    if (status === 'REQUEST WITHDRAW') {
+      return { label: 'Pengajuan Tarik Dana', style: 'bg-orange-100 text-orange-800 border-orange-200' };
+    }
     return { label: status, style: 'bg-gray-100 text-gray-800 border-gray-200' };
   };
 
@@ -785,11 +788,22 @@ function CryptoStatCard({ label, tokenAmount, totalCollected, balanceIDR, balanc
 }
 
 function TransactionTable({ headers, rows, renderRow }) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
   if (!rows || rows.length === 0)
     return <div className="py-8 text-center"><p className="text-sm font-medium text-slate-400">Belum ada transaksi tercatat.</p></div>;
 
+  const totalPages = Math.ceil(rows.length / itemsPerPage);
+  const displayedRows = rows.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSeeMore = () => {
+    setItemsPerPage(15);
+    setCurrentPage(1);
+  };
+
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto flex flex-col">
       <table className="w-full text-left">
         <thead className="bg-slate-100 text-slate-500 uppercase text-[10px] font-extrabold tracking-wider">
           <tr>
@@ -800,8 +814,35 @@ function TransactionTable({ headers, rows, renderRow }) {
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">{rows.map(renderRow)}</tbody>
+        <tbody className="divide-y divide-gray-100 bg-white">{displayedRows.map(renderRow)}</tbody>
       </table>
+      {rows.length > 5 && itemsPerPage === 5 && (
+        <div className="flex justify-center p-3 bg-white border-t border-gray-100">
+          <button onClick={handleSeeMore} className="flex flex-col items-center justify-center text-xs font-semibold text-slate-500 hover:text-amber-600 transition-colors w-full py-1">
+            <span>Lihat Lainnya</span>
+            <svg className="w-4 h-4 mt-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+          </button>
+        </div>
+      )}
+      {itemsPerPage === 15 && totalPages > 1 && (
+        <div className="flex justify-between items-center p-4 bg-white border-t border-gray-100">
+          <button 
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${currentPage === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+          >
+            Sebelumnya
+          </button>
+          <span className="text-xs font-semibold text-slate-500">Halaman {currentPage} dari {totalPages}</span>
+          <button 
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-colors ${currentPage === totalPages ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+          >
+            Berikutnya
+          </button>
+        </div>
+      )}
     </div>
   );
 }

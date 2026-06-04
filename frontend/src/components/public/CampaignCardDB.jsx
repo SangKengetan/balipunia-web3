@@ -23,14 +23,17 @@ const getStatusDisplay = (campaign) => {
   if (status === 'WITHDRAWN') {
     return { label: 'Telah Dicairkan', style: 'bg-blue-100 text-blue-800 border-blue-200' };
   }
-  if (status === 'ACTIVE') {
-    if (deadline && new Date(deadline) < new Date()) {
-      return { label: 'Belum Dicairkan', style: 'bg-gray-100 text-gray-800 border-gray-200' };
+    if (status === 'ACTIVE') {
+      if (deadline && new Date(deadline) < new Date()) {
+        return { label: 'Belum Dicairkan', style: 'bg-gray-100 text-gray-800 border-gray-200' };
+      }
+      return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
     }
-    return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
-  }
-  
-  return { label: status || 'Unknown', style: 'bg-gray-100 text-gray-800 border-gray-200' };
+    if (status === 'REQUEST WITHDRAW') {
+      return { label: 'Pengajuan Tarik Dana', style: 'bg-orange-100 text-orange-800 border-orange-200' };
+    }
+    
+    return { label: status || 'Unknown', style: 'bg-gray-100 text-gray-800 border-gray-200' };
 };
 
 export default function CampaignCardDB({ campaign }) {
