@@ -205,7 +205,7 @@ export default function CampaignList() {
                     to={`/admin/pura/withdraw/request/${c.id}`}
                     className="flex w-full items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-xl text-sm font-semibold transition-all shadow-sm"
                   >
-                    <Coins size={18} /> {c.purpose === "PASCA_KEGIATAN" ? "Lapor & Cairkan Dana" : "Rencana Pencairan Dana"}
+                    <Coins size={18} /> {c.fund_mechanism === "PASCA_KEGIATAN" ? "Lapor & Cairkan Dana" : "Rencana Pencairan Dana"}
                   </Link>
                 ) : (
                   <Link

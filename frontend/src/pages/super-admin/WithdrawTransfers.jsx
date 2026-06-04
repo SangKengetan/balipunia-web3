@@ -1,34 +1,24 @@
 import { useEffect, useState } from "react";
-import { showError } from "../../utils/notification";
-import {
-  fetchWithdrawTransfers,
-  completeWithdrawTransfer,
-} from "../../api/superAdmin.api";
+import { useNavigate } from "react-router-dom";
+import { fetchWithdrawTransfers } from "../../api/superAdmin.api";
 import {
   Wallet,
-  Upload,
   CheckCircle2,
   Clock,
   Loader2,
   AlertCircle,
   RefreshCw,
-  FileText,
-  X,
   ArrowRightLeft,
   ExternalLink,
+  ArrowRight,
+  X
 } from "lucide-react";
 
 export default function WithdrawTransfers() {
+  const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Modal state
-  const [modalOpen, setModalOpen] = useState(false);
-  const [selectedId, setSelectedId] = useState(null);
-  const [file, setFile] = useState(null);
-  const [fileName, setFileName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   const loadData = async () => {
     try {
@@ -69,31 +59,6 @@ export default function WithdrawTransfers() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 4,
     });
-  };
-
-  // Open transfer modal
-  const openTransferModal = (id) => {
-    setSelectedId(id);
-    setFile(null);
-    setFileName("");
-    setModalOpen(true);
-  };
-
-  // Submit transfer proof
-  const handleSubmitTransfer = async () => {
-    if (!file) return;
-    try {
-      setSubmitting(true);
-      const formData = new FormData();
-      formData.append("transfer_proof", file);
-      await completeWithdrawTransfer(selectedId, formData);
-      setModalOpen(false);
-      loadData();
-    } catch (e) {
-      showError("Gagal Mengunggah", e.response?.data?.message || "Gagal mengunggah bukti transfer", "Pastikan file yang diunggah valid dan ukurannya tidak terlalu besar.");
-    } finally {
-      setSubmitting(false);
-    }
   };
 
   // Status badge
@@ -307,33 +272,17 @@ export default function WithdrawTransfers() {
 
                       {/* Aksi */}
                       <td className="px-6 py-4 text-center">
-                        {wr.status === "PENDING_TRANSFER" && (
-                          <button
-                            onClick={() => openTransferModal(wr.id)}
-                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 transition-all active:scale-95"
-                          >
-                            <Upload size={14} />
-                            Selesaikan Transfer
-                          </button>
-                        )}
-
-                        {wr.status === "COMPLETED" &&
-                          wr.transfer_proof_cid && (
-                            <a
-                              href={`https://gateway.pinata.cloud/ipfs/${wr.transfer_proof_cid}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-bold border border-emerald-100 hover:bg-emerald-100 transition-all"
-                            >
-                              <ExternalLink size={12} />
-                              Lihat Bukti
-                            </a>
-                          )}
-
-                        {wr.status !== "PENDING_TRANSFER" &&
-                          wr.status !== "COMPLETED" && (
-                            <span className="text-gray-300 text-xs">-</span>
-                          )}
+                        <button
+                          onClick={() => navigate(`/admin/super/withdraws/${wr.id}`)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                            wr.status === "PENDING_TRANSFER" 
+                              ? "bg-amber-500 text-white hover:bg-amber-600 shadow-lg shadow-amber-200"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          }`}
+                        >
+                          {wr.status === "PENDING_TRANSFER" ? "Selesaikan Transfer" : "Lihat Detail"}
+                          <ArrowRight size={14} />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -344,105 +293,7 @@ export default function WithdrawTransfers() {
         )}
       </div>
 
-      {/* Transfer Modal */}
-      {modalOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-            {/* Close button */}
-            <button
-              onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600"
-            >
-              <X size={20} />
-            </button>
 
-            <h2 className="text-xl font-bold text-gray-800 mb-1">
-              Upload Bukti Transfer
-            </h2>
-            <p className="text-sm text-gray-500 mb-6">
-              Unggah struk/bukti transfer bank untuk menyelesaikan proses
-              pencairan dana.
-            </p>
-
-            {/* File Upload Area */}
-            <div
-              className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-                fileName
-                  ? "border-amber-400 bg-amber-50/50"
-                  : "border-gray-300 hover:border-amber-400 hover:bg-gray-50"
-              }`}
-            >
-              <input
-                type="file"
-                accept=".pdf,image/*"
-                onChange={(e) => {
-                  const f = e.target.files[0];
-                  if (f) {
-                    setFile(f);
-                    setFileName(f.name);
-                  }
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-
-              <div className="flex flex-col items-center justify-center gap-2 pointer-events-none">
-                {fileName ? (
-                  <>
-                    <CheckCircle2 className="text-green-500" size={32} />
-                    <span className="text-sm font-bold text-gray-800">
-                      {fileName}
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      Klik untuk mengganti
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <FileText className="text-gray-400" size={32} />
-                    <span className="text-sm text-gray-500">
-                      <span className="font-bold text-amber-600">
-                        Pilih File
-                      </span>{" "}
-                      atau drag and drop
-                    </span>
-                    <span className="text-xs text-gray-400">
-                      PDF, JPG, PNG (Max 10MB)
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center justify-end gap-3 mt-6">
-              <button
-                type="button"
-                onClick={() => setModalOpen(false)}
-                className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleSubmitTransfer}
-                disabled={!file || submitting}
-                className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-95"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    Mengunggah...
-                  </>
-                ) : (
-                  <>
-                    <Upload size={16} />
-                    Konfirmasi Transfer
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,21 +1,46 @@
 const pool = require("../../db/pool");
-const { uploadToIPFS } = require("../ipfsService");
+const { uploadToIPFS, uploadJSONToIPFS } = require("../ipfsService");
 const financialAnchor = require("../../blockchain/financialAnchor.contract");
 
-async function createFinancialReport({ admin, payload, file }) {
-  if (!file) {
-    throw new Error("File laporan keuangan wajib diunggah");
+async function createFinancialReport({ admin, payload, files }) {
+  if (!files || files.length === 0) {
+    throw new Error("File bukti laporan wajib diunggah (minimal 1)");
   }
 
-  // 1️⃣ Upload ke IPFS
-  const cid = await uploadToIPFS(file);
+  // Ensure media_files column exists
+  try {
+    await pool.query(`ALTER TABLE financial_reports ADD COLUMN IF NOT EXISTS media_files TEXT`);
+  } catch (err) {
+    console.error("Failed to add media_files column:", err);
+  }
 
-  // 2️⃣ Anchor CID ke blockchain (wallet sistem)
-  // Tidak perlu di-await hingga selesai ditambang (tx.wait()) agar proses UI cepat.
-  // Sistem akan memprosesnya di latar belakang.
-  const tx = await financialAnchor.anchorReport(cid);
+  // 1️⃣ Upload all files to IPFS
+  const uploadedFiles = [];
+  for (const file of files) {
+    const cid = await uploadToIPFS(file);
+    uploadedFiles.push({
+      file_name: file.originalname,
+      mime_type: file.mimetype,
+      cid,
+    });
+  }
 
-  // 3️⃣ Simpan metadata + bukti on-chain
+  // 2️⃣ Create JSON metadata
+  const metadata = {
+    title: payload.title,
+    total_income: payload.total_income,
+    total_expense: payload.total_expense,
+    timestamp: new Date().toISOString(),
+    files: uploadedFiles,
+  };
+
+  const mainCid = await uploadJSONToIPFS(metadata, "financial_report_metadata.json");
+
+  // 3️⃣ Anchor JSON CID ke blockchain (wallet sistem)
+  const tx = await financialAnchor.anchorReport(mainCid);
+
+  // 4️⃣ Simpan metadata + bukti on-chain
+  const mediaFilesJson = JSON.stringify(uploadedFiles);
   const { rows } = await pool.query(
     `
     INSERT INTO financial_reports (
@@ -25,9 +50,10 @@ async function createFinancialReport({ admin, payload, file }) {
       total_expense,
       ipfs_cid,
       anchor_tx_hash,
-      anchored_at
+      anchored_at,
+      media_files
     ) VALUES (
-      $1,$2,$3,$4,$5,$6,NOW()
+      $1,$2,$3,$4,$5,$6,NOW(),$7
     )
     RETURNING *
     `,
@@ -36,8 +62,9 @@ async function createFinancialReport({ admin, payload, file }) {
       payload.title,
       payload.total_income,
       payload.total_expense,
-      cid,
+      mainCid,
       tx.hash,
+      mediaFilesJson
     ]
   );
 

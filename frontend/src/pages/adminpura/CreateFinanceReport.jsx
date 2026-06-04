@@ -23,7 +23,7 @@ export default function CreateFinanceReport() {
     title: "",
     total_income: "",
     total_expense: "",
-    file: null
+    files: []
   });
 
   const handleInputChange = (e) => {
@@ -32,23 +32,33 @@ export default function CreateFinanceReport() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Validasi sederhana ukuran file (misal max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        error("Ukuran file terlalu besar (Maks. 5MB)");
-        return;
-      }
-      setForm(prev => ({ ...prev, file: file }));
-      setFileName(file.name);
+    const selectedFiles = Array.from(e.target.files);
+    if (selectedFiles.length > 0) {
+      // Validasi sederhana ukuran file (misal max 5MB per file)
+      const validFiles = selectedFiles.filter(file => {
+        if (file.size > 5 * 1024 * 1024) {
+          error(`Ukuran file ${file.name} terlalu besar (Maks. 5MB)`);
+          return false;
+        }
+        return true;
+      });
+
+      setForm(prev => ({ ...prev, files: [...prev.files, ...validFiles] }));
     }
+  };
+
+  const removeFile = (indexToRemove) => {
+    setForm(prev => ({
+      ...prev,
+      files: prev.files.filter((_, index) => index !== indexToRemove)
+    }));
   };
 
   const onSubmit = async (e) => {
     e.preventDefault();
     
-    if (!form.file) {
-      error("File bukti laporan wajib diunggah untuk transparansi");
+    if (form.files.length === 0) {
+      error("File bukti laporan (minimal 1) wajib diunggah untuk transparansi");
       return;
     }
 
@@ -59,7 +69,10 @@ export default function CreateFinanceReport() {
       formData.append("title", form.title);
       formData.append("total_income", form.total_income);
       formData.append("total_expense", form.total_expense);
-      formData.append("file", form.file);
+      
+      form.files.forEach(file => {
+        formData.append("files", file);
+      });
 
       await createReport(formData);
       
@@ -89,10 +102,10 @@ export default function CreateFinanceReport() {
         </button>
         <div>
           <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
-             Buat Laporan Baru
+             Buat Laporan Keuangan Mandiri
           </h1>
           <p className="text-sm text-gray-500">
-            Data akan disimpan permanen menggunakan IPFS & Smart Contract.
+            Catat pemasukan/pengeluaran mandiri, termasuk punia bangunan atau hibah dana. Bukti yang diunggah dapat berupa PDF laporan maupun bukti foto pendukung. Data akan disimpan permanen (Smart Contract).
           </p>
         </div>
       </div>
@@ -188,47 +201,58 @@ export default function CreateFinanceReport() {
             {/* --- Section: Upload File --- */}
             <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Upload Bukti Dokumen (PDF/Gambar) <span className="text-red-500">*</span>
+                    Upload Bukti Dokumen (PDF Laporan / Foto Bukti) <span className="text-red-500">*</span>
                 </label>
+                <p className="text-xs text-gray-500 mb-3">
+                    Anda dapat mengunggah lebih dari 1 file sekaligus. Ini bisa berupa rekap PDF, foto nota bangunan, atau bukti mutasi hibah dana.
+                </p>
                 
                 <div className={`relative border-2 border-dashed rounded-2xl transition-all duration-300 group text-center py-10 px-6 ${
-                    fileName 
+                    form.files.length > 0
                     ? "border-amber-400 bg-amber-50/30" 
                     : "border-gray-300 hover:border-amber-400 hover:bg-gray-50"
                 }`}>
                     <input 
                         type="file" 
+                        multiple
                         accept=".pdf,.jpg,.png,.jpeg"
                         onChange={handleFileChange}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     />
                     
                     <div className="flex flex-col items-center justify-center space-y-3 pointer-events-none">
-                        {fileName ? (
-                            // State: File Selected
-                            <>
-                                <div className="p-4 bg-white rounded-full shadow-sm text-green-500 border border-green-100">
-                                    <CheckCircle2 size={32} />
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-gray-800">{fileName}</p>
-                                    <p className="text-xs text-amber-600 mt-1">Klik untuk mengganti file</p>
-                                </div>
-                            </>
-                        ) : (
-                            // State: Empty
-                            <>
-                                <div className="p-4 bg-gray-50 rounded-full group-hover:bg-white group-hover:scale-110 group-hover:shadow-md transition-all duration-300 text-gray-400 group-hover:text-amber-500">
-                                     <UploadCloud size={32} />
-                                </div>
-                                <div className="text-sm text-gray-600">
-                                    <span className="font-bold text-amber-600 border-b border-amber-600/30">Klik untuk upload</span> atau drag and drop
-                                </div>
-                                <p className="text-xs text-gray-400">PDF, PNG, atau JPG (Maks. 5MB)</p>
-                            </>
-                        )}
+                        <div className="p-4 bg-gray-50 rounded-full group-hover:bg-white group-hover:scale-110 group-hover:shadow-md transition-all duration-300 text-gray-400 group-hover:text-amber-500">
+                             <UploadCloud size={32} />
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <span className="font-bold text-amber-600 border-b border-amber-600/30">Klik untuk tambah file</span> atau drag and drop
+                        </div>
+                        <p className="text-xs text-gray-400">PDF, PNG, atau JPG (Maks. 5MB per file)</p>
                     </div>
                 </div>
+
+                {/* File List */}
+                {form.files.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                        {form.files.map((f, idx) => (
+                            <div key={idx} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
+                                        <CheckCircle2 size={18} />
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-700 truncate">{f.name}</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => removeFile(idx)}
+                                    className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1 rounded hover:bg-red-50 transition-colors z-20"
+                                >
+                                    Hapus
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Footer Actions */}

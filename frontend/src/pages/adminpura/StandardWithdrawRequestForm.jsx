@@ -91,7 +91,7 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
   const cryptoFeeIdr = totalCryptoUsd > 0 ? 10000 : 0; // Flat fee crypto
   const cryptoNetIdr = Math.max(0, cryptoGrossIdr - cryptoFeeIdr);
 
-  const fiatGrossIdr = Number(offchain?.total || 0);
+  const fiatGrossIdr = Number(offchain?.current_balance || 0);
   const fiatTxCount = offchain?.txCount || 0;
   const fiatFeeIdr = fiatTxCount * 4400; // Fee Midtrans 4.400 per transaksi
   const fiatNetIdr = Math.max(0, fiatGrossIdr - fiatFeeIdr);
@@ -239,11 +239,11 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">Saldo USDT</span>
-                    <span className="font-mono font-bold">${formatCrypto(onchain?.balances?.USDT)}</span>
+                    <span className="font-mono font-bold">{formatCrypto(onchain?.balances?.USDT)} USDT</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Saldo USDC</span>
-                    <span className="font-mono font-bold">${formatCrypto(onchain?.balances?.USDC)}</span>
+                    <span className="font-mono font-bold">{formatCrypto(onchain?.balances?.USDC)} USDC</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-100 border-dashed">
                     <span className="text-gray-500">Est. Kotor (Rate {cryptoRateIdr ? formatRupiah(cryptoRateIdr) : 'Menghitung...'})</span>

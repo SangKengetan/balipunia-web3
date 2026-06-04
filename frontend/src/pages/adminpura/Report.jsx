@@ -177,19 +177,57 @@ export default function FinanceReportList() {
                     </td>
 
                     <td className="px-6 py-4 align-middle">
-                      {r.ipfs_cid ? (
-                        <a
-                          href={`https://gateway.pinata.cloud/ipfs/${r.ipfs_cid}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium hover:underline transition-all"
-                        >
-                          <LinkIcon size={14} />
-                          <span>Lihat File</span>
-                        </a>
-                      ) : (
-                        <span className="text-gray-300 text-xs italic">Tanpa lampiran</span>
-                      )}
+                      {(() => {
+                        let parsedFiles = [];
+                        if (r.media_files) {
+                          parsedFiles = typeof r.media_files === 'string' ? JSON.parse(r.media_files) : r.media_files;
+                        }
+
+                        if (parsedFiles.length > 0) {
+                          return (
+                            <div className="flex flex-col gap-1.5">
+                              {parsedFiles.map((m, idx) => (
+                                <a
+                                  key={idx}
+                                  href={`https://gateway.pinata.cloud/ipfs/${m.cid}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 text-xs font-medium hover:underline transition-all truncate max-w-[200px]"
+                                  title={m.file_name}
+                                >
+                                  <LinkIcon size={12} className="shrink-0" />
+                                  <span className="truncate">{m.file_name || `File ${idx + 1}`}</span>
+                                </a>
+                              ))}
+                              {r.ipfs_cid && (
+                                <a
+                                  href={`https://gateway.pinata.cloud/ipfs/${r.ipfs_cid}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 mt-1 text-gray-400 hover:text-gray-600 text-[10px] uppercase tracking-wider font-bold"
+                                  title="Lihat Metadata (Smart Contract Anchor)"
+                                >
+                                  JSON Metadata
+                                </a>
+                              )}
+                            </div>
+                          );
+                        } else if (r.ipfs_cid) {
+                          return (
+                            <a
+                              href={`https://gateway.pinata.cloud/ipfs/${r.ipfs_cid}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium hover:underline transition-all"
+                            >
+                              <LinkIcon size={14} />
+                              <span>Lihat File</span>
+                            </a>
+                          );
+                        } else {
+                          return <span className="text-gray-300 text-xs italic">Tanpa lampiran</span>;
+                        }
+                      })()}
                     </td>
 
                     <td className="px-6 py-4 text-right align-middle">

@@ -94,7 +94,7 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
   const cryptoFeeIdr = totalCryptoUsd > 0 ? 10000 : 0; 
   const cryptoNetIdr = Math.max(0, cryptoGrossIdr - cryptoFeeIdr);
 
-  const fiatGrossIdr = Number(offchain?.total || 0);
+  const fiatGrossIdr = Number(offchain?.current_balance || 0);
   const fiatTxCount = offchain?.txCount || 0;
   const fiatFeeIdr = fiatTxCount * 4400; 
   const fiatNetIdr = Math.max(0, fiatGrossIdr - fiatFeeIdr);
@@ -277,8 +277,16 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
                 <h4 className="text-sm font-bold text-gray-700 mb-3 border-b pb-2">Donasi Kripto (Aset Digital)</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-500">Saldo USDT & USDC</span>
-                    <span className="font-mono font-bold">${formatCrypto(totalCryptoUsd)}</span>
+                    <span className="text-gray-500">Saldo USDT</span>
+                    <span className="font-mono font-bold">{formatCrypto(onchain?.balances?.USDT)} USDT</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-500">Saldo USDC</span>
+                    <span className="font-mono font-bold">{formatCrypto(onchain?.balances?.USDC)} USDC</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-100 border-dashed">
+                    <span className="text-gray-500">Est. Kotor (Rate {cryptoRateIdr ? formatRupiah(cryptoRateIdr) : 'Menghitung...'})</span>
+                    <span className="font-mono">{formatRupiah(cryptoGrossIdr)}</span>
                   </div>
                   <div className="flex justify-between text-red-500">
                     <span>Est. Fee Jaringan</span>

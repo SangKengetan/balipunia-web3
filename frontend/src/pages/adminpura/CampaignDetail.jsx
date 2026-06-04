@@ -120,7 +120,7 @@ export default function CampaignDetail() {
       </div>
 
       {/* 2. Quick Actions */}
-      {campaign.status === "WITHDRAWN" && (
+      {campaign.status === "WITHDRAWN" && (!data?.reports || data.reports.length === 0) && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between shadow-sm">
           <div>
             <h3 className="font-bold text-amber-800">Laporan Kegiatan Diperlukan</h3>

@@ -53,8 +53,8 @@ export default function WithdrawRequestForm() {
     return <div className="p-8 text-center">Kegiatan tidak ditemukan.</div>;
   }
 
-  // Branching based on purpose
-  if (campaign.purpose === "PASCA_KEGIATAN") {
+  // Branching based on fund_mechanism
+  if (campaign.fund_mechanism === "PASCA_KEGIATAN") {
     return (
       <UnifiedWithdrawRequestForm 
         campaignId={campaignId}

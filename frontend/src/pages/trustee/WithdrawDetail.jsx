@@ -23,6 +23,9 @@ export default function TrusteeWithdrawDetail() {
   // UX voting
   const [hasVoted, setHasVoted] = useState(false);
 
+  // Media Viewer Modal
+  const [selectedMedia, setSelectedMedia] = useState(null);
+
   /* ===============================
        FETCH
   =============================== */
@@ -148,6 +151,14 @@ export default function TrusteeWithdrawDetail() {
     );
   }
 
+  let parsedSnapshot = null;
+  if (data && typeof data.amount_snapshot === "string") {
+    try { parsedSnapshot = JSON.parse(data.amount_snapshot); } catch (e) {}
+  } else if (data) {
+    parsedSnapshot = data.amount_snapshot;
+  }
+  const isUnified = !!(parsedSnapshot && parsedSnapshot.unified_lpj);
+
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-12">
       {/* Top Navigation */}
@@ -201,25 +212,29 @@ export default function TrusteeWithdrawDetail() {
                 </div>
 
                 {/* IPFS Document Link */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-500 uppercase mb-2">Dokumen Pendukung</label>
-                  <a
-                    href={`https://gateway.pinata.cloud/ipfs/${data.ipfs_cid}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="group flex items-center p-3 border border-gray-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all"
-                  >
-                    <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-3">
-                      <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900 group-hover:text-amber-700">Bukti Penggunaan Dana</p>
-                      <p className="text-xs text-gray-500">Disimpan di IPFS • Klik untuk melihat</p>
-                    </div>
-                  </a>
-                </div>
+                {!isUnified && data.ipfs_cid && (
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 uppercase mb-2">Dokumen Pendukung</label>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMedia({ 
+                        url: `https://gateway.pinata.cloud/ipfs/${data.ipfs_cid}`, 
+                        isImage: false 
+                      })}
+                      className="w-full text-left group flex items-center p-3 border border-gray-200 rounded-lg hover:border-amber-400 hover:bg-amber-50 transition-all focus:outline-none focus:ring-2 focus:ring-amber-400"
+                    >
+                      <div className="h-10 w-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center mr-3 shrink-0">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 group-hover:text-amber-700">Bukti Penggunaan Dana</p>
+                        <p className="text-xs text-gray-500">Disimpan di IPFS • Klik untuk preview dokumen</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -238,16 +253,8 @@ export default function TrusteeWithdrawDetail() {
             </div>
 
             {/* CARD: UNIFIED LPJ (PASCA-KEGIATAN) */}
-            {(() => {
-              let snapshot = null;
-              if (typeof data.amount_snapshot === "string") {
-                try { snapshot = JSON.parse(data.amount_snapshot); } catch (e) {}
-              } else {
-                snapshot = data.amount_snapshot;
-              }
-
-              if (snapshot && snapshot.unified_lpj) {
-                const lpj = snapshot.unified_lpj;
+            {isUnified && (() => {
+              const lpj = parsedSnapshot.unified_lpj;
                 const formatRp = (val) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(val);
                 return (
                   <div className="bg-white rounded-xl shadow-sm ring-1 ring-gray-200 overflow-hidden">
@@ -287,23 +294,33 @@ export default function TrusteeWithdrawDetail() {
                         <div className="pt-4 border-t border-gray-100">
                           <span className="block font-medium text-gray-500 mb-3">Lampiran Dokumentasi & Nota:</span>
                           <div className="flex flex-wrap gap-3">
-                            {lpj.media_files.map((m, idx) => (
-                              <a key={idx} href={`https://gateway.pinata.cloud/ipfs/${m.cid}`} target="_blank" rel="noreferrer" className="block w-16 h-16 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80">
-                                {m.mime_type?.startsWith("image/") ? (
-                                  <img src={`https://gateway.pinata.cloud/ipfs/${m.cid}`} alt="Lampiran" className="w-full h-full object-cover" />
-                                ) : (
-                                  <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 text-xs">PDF</div>
-                                )}
-                              </a>
-                            ))}
+                            {lpj.media_files.map((m, idx) => {
+                              const url = `https://gateway.pinata.cloud/ipfs/${m.cid}`;
+                              const isImage = m.mime_type?.startsWith("image/");
+                              return (
+                                <button 
+                                  key={idx} 
+                                  onClick={() => setSelectedMedia({ url, isImage })}
+                                  type="button"
+                                  className="block w-20 h-20 rounded-lg overflow-hidden border border-gray-200 hover:opacity-80 hover:ring-2 hover:ring-amber-400 focus:outline-none transition-all"
+                                >
+                                  {isImage ? (
+                                    <img src={url} alt="Lampiran" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className="w-full h-full bg-red-50 flex flex-col items-center justify-center text-red-600 text-xs font-bold">
+                                      <svg className="w-6 h-6 mb-1 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                                      PDF
+                                    </div>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
                 );
-              }
-              return null;
             })()}
           </div>
 
@@ -419,6 +436,59 @@ export default function TrusteeWithdrawDetail() {
 
         </div>
       </div>
+
+      {/* MEDIA VIEWER MODAL */}
+      {selectedMedia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity" onClick={() => setSelectedMedia(null)}>
+          <div 
+            className="relative bg-white rounded-xl overflow-hidden w-full max-w-5xl max-h-[95vh] flex flex-col shadow-2xl animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50">
+              <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+                {selectedMedia.isImage ? (
+                  <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                ) : (
+                  <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                )}
+                {selectedMedia.isImage ? "Preview Foto" : "Preview Dokumen PDF"}
+              </h3>
+              <div className="flex gap-2">
+                <a 
+                  href={selectedMedia.url} 
+                  target="_blank" 
+                  rel="noreferrer"
+                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+                  title="Buka di tab baru"
+                >
+                  Buka Penuh
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+                <button 
+                  onClick={() => setSelectedMedia(null)}
+                  className="p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                  title="Tutup"
+                >
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex-1 overflow-auto p-4 bg-gray-800 flex items-center justify-center min-h-[50vh]">
+              {selectedMedia.isImage ? (
+                <img src={selectedMedia.url} alt="Preview Lengkap" className="max-w-full max-h-[80vh] object-contain rounded shadow-sm bg-transparent" />
+              ) : (
+                <iframe src={selectedMedia.url} title="PDF Preview" className="w-full h-[80vh] border-0 rounded shadow-sm bg-white" />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

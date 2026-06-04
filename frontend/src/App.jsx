@@ -13,6 +13,7 @@ import FAQManagement from "./pages/super-admin/FAQManagement";
 import Reports from "./pages/super-admin/Report";
 import OffchainWithdrawals from "./pages/super-admin/OffchainWithdrawals";
 import WithdrawTransfers from "./pages/super-admin/WithdrawTransfers";
+import SuperAdminWithdrawDetail from "./pages/super-admin/SuperAdminWithdrawDetail";
 import CampaignList from "./pages/adminpura/CampaignList";
 import CampaignCreate from "./pages/adminpura/CampaignCreate";
 import CampaignDetail from "./pages/adminpura/CampaignDetail";
@@ -113,6 +114,7 @@ function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="offchain" element={<OffchainWithdrawals />} />
           <Route path="withdraws" element={<WithdrawTransfers />} />
+          <Route path="withdraws/:id" element={<SuperAdminWithdrawDetail />} />
         </Route>
 
         

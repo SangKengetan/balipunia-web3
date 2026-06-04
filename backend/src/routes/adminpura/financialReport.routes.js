@@ -11,7 +11,7 @@ const {
 router.post(
   "/",
   authenticateAdmin,
-  upload.single("file"),
+  upload.array("files", 10),
   createReport
 );
 

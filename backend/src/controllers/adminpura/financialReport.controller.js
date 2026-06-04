@@ -4,12 +4,12 @@ const service = require("../../services/adminpura/financialReport.services");
 async function createReport(req, res, next) {
   try {
     const admin = req.admin;
-    const file = req.file;
+    const files = req.files;
     const payload = req.body;
 
-    if (!file) {
+    if (!files || files.length === 0) {
       return res.status(400).json({
-        message: "File laporan keuangan wajib diunggah",
+        message: "File bukti laporan wajib diunggah (minimal 1)",
       });
     }
 
@@ -22,7 +22,7 @@ async function createReport(req, res, next) {
     const report = await service.createFinancialReport({
       admin,
       payload,
-      file,
+      files,
     });
 
     res.status(201).json({
