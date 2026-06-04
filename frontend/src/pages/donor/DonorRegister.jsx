@@ -109,7 +109,7 @@ export default function DonorRegister() {
         {/* Logo/Header */}
         <div className="text-center">
           <Link to="/" className="text-amber-500 font-extrabold text-2xl tracking-wider">
-            BALIPUNIA
+            BaliPunia
           </Link>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900 tracking-tight">
             Daftar Akun Donatur

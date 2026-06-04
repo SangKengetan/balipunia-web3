@@ -6,7 +6,10 @@ export default function PuraCard({ pura }) {
 
   return (
     <div
-      onClick={() => navigate(`/pura/${pura.id}`)}
+      onClick={() => {
+        const slug = pura.nama_pura.toLowerCase().replace(/ /g, '-');
+        navigate(`/pura/${slug}`);
+      }}
       className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer flex flex-col h-full"
     >
       {/* 1. IMAGE SECTION */}

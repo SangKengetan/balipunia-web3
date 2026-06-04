@@ -18,7 +18,7 @@ export default function SummaryCards({ admin = {}, report = {} }) {
       value: admin.ADMIN_PURA ?? 0,
       icon: <TempleIcon />, // Custom icon representation
       color: "gold", // Brand Color BaliPunia
-      description: "Pura/Yayasan terdaftar"
+      description: "Pura terdaftar"
     },
     {
       title: "Trustee (Trustless)",

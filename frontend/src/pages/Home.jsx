@@ -32,7 +32,7 @@ export default function Home() {
       const result = await Swal.fire({
         icon: 'info',
         title: 'Hubungkan Dompet Digital',
-        text: 'Untuk mendaftarkan Pura atau Yayasan, Anda diwajibkan untuk menghubungkan Dompet Digital (MetaMask) sebagai bukti identitas pengelola.',
+        text: 'Untuk mendaftarkan Pura, Anda diwajibkan untuk menghubungkan Dompet Digital (MetaMask) sebagai bukti identitas pengelola.',
         showCancelButton: true,
         confirmButtonColor: '#FBBF24',
         cancelButtonColor: '#9ca3af',
@@ -120,7 +120,7 @@ export default function Home() {
                   w-fit
                 "
               >
-                Daftarkan Pura / Yayasan Anda
+                Daftarkan Pura Anda
               </button>
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Home() {
       <section className="w-full bg-white py-20">
         <div className="max-w-7xl mx-auto px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Mengapa Berdonasi Melalui Bali Punia?</h2>
+            <h2 className="text-3xl font-bold mb-4">Mengapa Berdonasi Melalui BaliPunia?</h2>
             <p className="text-gray-600 max-w-2xl mx-auto">
               Platform transparansi donasi pura di Bali yang memanfaatkan teknologi modern 
               untuk memastikan dana punia Anda tercatat secara aman dan dapat dipertanggungjawabkan.
@@ -178,7 +178,7 @@ export default function Home() {
               <div className="mb-8">
                 <h3 className="text-3xl font-bold text-slate-800 mb-3">Memahami Dasar Kripto & Web3</h3>
                 <p className="text-slate-600">
-                  Bali Punia adalah jembatan antara tradisi dan teknologi modern. Berikut adalah hal dasar yang perlu Anda ketahui.
+                  BaliPunia adalah jembatan antara tradisi dan teknologi modern. Berikut adalah hal dasar yang perlu Anda ketahui.
                 </p>
               </div>
               
@@ -218,7 +218,7 @@ export default function Home() {
               
               <div className="mt-6">
                 <a href="/faq" className="inline-flex items-center gap-2 text-yellow-600 font-bold hover:text-yellow-700 transition-colors">
-                  Baca Pertanyaan Seputar Bali Punia Lainnya di FAQ
+                  Baca Pertanyaan Seputar BaliPunia Lainnya di FAQ
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </a>
               </div>

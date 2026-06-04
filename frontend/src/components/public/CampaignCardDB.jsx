@@ -17,21 +17,20 @@ const formatDate = (dateString) => {
 const getStatusDisplay = (campaign) => {
   const { status, deadline } = campaign;
   
-  // Explicit statuses
-  if (status === "WITHDRAWN") return { label: "Sudah Dicairkan", style: "bg-orange-100 text-orange-800 border-orange-200" };
-  if (status === "REPORTED") return { label: "Sudah Dilaporkan", style: "bg-cyan-100 text-cyan-800 border-cyan-200" };
-  if (status === "CANCELLED") return { label: "Dibatalkan", style: "bg-red-100 text-red-800 border-red-200" };
-  if (status === "COMPLETED") return { label: "Telah Selesai", style: "bg-blue-100 text-blue-800 border-blue-200" };
-
-  // Determine ACTIVE vs COMPLETED based on deadline
-  const now = new Date();
-  const isExpired = deadline && now > new Date(deadline);
-  
-  if (isExpired) {
-    return { label: "Telah Selesai", style: "bg-blue-100 text-blue-800 border-blue-200" };
+  if (status === 'REPORTED') {
+    return { label: 'Telah Dilaporkan', style: 'bg-amber-100 text-amber-800 border-amber-200' };
+  }
+  if (status === 'WITHDRAWN') {
+    return { label: 'Telah Dicairkan', style: 'bg-blue-100 text-blue-800 border-blue-200' };
+  }
+  if (status === 'ACTIVE') {
+    if (deadline && new Date(deadline) < new Date()) {
+      return { label: 'Belum Dicairkan', style: 'bg-gray-100 text-gray-800 border-gray-200' };
+    }
+    return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
   }
   
-  return { label: "Sedang Berjalan", style: "bg-green-100 text-green-800 border-green-200" };
+  return { label: status || 'Unknown', style: 'bg-gray-100 text-gray-800 border-gray-200' };
 };
 
 export default function CampaignCardDB({ campaign }) {

@@ -35,7 +35,7 @@ async function getPuraDetail(puraId) {
       saldo_pending_offchain,
       profile_picture
     FROM admin_pura
-    WHERE id = $1
+    WHERE id::text = $1 OR REPLACE(LOWER(nama_pura), ' ', '-') = LOWER($1)
   `;
   const puraResult = await pool.query(puraQuery, [puraId]);
   const pura = puraResult.rows[0];
@@ -43,6 +43,9 @@ async function getPuraDetail(puraId) {
   if (!pura) {
     throw new Error("PURA_NOT_FOUND");
   }
+
+  // Use the actual integer ID for subsequent queries
+  const actualPuraId = pura.id;
 
   /* ========================= */
   /* 2. CAMPAIGN DB (HYBRID)   */
@@ -65,7 +68,7 @@ async function getPuraDetail(puraId) {
     WHERE admin_pura_id = $1
       AND campaign_type IN ('HYBRID', 'MIDTRANS_ONLY')
   `;
-  const dbCampaigns = await pool.query(dbCampaignQuery, [puraId]);
+  const dbCampaigns = await pool.query(dbCampaignQuery, [actualPuraId]);
 
   /* ========================= */
   /* 3. CAMPAIGN SC-ONLY (DB)  */
@@ -88,7 +91,7 @@ async function getPuraDetail(puraId) {
     WHERE admin_pura_id = $1
       AND campaign_type = 'CRYPTO_ONLY'
   `;
-  const scCampaignsDb = await pool.query(scCampaignQuery, [puraId]);
+  const scCampaignsDb = await pool.query(scCampaignQuery, [actualPuraId]);
 
   /* ========================= */
   /* 4. FORMAT ID ONCHAIN      */
@@ -143,7 +146,7 @@ async function getPuraDetail(puraId) {
     WHERE c.admin_pura_id = $1
       AND t.system_status IN ('PAID_LOCKED','APPROVED','WITHDRAWN')
     `,
-    [puraId]
+    [actualPuraId]
   );
   const totalOffchain = offchainRes.rows[0].total_offchain;
 
@@ -155,7 +158,7 @@ async function getPuraDetail(puraId) {
     WHERE admin_pura_id = $1
       AND status IN ('EXECUTED', 'COMPLETED')
     `,
-    [puraId]
+    [actualPuraId]
   );
   const totalWithdrawnOffchain = withdrawnOffchainRes.rows[0].total_withdrawn_offchain;
 
@@ -167,7 +170,7 @@ async function getPuraDetail(puraId) {
     WHERE admin_pura_id = $1
       AND status NOT IN ('REJECTED', 'EXECUTED', 'COMPLETED')
     `,
-    [puraId]
+    [actualPuraId]
   );
   const totalPendingTransferOffchain = pendingTransferRes.rows[0].total_pending_transfer;
 
@@ -185,7 +188,7 @@ async function getPuraDetail(puraId) {
     WHERE admin_pura_id = $1
       AND id_campaign_onchain IS NOT NULL
     `,
-    [puraId]
+    [actualPuraId]
   );
 
   let totalOnchainUSDT = 0n;

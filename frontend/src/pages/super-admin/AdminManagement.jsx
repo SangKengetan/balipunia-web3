@@ -123,7 +123,7 @@ export default function AdminManagement() {
                 onChange={(e) => setRole(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm focus:border-yellow-400 focus:bg-white focus:ring-4 focus:ring-yellow-400/20 transition-all appearance-none"
               >
-                <option value="ADMIN_PURA">Admin Pura (Yayasan)</option>
+                <option value="ADMIN_PURA">Admin Pura</option>
                 <option value="TRUSTEE">Trustee (Validator)</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
               </select>

@@ -245,7 +245,7 @@ export default function Profile() {
                 <div className="p-6 space-y-5">
                     {/* Nama Pura */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pura / Yayasan</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Nama Pura</label>
                         <div className="relative">
                             <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
                                 <Building2 size={16} />

@@ -249,7 +249,7 @@ export default function DonorDashboard() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              Donasi Rupiah (Off-chain)
+              Donasi Rupiah
             </button>
             <button
               onClick={() => setActiveTab("onchain")}
@@ -259,7 +259,7 @@ export default function DonorDashboard() {
                   : "border-transparent text-gray-400 hover:text-gray-600"
               }`}
             >
-              Donasi Kripto (Aset Digital)
+              Donasi Kripto
             </button>
           </div>
 
@@ -363,14 +363,14 @@ export default function DonorDashboard() {
               donorWallets.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <p className="text-sm leading-relaxed">
-                    Harap kaitkan wallet crypto Anda terlebih dahulu di atas untuk memindai riwayat donasi on-chain.
+                    Harap kaitkan wallet Metamask Anda terlebih dahulu di atas untuk memindai riwayat punia kripto.
                   </p>
                 </div>
               ) : donations.onchain.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
-                  <p className="text-sm italic">Belum ada riwayat donasi crypto yang terdeteksi pada wallet Anda.</p>
+                  <p className="text-sm italic">Belum ada riwayat punia kripto yang terdeteksi pada wallet Anda.</p>
                   <Link to="/pura" className="mt-4 inline-block text-xs font-bold text-amber-600 hover:underline">
-                    Mulai Berdonasi →
+                    Mulai Mapunia →
                   </Link>
                 </div>
               ) : (

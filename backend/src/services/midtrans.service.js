@@ -14,8 +14,6 @@ const snap = new midtransClient.Snap({
 
 // CREATE BANK TRANSFER + METADATA IDENTITAS
 async function createBankTransfer(orderId, amount, bank, donor = {}) {
-  const expiryTimeStr = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' +0000'; // Midtrans accepts this format
-  
   return await core.charge({
     payment_type: "bank_transfer",
     transaction_details: {

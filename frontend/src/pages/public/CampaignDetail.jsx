@@ -161,6 +161,25 @@ export default function CampaignDetail() {
 
   const isEnded = campaign.status !== 'ACTIVE' || (campaign.deadline && new Date(campaign.deadline) < new Date());
 
+  const getStatusBadge = () => {
+    const { status, deadline } = campaign;
+    if (status === 'REPORTED') {
+      return { label: 'Telah Dilaporkan', style: 'bg-amber-100 text-amber-800 border-amber-200' };
+    }
+    if (status === 'WITHDRAWN') {
+      return { label: 'Telah Dicairkan', style: 'bg-blue-100 text-blue-800 border-blue-200' };
+    }
+    if (status === 'ACTIVE') {
+      if (deadline && new Date(deadline) < new Date()) {
+        return { label: 'Belum Dicairkan', style: 'bg-gray-100 text-gray-800 border-gray-200' };
+      }
+      return { label: 'Sedang Berjalan', style: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    }
+    return { label: status, style: 'bg-gray-100 text-gray-800 border-gray-200' };
+  };
+
+  const statusBadge = getStatusBadge();
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] pb-24 font-sans text-slate-800">
       <Navbar address={address} onConnect={connectWallet} />
@@ -182,8 +201,8 @@ export default function CampaignDetail() {
                 {campaign.title}
               </h1>
               <div className="flex flex-wrap items-center gap-4 text-sm font-medium">
-                <span className={`px-4 py-1.5 rounded-full border ${campaign.status === 'ACTIVE' ? 'bg-[#FBBF24]/10 text-yellow-700 border-[#FBBF24]/30' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-                  {campaign.status}
+                <span className={`px-4 py-1.5 rounded-full border ${statusBadge.style}`}>
+                  {statusBadge.label}
                 </span>
                 <span className="flex items-center gap-2 text-slate-500 bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100">
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -271,7 +290,7 @@ export default function CampaignDetail() {
                   </div>
                   <div>
                     <h2 className="text-2xl font-bold text-slate-900">Transparansi Kripto</h2>
-                    <p className="text-sm text-slate-500">Tercatat permanen di Blockchain</p>
+                    <p className="text-sm text-slate-500">Tercatat permanen secara publik</p>
                     {tokenPrices.USDT > 0 && (
                       <p className="text-xs font-bold text-slate-400 mt-2 bg-slate-50 inline-block px-3 py-1 rounded-full border border-slate-100">
                         Harga Live: 1 USDT = {formatRupiah(tokenPrices.USDT)} | 1 USDC = {formatRupiah(tokenPrices.USDC)}
@@ -310,7 +329,7 @@ export default function CampaignDetail() {
                   return (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
                       <CryptoStatCard
-                        label="USDT (Tether)"
+                        label="USDT"
                         tokenAmount={`${totalUSDTNum.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDT`}
                         totalCollected={formatRupiah(totalUSDT_IDR)}
                         balanceIDR={formatRupiah(balUSDT_IDR)}
@@ -320,7 +339,7 @@ export default function CampaignDetail() {
                         priceLoaded={tokenPrices.USDT > 0}
                       />
                       <CryptoStatCard
-                        label="USDC (USD Coin)"
+                        label="USDC"
                         tokenAmount={`${totalUSDCNum.toLocaleString('en-US', { maximumFractionDigits: 2 })} USDC`}
                         totalCollected={formatRupiah(totalUSDC_IDR)}
                         balanceIDR={formatRupiah(balUSDC_IDR)}
@@ -333,7 +352,7 @@ export default function CampaignDetail() {
                   );
                 })()}
 
-                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Riwayat Transaksi Kripto</h3>
+                <h3 className="text-sm font-bold text-slate-800 mb-4 uppercase tracking-wider">Riwayat Transaksi Digital</h3>
                 <div className="overflow-hidden rounded-2xl border border-gray-100 bg-slate-50/50">
                   <TransactionTable
                     headers={["Donatur", "Token", "Jumlah (IDR)", "Waktu"]}
@@ -454,8 +473,8 @@ export default function CampaignDetail() {
                             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                           </div>
                           <div>
-                            <span className={`block font-bold text-lg ${showOnchainDonate ? 'text-white' : 'text-slate-900'}`}>Kripto (Web3)</span>
-                            <span className={`text-sm font-medium ${showOnchainDonate ? 'text-slate-300' : 'text-slate-500'}`}>Transparan & tercatat di Blockchain</span>
+                            <span className={`block font-bold text-lg ${showOnchainDonate ? 'text-white' : 'text-slate-900'}`}>Kripto</span>
+                          <span className={`text-sm font-medium ${showOnchainDonate ? 'text-slate-300' : 'text-slate-500'}`}>Transparan & tercatat permanen</span>
                           </div>
                         </button>
                       )}
@@ -521,21 +540,11 @@ export default function CampaignDetail() {
                           <div>
                             <h3 className="font-bold text-slate-900 text-lg">{r.campaign_title}</h3>
                             <span className="text-sm text-slate-500">
-                              Diterbitkan: {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                              Diunggah: {new Date(r.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </span>
                           </div>
                         </div>
-                        {r.metadata_cid && (
-                          <a
-                            href={r.metadata_url || `${gateway}/ipfs/${r.metadata_cid}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 text-xs px-4 py-2 bg-[#FBBF24]/10 text-yellow-800 rounded-full font-semibold hover:bg-[#FBBF24]/20 transition-colors border border-[#FBBF24]/30 flex-shrink-0"
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
-                            Terverifikasi di IPFS
-                          </a>
-                        )}
+                        {/* IPFS Badge Removed */}
                       </div>
 
                       {/* Layout 2 kolom: kiri info, kanan preview */}
@@ -874,7 +883,7 @@ function WithdrawalHistory({ withdrawals }) {
                   <ul className="space-y-2 text-slate-700">
                     {snapshot?.fiat?.amount_idr && Number(snapshot.fiat.amount_idr) > 0 && (
                       <li className="flex justify-between items-center bg-white px-4 py-3 rounded-xl border border-gray-100 shadow-sm">
-                        <span className="font-semibold text-slate-500">Dana Tunai (Fiat)</span>
+                        <span className="font-semibold text-slate-500">Dana Tunai</span>
                         <span className="font-extrabold">{formatRupiah(snapshot.fiat.amount_idr)}</span>
                       </li>
                     )}

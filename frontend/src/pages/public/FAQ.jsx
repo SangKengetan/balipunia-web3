@@ -48,7 +48,7 @@ export default function FAQ() {
             Pusat Bantuan & <span className="text-(--punia-yellow)">FAQ</span>
           </h1>
           <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-            Temukan jawaban atas pertanyaan umum terkait penggunaan Bali Punia, mulai dari cara berdonasi hingga pengelolaan dana Pura.
+            Temukan jawaban atas pertanyaan umum terkait penggunaan BaliPunia, mulai dari cara berdonasi hingga pengelolaan dana Pura.
           </p>
         </div>
       </div>

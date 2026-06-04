@@ -59,13 +59,20 @@ async function createBankPayment(req, res) {
 
     const va = chargeResponse.va_numbers?.[0] || {};
     
+    // Fix timezone: Midtrans returns expiry_time in WIB (GMT+7) without timezone offset (e.g., "YYYY-MM-DD HH:mm:ss").
+    // We append +07:00 so the frontend can correctly parse it regardless of user's local timezone.
+    let expiryStr = chargeResponse.expiry_time;
+    if (expiryStr && !expiryStr.includes('+') && !expiryStr.includes('Z')) {
+      expiryStr = expiryStr.replace(" ", "T") + "+07:00";
+    }
+    
     // Simpan VA Number ke raw_response agar bisa diambil di dashboard sebelum webhook masuk
     await pool.query(
       `UPDATE offchain_transactions SET raw_response = $1 WHERE order_id = $2`,
       [
         JSON.stringify({ 
           va_numbers: chargeResponse.va_numbers,
-          expiry_time: chargeResponse.expiry_time || new Date(Date.now() + 3600000).toISOString()
+          expiry_time: expiryStr || new Date(Date.now() + 3600000).toISOString()
         }),
         orderId
       ]
@@ -76,7 +83,7 @@ async function createBankPayment(req, res) {
       bank: va.bank || bank,
       va_number: va.va_number || null,
       amount,
-      expires_at: chargeResponse.expiry_time
+      expires_at: expiryStr
     });
 
   } catch (err) {

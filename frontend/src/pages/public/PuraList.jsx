@@ -64,7 +64,7 @@ export default function PuraList() {
         {/* Hero Content */}
         <div className="relative z-10 w-full max-w-4xl px-4 text-center pt-20">
           <h1 className="text-3xl md:text-5xl font-bold text-white tracking-tight mb-4 drop-shadow-lg">
-            Daftar Pura Terdaftar
+            Daftar Pura
           </h1>
           <p className="text-gray-200 text-lg md:text-xl mb-10 max-w-2xl mx-auto drop-shadow-md">
             Temukan pura, salurkan punia dengan transparansi, dan jaga warisan budaya tanpa mengubah makna.
@@ -84,7 +84,7 @@ export default function PuraList() {
             </div>
             <input
               type="text"
-              placeholder="Cari nama pura atau yayasan..."
+              placeholder="Cari nama pura..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="block w-full pl-14 pr-6 py-5 rounded-full text-gray-900 placeholder-gray-500 bg-white shadow-2xl focus:outline-none focus:ring-4 focus:ring-yellow-500/30 text-base md:text-lg border-0"

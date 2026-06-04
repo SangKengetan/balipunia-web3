@@ -91,7 +91,7 @@ export default function Dashboard() {
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 text-gray-500 font-semibold uppercase tracking-wider text-xs">
                 <tr>
-                  <th className="px-6 py-4">Nama Pura / Yayasan</th>
+                  <th className="px-6 py-4">Nama Pura</th>
                   <th className="px-6 py-4 text-center">Status</th>
                   <th className="px-6 py-4">Wallet Address</th>
                   <th className="px-6 py-4 text-right">Tanggal</th>

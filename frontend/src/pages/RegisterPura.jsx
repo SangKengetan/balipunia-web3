@@ -80,8 +80,8 @@ export default function RegisterPura() {
             Pengajuan Admin Pura
           </h2>
           <p className="mt-2 text-sm text-slate-600 leading-relaxed">
-            Silakan lengkapi data berikut untuk mengajukan pengelolaan pura atau
-            yayasan pada platform BaliPunia. Setiap pengajuan akan diverifikasi
+            Silakan lengkapi data berikut untuk mengajukan pengelolaan pura pada
+            platform BaliPunia. Setiap pengajuan akan diverifikasi
             oleh Super Admin.
           </p>
 
@@ -107,7 +107,7 @@ export default function RegisterPura() {
             {/* Nama Pura */}
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Nama Pura / Yayasan
+                Nama Pura
               </label>
               <input
                 name="nama_pura"

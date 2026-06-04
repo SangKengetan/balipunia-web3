@@ -4,6 +4,10 @@ const pool = require('../../db/pool');
  * List laporan keuangan per pura (public)
  */
 async function getFinancialReportsByPura(adminPuraId) {
+  const puraRes = await pool.query(`SELECT id FROM admin_pura WHERE id::text = $1 OR REPLACE(LOWER(nama_pura), ' ', '-') = LOWER($1)`, [adminPuraId]);
+  if (!puraRes.rows.length) return [];
+  const actualPuraId = puraRes.rows[0].id;
+
   const { rows } = await pool.query(
     `
     SELECT
@@ -20,7 +24,7 @@ async function getFinancialReportsByPura(adminPuraId) {
     WHERE admin_pura_id = $1
     ORDER BY created_at DESC
     `,
-    [adminPuraId]
+    [actualPuraId]
   );
 
   return rows;

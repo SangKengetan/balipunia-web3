@@ -358,7 +358,7 @@ export default function PuraDetail() {
                 {/* === VIEW 3: LEADERBOARD === */}
                 {activeTab === 'leaderboard' && (
                     <div className="animate-fadeIn">
-                        <Leaderboard level="pura" puraId={id} />
+                        <Leaderboard level="pura" puraId={pura.id} />
                     </div>
                 )}
             </div>

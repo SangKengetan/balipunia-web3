@@ -41,7 +41,7 @@ async function getCampaignTimeline(campaignId) {
   if (wdRows.length) {
     timeline.push({
       type: 'REQUEST_WD',
-      title: 'Sebagian/Seluruh dana telah dicairkan ke pengelola',
+      title: 'Dana telah dicairkan ke pengelola',
       timestamp: wdRows[0].created_at,
     });
   }
