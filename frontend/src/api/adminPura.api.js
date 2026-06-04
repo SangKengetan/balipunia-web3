@@ -15,9 +15,7 @@ export const getMyCampaigns = () =>
   api.get("/adminpura/campaigns");
 
 export const syncCampaign = (formData) =>
-  api.post("/adminpura/campaigns/sync", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  api.post("/adminpura/campaigns/sync", formData);
 export const getCampaignDetailFull = (id) =>
   api.get(`/adminpura/campaigns/${id}/detail-full`);
 
