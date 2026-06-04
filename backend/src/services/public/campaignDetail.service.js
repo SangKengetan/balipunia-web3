@@ -52,7 +52,27 @@ async function getHybridCampaignDetail(campaignId) {
       const balances = await getOnchainBalances(onchainCampaignId);
 
       // ✅ AMAN: storage-based, bukan event-based
-      const transactions = await getOnchainDonations(onchainCampaignId);
+      const transactionsRaw = await getOnchainDonations(onchainCampaignId);
+
+      let transactions = [];
+      if (transactionsRaw.length > 0) {
+        const uniqueWallets = [...new Set(transactionsRaw.map((d) => d.donor.toLowerCase()))];
+        const { rows: donorRows } = await db.query(
+          `SELECT d.name, LOWER(dw.wallet_address) AS wallet_address FROM donor_wallets dw JOIN donors d ON d.id = dw.donor_id WHERE LOWER(dw.wallet_address) = ANY($1)`,
+          [uniqueWallets]
+        );
+        
+        const walletToNameMap = {};
+        donorRows.forEach((row) => {
+          walletToNameMap[row.wallet_address] = row.name;
+        });
+
+        transactions = transactionsRaw.map((d) => ({
+          ...d,
+          donor: walletToNameMap[d.donor.toLowerCase()] || d.donor,
+          original_wallet: d.donor
+        }));
+      }
 
       onchain = {
         balances,
@@ -223,7 +243,27 @@ async function getScCampaignDetail(campaignId) {
     const balances = await getOnchainBalances(onchainCampaignId);
 
     // riwayat donasi (storage-based, AMAN)
-    const transactions = await getOnchainDonations(onchainCampaignId);
+    const transactionsRaw = await getOnchainDonations(onchainCampaignId);
+
+    let transactions = [];
+    if (transactionsRaw.length > 0) {
+      const uniqueWallets = [...new Set(transactionsRaw.map((d) => d.donor.toLowerCase()))];
+      const { rows: donorRows } = await db.query(
+        `SELECT d.name, LOWER(dw.wallet_address) AS wallet_address FROM donor_wallets dw JOIN donors d ON d.id = dw.donor_id WHERE LOWER(dw.wallet_address) = ANY($1)`,
+        [uniqueWallets]
+      );
+      
+      const walletToNameMap = {};
+      donorRows.forEach((row) => {
+        walletToNameMap[row.wallet_address] = row.name;
+      });
+
+      transactions = transactionsRaw.map((d) => ({
+        ...d,
+        donor: walletToNameMap[d.donor.toLowerCase()] || d.donor,
+        original_wallet: d.donor
+      }));
+    }
 
     onchain = {
       balances,

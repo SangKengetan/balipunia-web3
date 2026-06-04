@@ -97,7 +97,18 @@ async function completeTransfer({
       [transferProofCid, adminId, withdrawRequestId]
     );
 
-    const newCampaignStatus = wr.deadline ? 'WITHDRAWN' : 'ACTIVE';
+    // 4. Periksa apakah withdraw bertipe UNIFIED (ada unified_lpj di amount_snapshot)
+    let snapshot = {};
+    try {
+      snapshot = typeof wr.amount_snapshot === 'string' ? JSON.parse(wr.amount_snapshot) : wr.amount_snapshot;
+    } catch (e) {}
+
+    // Tentukan status akhir campaign
+    let newCampaignStatus = wr.deadline ? 'WITHDRAWN' : 'ACTIVE';
+    if (snapshot.unified_lpj && newCampaignStatus === 'WITHDRAWN') {
+      newCampaignStatus = 'REPORTED';
+    }
+
     await client.query(
       `
       UPDATE campaigns
@@ -107,12 +118,6 @@ async function completeTransfer({
       `,
       [newCampaignStatus, wr.campaign_id]
     );
-
-    // 4. Jika withdraw bertipe UNIFIED (ada unified_lpj di amount_snapshot), buat laporan otomatis
-    let snapshot = {};
-    try {
-      snapshot = typeof wr.amount_snapshot === 'string' ? JSON.parse(wr.amount_snapshot) : wr.amount_snapshot;
-    } catch (e) {}
 
     if (snapshot.unified_lpj) {
       const lpj = snapshot.unified_lpj;

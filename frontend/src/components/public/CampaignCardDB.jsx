@@ -14,20 +14,31 @@ const formatDate = (dateString) => {
   }) + " WITA";
 };
 
-const getStatusDisplay = (status) => {
-  switch (status) {
-    case "ACTIVE": return { label: "Sedang Berjalan", style: "bg-green-100 text-green-800 border-green-200" };
-    case "COMPLETED": return { label: "Telah Selesai", style: "bg-blue-100 text-blue-800 border-blue-200" };
-    case "CANCELLED": return { label: "Dibatalkan", style: "bg-red-100 text-red-800 border-red-200" };
-    default: return { label: status, style: "bg-gray-100 text-gray-800 border-gray-200" };
+const getStatusDisplay = (campaign) => {
+  const { status, deadline } = campaign;
+  
+  // Explicit statuses
+  if (status === "WITHDRAWN") return { label: "Sudah Dicairkan", style: "bg-orange-100 text-orange-800 border-orange-200" };
+  if (status === "REPORTED") return { label: "Sudah Dilaporkan", style: "bg-cyan-100 text-cyan-800 border-cyan-200" };
+  if (status === "CANCELLED") return { label: "Dibatalkan", style: "bg-red-100 text-red-800 border-red-200" };
+  if (status === "COMPLETED") return { label: "Telah Selesai", style: "bg-blue-100 text-blue-800 border-blue-200" };
+
+  // Determine ACTIVE vs COMPLETED based on deadline
+  const now = new Date();
+  const isExpired = deadline && now > new Date(deadline);
+  
+  if (isExpired) {
+    return { label: "Telah Selesai", style: "bg-blue-100 text-blue-800 border-blue-200" };
   }
+  
+  return { label: "Sedang Berjalan", style: "bg-green-100 text-green-800 border-green-200" };
 };
 
 export default function CampaignCardDB({ campaign }) {
   const navigate = useNavigate();
 
   const { id, id_campaign_onchain, title, purpose, deadline, status } = campaign;
-  const statusInfo = getStatusDisplay(status);
+  const statusInfo = getStatusDisplay(campaign);
 
   // Jika campaign SC-only, id_campaign_onchain yang ada. Kita navigasi ke id database kalau ada, atau id onchain.
   // Tapi route /campaign/:id biasanya mengharapkan id database (UUID).
@@ -70,12 +81,12 @@ export default function CampaignCardDB({ campaign }) {
 
       <div className="flex justify-between items-start mb-4 px-2">
          <div className="flex flex-col gap-2">
-           <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md border ${statusInfo.style} self-start`}>
+           <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-md border ${statusInfo.style} self-start`}>
              {statusInfo.label}
            </span>
            {purpose && (
-             <span className="px-2.5 py-1 text-[10px] font-bold rounded-md border bg-purple-50 text-purple-700 border-purple-200 self-start uppercase tracking-wider">
-               {purpose.replace("_", " ")}
+             <span className="px-2.5 py-0.5 text-xs font-semibold rounded-md border bg-amber-50 text-amber-700 border-amber-200 self-start capitalize">
+               {purpose.toLowerCase().replace(/_/g, " ")}
              </span>
            )}
          </div>

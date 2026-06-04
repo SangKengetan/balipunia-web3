@@ -3,11 +3,6 @@ import { useNavigate } from "react-router-dom";
 export default function PuraCard({ pura }) {
   const navigate = useNavigate();
 
-  // Helper untuk format address agar rapi
-  const formatWallet = (address) => {
-    if (!address) return "No Wallet";
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
 
   return (
     <div
@@ -64,17 +59,11 @@ export default function PuraCard({ pura }) {
         {/* Divider Halus */}
         <div className="border-t border-gray-100 my-auto"></div>
 
-        {/* Footer: Wallet & Arrow */}
+        {/* Footer: Lihat Detail & Arrow */}
         <div className="flex items-center justify-between pt-4 mt-2">
-          {/* Wallet Badge */}
-          <div className="flex items-center bg-gray-50 border border-gray-200 rounded-lg px-2 py-1">
-             <svg className="w-3 h-3 text-gray-400 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-             </svg>
-             <span className="text-xs font-mono text-gray-600">
-               {formatWallet(pura.wallet_address)}
-             </span>
-          </div>
+          <span className="text-sm font-semibold text-yellow-600 group-hover:text-yellow-700 transition-colors">
+            Lihat Detail
+          </span>
 
           {/* Action Arrow (Muncul warna saat hover) */}
           <div className="h-8 w-8 rounded-full bg-yellow-50 flex items-center justify-center text-yellow-600 group-hover:bg-yellow-500 group-hover:text-white transition-colors duration-300">

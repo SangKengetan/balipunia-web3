@@ -44,6 +44,10 @@ export default function PuraDetail() {
   // Tab Navigation
   const [activeTab, setActiveTab] = useState("campaigns");
 
+  // Filters & Sorting for Campaigns
+  const [filterPurpose, setFilterPurpose] = useState("");
+  const [sortOrder, setSortOrder] = useState("newest");
+
   useEffect(() => {
     // Ambil rate USDT to IDR dari CoinGecko
     fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether&vs_currencies=idr')
@@ -201,7 +205,28 @@ export default function PuraDetail() {
                 
                 {/* === VIEW 1: CAMPAIGNS === */}
                 {activeTab === 'campaigns' && (() => {
-                    const allCampaigns = [...campaignDB, ...campaignSC];
+                    let allCampaigns = [...campaignDB, ...campaignSC];
+
+                    // Extract unique purposes
+                    const uniquePurposes = Array.from(new Set(allCampaigns.map(c => c.purpose).filter(Boolean)));
+
+                    // Apply Purpose Filter
+                    if (filterPurpose) {
+                        allCampaigns = allCampaigns.filter(c => c.purpose === filterPurpose);
+                    }
+
+                    // Apply Sort
+                    allCampaigns.sort((a, b) => {
+                        const getSortValue = (c) => {
+                            if (c.created_at) return new Date(c.created_at).getTime();
+                            if (c.createdAt) return new Date(c.createdAt).getTime();
+                            return 0;
+                        };
+                        const dateA = getSortValue(a);
+                        const dateB = getSortValue(b);
+                        return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+                    });
+
                     const campaignsWithDeadline = allCampaigns.filter(c => c.deadline != null);
                     const campaignsWithoutDeadline = allCampaigns.filter(c => c.deadline == null);
 
@@ -217,8 +242,48 @@ export default function PuraDetail() {
                     };
 
                     return (
-                        <div className="animate-fadeIn space-y-12">
-                            {/* Berbatas Waktu */}
+                        <div className="animate-fadeIn space-y-8">
+                            {/* Filter & Sort Controls */}
+                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <div className="relative w-full sm:w-64">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                        </div>
+                                        <select 
+                                            value={filterPurpose}
+                                            onChange={(e) => setFilterPurpose(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="">Semua Kategori</option>
+                                            {uniquePurposes.map(purpose => (
+                                                <option key={purpose} value={purpose}>
+                                                    {purpose.toLowerCase().replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                    <div className="relative w-full sm:w-48">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" /></svg>
+                                        </div>
+                                        <select 
+                                            value={sortOrder}
+                                            onChange={(e) => setSortOrder(e.target.value)}
+                                            className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all appearance-none cursor-pointer"
+                                        >
+                                            <option value="newest">Terbaru</option>
+                                            <option value="oldest">Terlama</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-12">
+                                {/* Berbatas Waktu */}
                             <div>
                                 <div className="flex items-center gap-3 mb-6">
                                     <div className="p-2 bg-rose-50 rounded-lg">
@@ -246,6 +311,7 @@ export default function PuraDetail() {
                                 {renderCampaignCards(campaignsWithoutDeadline)}
                             </div>
                         </div>
+                    </div>
                     );
                 })()}
 
@@ -358,7 +424,6 @@ export default function PuraDetail() {
             border-radius: 6px;
             color: #4b5563;
             font-size: 0.75rem;
-            font-family: monospace;
             transition: all 0.2s;
         }
         .proof-badge:hover {
@@ -421,7 +486,7 @@ function SaldoCard({ title, value, icon, color }) {
     <div className="bg-white rounded-xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
       <div>
         <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{title}</p>
-        <h3 className="text-2xl font-bold text-gray-800 font-mono">{value}</h3>
+        <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
       </div>
       <div className={`p-3 rounded-xl ${theme.iconBg} ${theme.text}`}>
         {icon === "wallet" && <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>}
