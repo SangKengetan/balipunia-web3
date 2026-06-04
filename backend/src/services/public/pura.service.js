@@ -52,10 +52,12 @@ async function getPuraDetail(puraId) {
       id,
       title,
       description,
+      purpose,
       campaign_type,
       status,
       deadline,
-      id_campaign_onchain
+      id_campaign_onchain,
+      image_url
     FROM campaigns
     WHERE admin_pura_id = $1
       AND campaign_type IN ('HYBRID', 'MIDTRANS_ONLY')
@@ -70,10 +72,12 @@ async function getPuraDetail(puraId) {
       id,
       title,
       description,
+      purpose,
       campaign_type,
       status,
       deadline,
-      id_campaign_onchain
+      id_campaign_onchain,
+      image_url
     FROM campaigns
     WHERE admin_pura_id = $1
       AND campaign_type = 'CRYPTO_ONLY'

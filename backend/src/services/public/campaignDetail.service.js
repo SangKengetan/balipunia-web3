@@ -16,10 +16,12 @@ async function getHybridCampaignDetail(campaignId) {
       title,
       description,
       purpose,
+      fund_mechanism,
       campaign_type,
       status,
       deadline,
-      id_campaign_onchain
+      id_campaign_onchain,
+      image_url
     FROM campaigns
     WHERE id = $1
   `;
@@ -173,11 +175,13 @@ async function getScCampaignDetail(campaignId) {
       title,
       description,
       purpose,
+      fund_mechanism,
       campaign_type,
       status,
       deadline,
       id_campaign_onchain,
-      payout_wallet
+      payout_wallet,
+      image_url
     FROM campaigns
     WHERE id = $1
   `;

@@ -42,7 +42,7 @@ export default function CampaignCardDB({ campaign }) {
       {campaign.image_url && (
         <div className="w-full h-32 mb-4 rounded-lg overflow-hidden shrink-0">
           <img 
-            src={campaign.image_url.startsWith('http') ? campaign.image_url : `http://localhost:5000${campaign.image_url}`} 
+            src={campaign.image_url.startsWith('http') ? campaign.image_url : `${import.meta.env.VITE_API_BASE_URL}${campaign.image_url}`} 
             alt={title} 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
