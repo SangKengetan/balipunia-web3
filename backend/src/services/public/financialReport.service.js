@@ -12,6 +12,7 @@ async function getFinancialReportsByPura(adminPuraId) {
       total_income,
       total_expense,
       ipfs_cid,
+      media_files,
       anchor_tx_hash,
       anchored_at,
       created_at
@@ -37,6 +38,7 @@ async function getFinancialReportDetail(reportId) {
       fr.total_income,
       fr.total_expense,
       fr.ipfs_cid,
+      fr.media_files,
       fr.anchor_tx_hash,
       fr.anchored_at,
       fr.created_at,
