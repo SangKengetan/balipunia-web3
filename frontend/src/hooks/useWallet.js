@@ -8,6 +8,12 @@ export default function useWallet() {
 
   const connectWallet = async () => {
     if (!window.ethereum) {
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        const dappUrl = window.location.href.replace(/^https?:\/\//, "");
+        window.location.href = `https://metamask.app.link/dapp/${dappUrl}`;
+        return null;
+      }
       showError("Dompet Digital Tidak Ditemukan", "MetaMask tidak terdeteksi di browser ini.", "Pastikan Anda telah memasang ekstensi browser MetaMask.");
       return null;
     }

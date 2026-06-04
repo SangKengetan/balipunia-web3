@@ -57,12 +57,24 @@ async function createBankPayment(req, res) {
       }
     );
 
-    const va = chargeResponse.va_numbers?.[0];
+    const va = chargeResponse.va_numbers?.[0] || {};
+    
+    // Simpan VA Number ke raw_response agar bisa diambil di dashboard sebelum webhook masuk
+    await pool.query(
+      `UPDATE offchain_transactions SET raw_response = $1 WHERE order_id = $2`,
+      [
+        JSON.stringify({ 
+          va_numbers: chargeResponse.va_numbers,
+          expiry_time: chargeResponse.expiry_time || new Date(Date.now() + 3600000).toISOString()
+        }),
+        orderId
+      ]
+    );
 
     return res.status(201).json({
       order_id: orderId,
-      bank: va.bank,
-      va_number: va.va_number,
+      bank: va.bank || bank,
+      va_number: va.va_number || null,
       amount,
       expires_at: chargeResponse.expiry_time
     });

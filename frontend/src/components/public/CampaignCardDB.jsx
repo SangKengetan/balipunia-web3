@@ -57,16 +57,9 @@ export default function CampaignCardDB({ campaign }) {
         return (
           <div className="w-full h-32 mb-4 rounded-lg overflow-hidden shrink-0 relative bg-gray-50">
             {isPdf ? (
-              <div className="w-full h-full relative group-hover:scale-105 transition-transform duration-500">
-                {/* Overlay to prevent interaction with PDF viewer inside card */}
-                <div className="absolute inset-0 z-10"></div>
-                <iframe 
-                  src={`${fullUrl}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
-                  className="w-full h-[150%] -mt-[25%] pointer-events-none"
-                  title={title}
-                  frameBorder="0"
-                  scrolling="no"
-                ></iframe>
+              <div className="w-full h-full bg-slate-100 flex flex-col items-center justify-center text-slate-400 group-hover:scale-105 transition-transform duration-500">
+                <svg className="w-12 h-12 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                <span className="text-[10px] font-bold uppercase tracking-widest mt-1 text-slate-500">Dokumen PDF</span>
               </div>
             ) : (
               <img 

@@ -220,12 +220,22 @@ export default function CampaignDetail() {
               return (
                 <div className="w-full rounded-3xl overflow-hidden shadow-md border border-gray-100 bg-black group relative">
                   {isPdf ? (
-                    <iframe 
-                      src={`${fullUrl}#view=FitH`}
-                      className="w-full h-[500px] md:h-[700px] bg-white"
-                      title="Dokumen Kegiatan"
-                      frameBorder="0"
-                    ></iframe>
+                    <div className="w-full h-[350px] md:h-[700px] bg-slate-50 flex flex-col items-center justify-center p-6">
+                       <iframe 
+                         src={`${fullUrl}#view=FitH`}
+                         className="w-full h-full hidden md:block"
+                         title="Dokumen Kegiatan"
+                         frameBorder="0"
+                       ></iframe>
+                       <div className="md:hidden flex flex-col items-center text-center">
+                          <svg className="w-16 h-16 text-rose-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                          <h3 className="text-xl font-bold text-slate-800 mb-2">Dokumen PDF</h3>
+                          <p className="text-slate-500 mb-6 text-sm">Pratinjau PDF tidak didukung di perangkat Anda.</p>
+                          <a href={fullUrl} target="_blank" rel="noreferrer" className="px-6 py-3 bg-rose-600 text-white font-bold rounded-full shadow-md hover:bg-rose-700 transition-colors">
+                            Buka / Unduh Dokumen
+                          </a>
+                       </div>
+                    </div>
                   ) : (
                     <img 
                       src={fullUrl} 
@@ -690,25 +700,39 @@ export default function CampaignDetail() {
       {selectedPdf && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm p-4 md:p-10 animate-fade-in">
           <div className="bg-white rounded-3xl w-full max-w-5xl h-full flex flex-col shadow-2xl overflow-hidden animate-slide-up">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-slate-50">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+            <div className="flex items-center justify-between px-4 py-4 md:px-6 border-b border-gray-100 bg-slate-50">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2 text-sm md:text-base">
                 <svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
                 Pratinjau Dokumen
               </h3>
-              <button 
-                onClick={() => setSelectedPdf(null)}
-                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              <div className="flex items-center gap-3">
+                <a href={selectedPdf} target="_blank" rel="noreferrer" className="hidden md:flex items-center gap-2 text-sm font-semibold text-rose-600 bg-rose-50 px-4 py-2 rounded-full hover:bg-rose-100 transition-colors">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  Buka di Tab Baru
+                </a>
+                <button 
+                  onClick={() => setSelectedPdf(null)}
+                  className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
             </div>
-            <div className="flex-grow bg-slate-100">
+            <div className="flex-grow bg-slate-100 relative">
               <iframe 
                 src={`${selectedPdf}#view=FitH`} 
-                className="w-full h-full"
+                className="w-full h-full hidden md:block"
                 title="PDF Viewer"
                 frameBorder="0"
               ></iframe>
+              <div className="md:hidden flex flex-col items-center justify-center h-full p-6 text-center">
+                 <svg className="w-20 h-20 text-rose-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+                 <h3 className="text-xl font-bold text-slate-800 mb-2">Dokumen PDF</h3>
+                 <p className="text-slate-500 mb-6 text-sm">Pratinjau PDF tidak didukung secara native di peramban seluler Anda.</p>
+                 <a href={selectedPdf} target="_blank" rel="noreferrer" className="px-6 py-3 bg-rose-600 text-white font-bold rounded-full shadow-md hover:bg-rose-700 transition-colors">
+                   Buka / Unduh Dokumen
+                 </a>
+              </div>
             </div>
           </div>
         </div>

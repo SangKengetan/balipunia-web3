@@ -302,10 +302,29 @@ export default function DonorDashboard() {
                           <td className="py-4 font-mono font-bold text-gray-800">
                             {formatRupiah(tx.gross_amount)}
                           </td>
-                          <td className="py-4 uppercase text-gray-500 font-semibold">{tx.bank}</td>
+                          <td className="py-4">
+                            <div className="font-semibold uppercase text-gray-800">{tx.bank}</div>
+                            {tx.raw_response?.va_numbers?.[0]?.va_number && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="font-mono text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
+                                  {tx.raw_response.va_numbers[0].va_number}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(tx.raw_response.va_numbers[0].va_number);
+                                    alert("VA disalin!");
+                                  }}
+                                  className="text-xs text-gray-400 hover:text-amber-600"
+                                  title="Salin VA"
+                                >
+                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                </button>
+                              </div>
+                            )}
+                          </td>
                           <td className="py-4">
                             <span
-                              className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                              className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold tracking-wide ${
                                 tx.system_status === "PAID_LOCKED" || tx.system_status === "SETTLED"
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                                   : tx.system_status === "PENDING_PAYMENT"
@@ -323,6 +342,12 @@ export default function DonorDashboard() {
                                 ? "GAGAL"
                                 : tx.system_status}
                             </span>
+                            {tx.system_status === "PENDING_PAYMENT" && tx.raw_response?.expiry_time && (
+                              <div className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                Exp: {new Date(tx.raw_response.expiry_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                            )}
                           </td>
                           <td className="py-4 text-xs text-gray-400">
                             {new Date(tx.updated_at).toLocaleString("id-ID")}
