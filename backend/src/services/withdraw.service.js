@@ -23,6 +23,9 @@ async function createWithdrawRequest({
       fiat_fee_idr = 0,
       total_idr = "0",
       proposal_id = null,
+      locked_rate_usdt_idr = 0,
+      locked_rate_usdc_idr = 0,
+      locked_rate_at = null,
     } = payload;
 
   /* =====================================================
@@ -120,6 +123,12 @@ async function createWithdrawRequest({
       fee_idr: Number(fiat_fee_idr),
     },
     total_idr: total_idr,
+    locked_rate: {
+      usdt_idr: Number(locked_rate_usdt_idr) || 0,
+      usdc_idr: Number(locked_rate_usdc_idr) || 0,
+      locked_at: locked_rate_at || new Date().toISOString(),
+      source: "coingecko",
+    },
   });
 
   /* =====================================================
@@ -294,6 +303,9 @@ async function createUnifiedWithdrawReport({
     fiat_fee_idr = 0,
     total_idr = "0",
     proposal_id = null,
+    locked_rate_usdt_idr = 0,
+    locked_rate_usdc_idr = 0,
+    locked_rate_at = null,
     
     // LPJ fields
     description,
@@ -375,6 +387,12 @@ async function createUnifiedWithdrawReport({
       crypto: { amount_usdt: crypto_usdt, amount_usdc: crypto_usdc, fee_idr: Number(crypto_fee_idr) },
       fiat: { amount_idr: fiat_amount_idr, fee_idr: Number(fiat_fee_idr) },
       total_idr,
+      locked_rate: {
+        usdt_idr: Number(locked_rate_usdt_idr) || 0,
+        usdc_idr: Number(locked_rate_usdc_idr) || 0,
+        locked_at: locked_rate_at || new Date().toISOString(),
+        source: "coingecko",
+      },
       unified_lpj: {
         metadata_cid: metadataCid,
         description: description || reason || "",

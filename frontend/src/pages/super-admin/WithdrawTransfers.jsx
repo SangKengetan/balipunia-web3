@@ -244,6 +244,17 @@ export default function WithdrawTransfers() {
                                 -{formatRupiah(snap.crypto?.fee_idr)}
                               </span>
                             </div>
+                            {snap.locked_rate && (snap.locked_rate.usdt_idr > 0 || snap.locked_rate.usdc_idr > 0) && (
+                              <div className="flex justify-between gap-4 pt-1 border-t border-gray-100">
+                                <span className="text-indigo-600 flex items-center gap-0.5">
+                                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                  Kurs Terkunci:
+                                </span>
+                                <span className="font-mono text-indigo-600">
+                                  Rp {Number(snap.locked_rate.usdt_idr).toLocaleString("id-ID")}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <span className="text-gray-400 text-xs">-</span>

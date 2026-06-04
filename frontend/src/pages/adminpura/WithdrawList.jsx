@@ -82,6 +82,8 @@ export default function WithdrawList() {
           return `Rp ${num.toLocaleString("id-ID")}`;
         };
 
+        const lockedRate = parsed.locked_rate || null;
+
         return (
           <div className="flex flex-col gap-1 text-right">
             {/* Total IDR (highlight) */}
@@ -94,6 +96,12 @@ export default function WithdrawList() {
             <div className="text-[10px] text-gray-400">
               Fiat: {formatRupiah(parsed.fiat?.amount_idr)}
             </div>
+            {lockedRate && (lockedRate.usdt_idr > 0 || lockedRate.usdc_idr > 0) && (
+              <div className="text-[10px] text-indigo-500 flex items-center justify-end gap-1 mt-0.5">
+                <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                Rate: Rp {Number(lockedRate.usdt_idr).toLocaleString("id-ID")}
+              </div>
+            )}
           </div>
         );
       }

@@ -21,7 +21,9 @@ import {
 
 export default function StandardWithdrawRequestForm({ campaignId, campaign, onchain, offchain }) {
   const navigate = useNavigate();
-  const [cryptoRateIdr, setCryptoRateIdr] = useState(0);
+  const [rateUsdtIdr, setRateUsdtIdr] = useState(0);
+  const [rateUsdcIdr, setRateUsdcIdr] = useState(0);
+  const [rateLoadedAt, setRateLoadedAt] = useState(null);
   
   // --- State UI ---
   const [loading, setLoading] = useState(false);
@@ -35,13 +37,20 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const rateRes = await fetch("https://open.er-api.com/v6/latest/USD");
-        const rateData = await rateRes.json();
-        if (rateData?.rates?.IDR) {
-          setCryptoRateIdr(rateData.rates.IDR);
-        }
+        const res = await fetch(
+          "https://api.coingecko.com/api/v3/simple/price?ids=tether,usd-coin&vs_currencies=idr",
+          { signal: AbortSignal.timeout(5000) }
+        );
+        const data = await res.json();
+        if (data?.tether?.idr) setRateUsdtIdr(data.tether.idr);
+        if (data?.["usd-coin"]?.idr) setRateUsdcIdr(data["usd-coin"].idr);
+        setRateLoadedAt(new Date().toISOString());
       } catch (e) {
-        console.error("Gagal fetch rate USD to IDR:", e);
+        console.error("Gagal fetch rate CoinGecko:", e);
+        // Fallback ke rate default estimasi jika CoinGecko gagal
+        setRateUsdtIdr(16400);
+        setRateUsdcIdr(16400);
+        setRateLoadedAt(new Date().toISOString());
       }
     };
     fetchRate();
@@ -83,12 +92,11 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
     return `Rp ${Number(val).toLocaleString("id-ID")}`;
   };
 
-  // --- FEE CALCULATIONS ---
+  // --- FEE CALCULATIONS (per-token rate) ---
   const usdtRaw = formatCryptoRaw(onchain?.balances?.USDT);
   const usdcRaw = formatCryptoRaw(onchain?.balances?.USDC);
-  const totalCryptoUsd = usdtRaw + usdcRaw;
-  const cryptoGrossIdr = totalCryptoUsd * cryptoRateIdr;
-  const cryptoFeeIdr = totalCryptoUsd > 0 ? 10000 : 0; // Flat fee crypto
+  const cryptoGrossIdr = (usdtRaw * rateUsdtIdr) + (usdcRaw * rateUsdcIdr);
+  const cryptoFeeIdr = (usdtRaw + usdcRaw) > 0 ? 10000 : 0; // Flat fee crypto
   const cryptoNetIdr = Math.max(0, cryptoGrossIdr - cryptoFeeIdr);
 
   const fiatGrossIdr = Number(offchain?.current_balance || 0);
@@ -97,6 +105,7 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
   const fiatNetIdr = Math.max(0, fiatGrossIdr - fiatFeeIdr);
 
   const totalNetIdr = cryptoNetIdr + fiatNetIdr;
+  const avgCryptoRate = (rateUsdtIdr + rateUsdcIdr) / 2;
 
   // Helper File Change
   const handleFileChange = (e) => {
@@ -133,6 +142,11 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
       formData.append("fiat_amount_idr", fiatGrossIdr);
       formData.append("fiat_fee_idr", fiatFeeIdr);
       formData.append("total_idr", totalNetIdr);
+
+      // Locked rate — kunci harga saat pengajuan
+      formData.append("locked_rate_usdt_idr", rateUsdtIdr);
+      formData.append("locked_rate_usdc_idr", rateUsdcIdr);
+      formData.append("locked_rate_at", rateLoadedAt || new Date().toISOString());
 
       formData.append("document", file);
 
@@ -246,7 +260,7 @@ export default function StandardWithdrawRequestForm({ campaignId, campaign, onch
                     <span className="font-mono font-bold">{formatCrypto(onchain?.balances?.USDC)} USDC</span>
                   </div>
                   <div className="flex justify-between pt-2 border-t border-gray-100 border-dashed">
-                    <span className="text-gray-500">Est. Kotor (Rate {cryptoRateIdr ? formatRupiah(cryptoRateIdr) : 'Menghitung...'})</span>
+                    <span className="text-gray-500">Est. Kotor (Rate ≈{avgCryptoRate ? formatRupiah(Math.round(avgCryptoRate)) : 'Menghitung...'})</span>
                     <span className="font-mono">{formatRupiah(cryptoGrossIdr)}</span>
                   </div>
                   <div className="flex justify-between text-red-500">

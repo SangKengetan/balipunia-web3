@@ -249,6 +249,29 @@ export default function SuperAdminWithdrawDetail() {
                       <span className="text-gray-500">Estimasi Fee Kripto</span>
                       <span className="font-mono text-red-500">-{formatRupiah(snap.crypto?.fee_idr)}</span>
                     </div>
+                    {snap.locked_rate && (snap.locked_rate.usdt_idr > 0 || snap.locked_rate.usdc_idr > 0) && (
+                      <div className="pt-2.5 border-t border-gray-200">
+                        <p className="text-xs font-bold text-indigo-700 mb-1 flex items-center gap-1">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                          Kurs Terkunci
+                        </p>
+                        <div className="text-xs text-indigo-600 space-y-0.5">
+                          <div className="flex justify-between">
+                            <span>1 USDT</span>
+                            <span className="font-mono">Rp {Number(snap.locked_rate.usdt_idr).toLocaleString("id-ID")}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>1 USDC</span>
+                            <span className="font-mono">Rp {Number(snap.locked_rate.usdc_idr).toLocaleString("id-ID")}</span>
+                          </div>
+                        </div>
+                        {snap.locked_rate.locked_at && (
+                          <p className="text-[10px] text-indigo-400 mt-1">
+                            Dikunci: {new Date(snap.locked_rate.locked_at).toLocaleString("id-ID")}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400 italic">Tidak ada snapshot dana.</p>
