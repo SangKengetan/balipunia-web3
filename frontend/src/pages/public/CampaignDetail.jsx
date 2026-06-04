@@ -350,17 +350,6 @@ export default function CampaignDetail() {
               </div>
             )}
 
-            {/* Timeline */}
-            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-10">
-              <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-[#FBBF24]/20 flex items-center justify-center text-[#FBBF24]">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </span>
-                Linimasa Program
-              </h2>
-              <CampaignTimeline campaignId={campaign.id} />
-            </div>
-
             {/* OFFCHAIN HISTORY (Tunai) */}
             {campaign.campaign_type !== 'CRYPTO_ONLY' && (
               <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-10">
@@ -378,6 +367,17 @@ export default function CampaignDetail() {
                 </div>
               </div>
             )}
+
+            {/* Timeline */}
+            <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 md:p-10">
+              <h2 className="text-2xl font-bold text-slate-900 mb-8 flex items-center gap-3">
+                <span className="w-8 h-8 rounded-full bg-[#FBBF24]/20 flex items-center justify-center text-[#FBBF24]">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </span>
+                Linimasa Program
+              </h2>
+              <CampaignTimeline campaignId={campaign.id} />
+            </div>
 
             {/* Withdrawals */}
             {offchain?.withdrawals && offchain.withdrawals.length > 0 && (

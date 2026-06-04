@@ -94,7 +94,7 @@ async function getOnchainLeaderboard({ limit = 5, campaignId, adminPuraId } = {}
   const walletTotals = {};
   for (const d of allDonations) {
     const wallet = d.donor.toLowerCase();
-    const amountVal = parseFloat(d.amount); // Di history sudah dalam format ether string (ex: "10.5")
+    const amountVal = parseFloat(ethers.formatUnits(d.amount, 18));
     
     if (!walletTotals[wallet]) {
       walletTotals[wallet] = 0;
