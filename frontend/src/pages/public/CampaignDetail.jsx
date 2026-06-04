@@ -189,6 +189,17 @@ export default function CampaignDetail() {
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   Batas Waktu: <span className="text-slate-800">{campaign.deadline ? new Date(campaign.deadline).toLocaleString('id-ID', { timeZone: 'Asia/Makassar', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' WITA' : 'Selamanya'}</span>
                 </span>
+                
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(window.location.href);
+                    Swal.fire({ icon: 'success', title: 'Tersalin!', text: 'Tautan kegiatan berhasil disalin ke clipboard.', timer: 2000, showConfirmButton: false, width: '350px' });
+                  }}
+                  className="flex items-center gap-2 text-[#FBBF24] bg-[#FBBF24]/10 hover:bg-[#FBBF24]/20 px-4 py-1.5 rounded-full border border-[#FBBF24]/30 transition-colors font-semibold"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                  Bagikan
+                </button>
               </div>
             </div>
           </div>
@@ -529,23 +540,27 @@ export default function CampaignDetail() {
                               {campaign?.fund_mechanism === 'pasca' ? (
                                 <>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Dana Diluar Sistem</span>
+                                    <span className="text-sm font-semibold text-slate-600">Luar Sistem (Tunai)</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_outside)}</span>
                                   </div>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Dana Peturunan</span>
+                                    <span className="text-sm font-semibold text-slate-600">Peturunan Krama</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_peturunan)}</span>
                                   </div>
                                 </>
                               ) : (
                                 <>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Dana Sistem</span>
+                                    <span className="text-sm font-semibold text-slate-600">Sistem (Otomatis)</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_system)}</span>
                                   </div>
                                   <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
-                                    <span className="text-sm font-semibold text-slate-600">Dana Diluar Sistem</span>
+                                    <span className="text-sm font-semibold text-slate-600">Luar Sistem (Tunai)</span>
                                     <span className="font-bold text-emerald-600">{formatRupiah(r.income_outside)}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-gray-100">
+                                    <span className="text-sm font-semibold text-slate-600">Peturunan Krama</span>
+                                    <span className="font-bold text-emerald-600">{formatRupiah(r.income_peturunan)}</span>
                                   </div>
                                 </>
                               )}

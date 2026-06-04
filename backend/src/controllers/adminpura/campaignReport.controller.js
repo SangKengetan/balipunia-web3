@@ -8,7 +8,7 @@ async function uploadReport(req, res) {
     const admin = req.admin;
     const { campaignId } = req.params;
     const files = req.files; // array dari multer upload.array()
-    const { total_income, total_expense, description } = req.body;
+    const { total_income, total_expense, description, income_system, income_outside, income_peturunan } = req.body;
 
     // Validasi input dasar (HTTP level)
     if (!files || files.length === 0) {
@@ -22,6 +22,9 @@ async function uploadReport(req, res) {
       files,
       description,
       totalIncome: total_income,
+      incomeSystem: income_system,
+      incomeOutside: income_outside,
+      incomePeturunan: income_peturunan,
       totalExpense: total_expense,
     });
 

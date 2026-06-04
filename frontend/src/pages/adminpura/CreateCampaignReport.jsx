@@ -118,6 +118,9 @@ export default function CreateCampaignReport() {
       // Calculate total income = systemIncome + manualIncome
       const totalIncome = systemIncome + (Number(form.manual_income) || 0);
       formData.append("total_income", totalIncome);
+      formData.append("income_system", systemIncome);
+      formData.append("income_outside", Number(form.manual_income) || 0);
+      formData.append("income_peturunan", 0);
       formData.append("total_expense", form.total_expense);
 
       // Append semua file ke FormData

@@ -9,8 +9,12 @@ import {
   Coins, 
   History, 
   FileText,
-  Banknote
+  Banknote,
+  Share2,
+  Download
 } from "lucide-react";
+import Swal from "sweetalert2";
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 
 // --- Helper Functions ---
 
@@ -411,6 +415,53 @@ export default function CampaignDetail() {
                         <span className="text-gray-500">Status</span>
                         <span className="font-medium text-gray-800">{campaign.status}</span>
                     </div>
+                </div>
+            </div>
+
+            {/* 4. Share & QR Code */}
+            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-center">
+                <h3 className="font-bold text-gray-800 mb-2 text-sm uppercase text-opacity-50">Bagikan Kegiatan</h3>
+                <p className="text-xs text-gray-500 mb-4">Ajak lebih banyak donatur berpartisipasi dengan membagikan tautan ini.</p>
+                
+                <div className="flex justify-center mb-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <QRCodeCanvas 
+                        id="qr-gen"
+                        value={`${window.location.origin}/campaign/${id}`}
+                        size={150}
+                        bgColor={"#ffffff"}
+                        fgColor={"#1f2937"}
+                        level={"Q"}
+                        includeMargin={false}
+                    />
+                </div>
+                
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => {
+                            navigator.clipboard.writeText(`${window.location.origin}/campaign/${id}`);
+                            Swal.fire({ icon: 'success', title: 'Tersalin!', text: 'Tautan berhasil disalin.', timer: 2000, showConfirmButton: false, width: '300px' });
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-amber-50 text-amber-700 hover:bg-amber-100 font-bold rounded-lg text-sm transition-colors"
+                    >
+                        <Share2 size={16} /> Salin
+                    </button>
+                    <button 
+                        onClick={() => {
+                            const canvas = document.getElementById("qr-gen");
+                            if (canvas) {
+                                const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                                let downloadLink = document.createElement("a");
+                                downloadLink.href = pngUrl;
+                                downloadLink.download = `QR_Kegiatan_${id}.png`;
+                                document.body.appendChild(downloadLink);
+                                downloadLink.click();
+                                document.body.removeChild(downloadLink);
+                            }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-lg text-sm transition-colors"
+                    >
+                        <Download size={16} /> Unduh
+                    </button>
                 </div>
             </div>
         </div>
