@@ -57,7 +57,20 @@ async function createBankPayment(req, res) {
       }
     );
 
-    const va = chargeResponse.va_numbers?.[0] || {};
+    let va = chargeResponse.va_numbers?.[0] || {};
+    
+    // Khusus Mandiri (echannel)
+    if (bank === 'mandiri') {
+      va = { 
+        bank: 'mandiri', 
+        va_number: `${chargeResponse.biller_code} ${chargeResponse.bill_key}` 
+      };
+    }
+
+    // Khusus Permata (permata_va_number)
+    if (bank === 'permata' && chargeResponse.permata_va_number) {
+      va = { bank: 'permata', va_number: chargeResponse.permata_va_number };
+    }
     
     // Fix timezone: Midtrans returns expiry_time in WIB (GMT+7) without timezone offset (e.g., "YYYY-MM-DD HH:mm:ss").
     // We append +07:00 so the frontend can correctly parse it regardless of user's local timezone.
@@ -72,6 +85,9 @@ async function createBankPayment(req, res) {
       [
         JSON.stringify({ 
           va_numbers: chargeResponse.va_numbers,
+          biller_code: chargeResponse.biller_code,
+          bill_key: chargeResponse.bill_key,
+          permata_va_number: chargeResponse.permata_va_number,
           expiry_time: expiryStr || new Date(Date.now() + 3600000).toISOString()
         }),
         orderId
@@ -114,7 +130,92 @@ async function getPaymentStatus(req, res) {
   }
 }
 
+// CREATE EWALLET / QRIS PAYMENT
+async function createEwalletPayment(req, res) {
+  try {
+    const {
+      campaign_id,
+      amount,
+      payment_type, // 'gopay' atau 'qris'
+      donor_name,
+      donor_contact,
+      is_anonymous = false
+    } = req.body;
+
+    if (!campaign_id || !amount || !payment_type) {
+      return res.status(400).json({ message: 'Invalid payload' });
+    }
+
+    const orderId = `PUNIA-${uuidv4()}`;
+    const donorId = req.donor.id;
+    const finalDonorName = is_anonymous ? 'Anonim' : (donor_name || req.donor.name);
+    const finalDonorContact = donor_contact || req.donor.contact || null;
+
+    await pool.query(
+      `
+      INSERT INTO offchain_transactions (
+        campaign_id,
+        order_id,
+        gross_amount,
+        system_status,
+        donor_name,
+        donor_contact,
+        is_anonymous,
+        donor_id,
+        payment_type
+      )
+      VALUES ($1, $2, $3, 'PENDING_PAYMENT', $4, $5, $6, $7, $8)
+      `,
+      [
+        campaign_id,
+        orderId,
+        amount,
+        is_anonymous ? null : finalDonorName,
+        finalDonorContact,
+        is_anonymous,
+        donorId,
+        payment_type
+      ]
+    );
+
+    const { createEwalletCharge } = require('../services/midtrans.service');
+    const chargeResponse = await createEwalletCharge(
+      orderId,
+      amount,
+      payment_type,
+      {
+        name: finalDonorName
+      }
+    );
+
+    // Simpan raw response agar bisa diambil di dashboard sebelum webhook masuk
+    await pool.query(
+      `UPDATE offchain_transactions SET raw_response = $1 WHERE order_id = $2`,
+      [
+        JSON.stringify({ 
+          actions: chargeResponse.actions,
+          expiry_time: new Date(Date.now() + 15 * 60000).toISOString() // Default 15 mins
+        }),
+        orderId
+      ]
+    );
+
+    return res.status(201).json({
+      order_id: orderId,
+      payment_type: payment_type,
+      actions: chargeResponse.actions,
+      amount,
+      expires_at: new Date(Date.now() + 15 * 60000).toISOString()
+    });
+
+  } catch (err) {
+    console.error('[CREATE EWALLET PAYMENT ERROR]', err);
+    return res.status(500).json({ message: 'Payment failed' });
+  }
+}
+
 module.exports = {
   createBankPayment,
+  createEwalletPayment,
   getPaymentStatus
 };

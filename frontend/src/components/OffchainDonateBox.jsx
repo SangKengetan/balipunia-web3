@@ -1,20 +1,30 @@
 import { useState, useEffect } from "react";
-import { createBankTransferPayment } from "../services/paymentApi";
+import { createBankTransferPayment, createEwalletPayment } from "../services/paymentApi";
 import { showError, showInfo, showSuccess } from "../utils/notification";
 import useDonorAuth from "../hooks/useDonorAuth";
 
-// Daftar bank VA yang didukung
 const BANKS = [
-  { id: "bca", name: "BCA Virtual Account", logo: "https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" },
-  { id: "bri", name: "BRI Virtual Account", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/BRI_2020.svg" },
-  { id: "bni", name: "BNI Virtual Account", logo: "https://upload.wikimedia.org/wikipedia/id/5/55/BNI_logo.svg" },
-  { id: "permata", name: "Permata Virtual Account", logo: "https://upload.wikimedia.org/wikipedia/id/f/f6/Bank_Permata.svg" },
-  { id: "cimb", name: "CIMB Niaga VA", logo: "https://upload.wikimedia.org/wikipedia/commons/0/05/CIMB_Niaga_logo.svg" }
+  { id: "bca", name: "BCA Virtual Account", logo: "/bca.png" },
+  { id: "mandiri", name: "Mandiri Virtual Account", logo: "/mandiri.png" },
+  { id: "bri", name: "BRI Virtual Account", logo: "/bri.png" },
+  { id: "bni", name: "BNI Virtual Account", logo: "/bni.png" },
+  { id: "permata", name: "Permata Virtual Account", logo: "/permata.png" },
+  { id: "cimb", name: "CIMB Niaga VA", logo: "/cimb.png" },
+  { id: "danamon", name: "Danamon Virtual Account", logo: "/danamon.png" },
+  { id: "seabank", name: "SeaBank Virtual Account", logo: "/seabank.png" }
+];
+
+const PAYMENT_CATEGORIES = [
+  { id: "qris", name: "QRIS", type: "ewallet", logo: "/qris.png" },
+  { id: "gopay", name: "GoPay", type: "ewallet", logo: "/gopay.png" },
+  { id: "bank_transfer", name: "Virtual Account", type: "bank", icon: "🏦" }
 ];
 
 export default function OffchainDonateBox({ campaignId }) {
   const { donorName: loggedInName, donorToken } = useDonorAuth();
   const [amount, setAmount] = useState("");
+  
+  const [paymentMethod, setPaymentMethod] = useState("qris");
   const [bank, setBank] = useState("bca");
 
   // Identitas opsional
@@ -55,8 +65,8 @@ export default function OffchainDonateBox({ campaignId }) {
   useEffect(() => {
     let interval;
     if (vaInfo && !paymentSuccess && !isExpired) {
-      // Setup expiry time (either from API or 30 mins from now)
-      let expiryTime = vaInfo.expires_at ? new Date(vaInfo.expires_at.replace(" ", "T")).getTime() : new Date().getTime() + 30 * 60000;
+      // Setup expiry time (either from API or 15 mins from now)
+      let expiryTime = vaInfo.expires_at ? new Date(vaInfo.expires_at.replace(" ", "T")).getTime() : new Date().getTime() + 15 * 60000;
       
       interval = setInterval(() => {
         const now = new Date().getTime();
@@ -88,14 +98,24 @@ export default function OffchainDonateBox({ campaignId }) {
     setPaymentSuccess(false);
     
     try {
-      const res = await createBankTransferPayment({
-        campaign_id: campaignId,
-        amount: Number(amount),
-        bank,
-        donor_name: donorName || null,
-        donor_message: donorMessage || null,
-        donor_wallet: null,
-      });
+      let res;
+      if (paymentMethod === "bank_transfer") {
+        res = await createBankTransferPayment({
+          campaign_id: campaignId,
+          amount: Number(amount),
+          bank,
+          donor_name: donorName || null,
+          donor_message: donorMessage || null,
+        });
+      } else {
+        res = await createEwalletPayment({
+          campaign_id: campaignId,
+          amount: Number(amount),
+          payment_type: paymentMethod,
+          donor_name: donorName || null,
+          donor_message: donorMessage || null,
+        });
+      }
 
       setVaInfo(res.data);
     } catch (error) {
@@ -126,7 +146,7 @@ export default function OffchainDonateBox({ campaignId }) {
           setIsExpired(true);
           showInfo("Pembayaran Gagal", "Waktu pembayaran telah kedaluwarsa atau dibatalkan.");
         } else {
-          showInfo("Menunggu Pembayaran", "Kami belum menerima pembayaran Anda. Silakan selesaikan transfer lalu cek kembali.");
+          showInfo("Menunggu Pembayaran", "Kami belum menerima pembayaran Anda. Silakan selesaikan pembayaran lalu cek kembali.");
         }
       }
     } catch (err) {
@@ -137,10 +157,14 @@ export default function OffchainDonateBox({ campaignId }) {
     }
   }
 
+  // Get current actions if ewallet
+  const qrAction = vaInfo?.actions?.find(a => a.name === 'generate-qr-code');
+  const deeplinkAction = vaInfo?.actions?.find(a => a.name === 'deeplink-redirect');
+
   return (
     <div className="w-full bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-5 md:p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Transfer Bank / Tunai</h3>
+        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Donasi Offchain</h3>
 
         {!vaInfo ? (
           <div className="space-y-5">
@@ -166,29 +190,61 @@ export default function OffchainDonateBox({ campaignId }) {
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Pilih Bank <span className="text-red-500">*</span>
+                Pilih Metode Pembayaran <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
-                {BANKS.map((b) => (
+              <div className="grid grid-cols-3 gap-2">
+                {PAYMENT_CATEGORIES.map((cat) => (
                   <button
-                    key={b.id}
-                    onClick={() => setBank(b.id)}
-                    className={`flex items-center gap-2 p-2 rounded-lg border transition-colors ${
-                      bank === b.id 
-                        ? "border-blue-500 bg-blue-50" 
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    key={cat.id}
+                    onClick={() => setPaymentMethod(cat.id)}
+                    className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      paymentMethod === cat.id 
+                        ? "border-blue-500 bg-blue-50 text-blue-700" 
+                        : "border-gray-100 hover:border-gray-300 bg-white text-gray-600"
                     }`}
                   >
-                    <div className="w-10 h-6 bg-white flex items-center justify-center p-0.5 rounded border border-gray-100 flex-shrink-0">
-                       <img src={b.logo} alt={b.name} className="max-w-full max-h-full object-contain" />
+                    <div className="h-8 flex items-center justify-center">
+                      {cat.logo ? (
+                         <img src={cat.logo} alt={cat.name} className="max-w-[60px] max-h-full object-contain" referrerPolicy="no-referrer" onError={(e) => e.target.style.display='none'} />
+                      ) : (
+                         <span className="text-2xl">{cat.icon}</span>
+                      )}
                     </div>
-                    <span className="text-sm font-medium text-gray-700 truncate">
-                      {b.id.toUpperCase()}
+                    <span className="text-xs font-bold text-center leading-tight">
+                      {cat.name}
                     </span>
                   </button>
                 ))}
               </div>
             </div>
+
+            {paymentMethod === "bank_transfer" && (
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-100">
+                <label className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">
+                  Pilih Bank
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {BANKS.map((b) => (
+                    <button
+                      key={b.id}
+                      onClick={() => setBank(b.id)}
+                      className={`flex items-center gap-2 p-2 rounded-md border transition-colors ${
+                        bank === b.id 
+                          ? "border-blue-500 bg-blue-100" 
+                          : "border-gray-200 hover:border-gray-300 bg-white"
+                      }`}
+                    >
+                      <div className="w-8 h-5 bg-white flex items-center justify-center rounded flex-shrink-0">
+                         <img src={b.logo} alt={b.name} className="max-w-full max-h-full object-contain" referrerPolicy="no-referrer" onError={(e) => e.target.style.display='none'} />
+                      </div>
+                      <span className="text-xs font-semibold text-gray-700 truncate">
+                        {b.id.toUpperCase()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="border-t border-gray-100 my-2"></div>
 
@@ -203,20 +259,10 @@ export default function OffchainDonateBox({ campaignId }) {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">Pesan / Doa (Opsional)</label>
-              <textarea
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition-colors resize-none h-20"
-                placeholder="Tulis pesan atau doa..."
-                value={donorMessage}
-                onChange={(e) => setDonorMessage(e.target.value)}
-              />
-            </div>
-
             <button
               onClick={handleDonate}
               disabled={loading || !amount || parseInt(amount) < 10000}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2"
             >
               {loading ? "Memproses..." : "Lanjutkan Pembayaran"}
             </button>
@@ -244,32 +290,65 @@ export default function OffchainDonateBox({ campaignId }) {
                <span className="font-mono font-bold text-lg">{timeLeft || "00:00"}</span>
             </div>
 
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-5">
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-5 shadow-sm">
               <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
                 <div>
                   <p className="text-xs text-gray-500 mb-1 uppercase font-bold tracking-wider">Total Tagihan</p>
                   <p className="text-xl font-bold text-gray-800">{formatRupiah(vaInfo.amount)}</p>
                 </div>
-                <div className="w-12 h-8 bg-white border border-gray-200 rounded p-1 flex items-center justify-center">
-                  <img src={BANKS.find(b => b.id === vaInfo.bank)?.logo} alt={vaInfo.bank} className="max-h-full" />
-                </div>
+                {vaInfo.payment_type === "bank_transfer" || !vaInfo.payment_type ? (
+                   <div className="w-12 h-8 bg-white border border-gray-200 rounded p-1 flex items-center justify-center">
+                     <img src={BANKS.find(b => b.id === vaInfo.bank)?.logo} alt={vaInfo.bank} className="max-h-full" referrerPolicy="no-referrer" onError={(e) => e.target.style.display='none'} />
+                   </div>
+                ) : (
+                   <div className="w-16 h-8 bg-white border border-gray-200 rounded p-1 flex items-center justify-center">
+                     <img src={PAYMENT_CATEGORIES.find(c => c.id === vaInfo.payment_type)?.logo} alt={vaInfo.payment_type} className="max-h-full object-contain" referrerPolicy="no-referrer" onError={(e) => e.target.style.display='none'} />
+                   </div>
+                )}
               </div>
 
-              <div>
-                <p className="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider">Nomor Virtual Account</p>
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white border border-gray-300 rounded-lg p-2 gap-2 overflow-hidden">
-                  <code className="text-lg font-mono font-bold text-blue-700 px-2 break-all text-center sm:text-left w-full">
-                    {vaInfo.va_number}
-                  </code>
-                  <button 
-                    onClick={handleCopyVA}
-                    disabled={isExpired}
-                    className="flex-shrink-0 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md font-bold text-sm transition-colors disabled:opacity-50 border border-blue-200 w-full sm:w-auto"
-                  >
-                    {copied ? "Tersalin!" : "Salin VA"}
-                  </button>
+              {vaInfo.va_number && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-2 uppercase font-bold tracking-wider">Nomor Virtual Account</p>
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between bg-white border border-gray-300 rounded-lg p-2 gap-2 overflow-hidden">
+                    <code className="text-lg font-mono font-bold text-blue-700 px-2 break-all text-center sm:text-left w-full">
+                      {vaInfo.va_number}
+                    </code>
+                    <button 
+                      onClick={handleCopyVA}
+                      disabled={isExpired}
+                      className="flex-shrink-0 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-md font-bold text-sm transition-colors disabled:opacity-50 border border-blue-200 w-full sm:w-auto"
+                    >
+                      {copied ? "Tersalin!" : "Salin VA"}
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {vaInfo.payment_type !== "bank_transfer" && (
+                <div className="flex flex-col items-center justify-center py-2">
+                  {qrAction && (
+                    <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm inline-block mb-4">
+                      <img src={qrAction.url} alt="QR Code" className="w-48 h-48 object-contain" />
+                    </div>
+                  )}
+                  {deeplinkAction && (
+                    <a 
+                      href={deeplinkAction.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="w-full py-2.5 bg-[#00AED6] hover:bg-[#009bc0] text-white font-bold rounded-lg transition-colors text-center shadow-md mb-2"
+                    >
+                      Buka Aplikasi Gojek
+                    </a>
+                  )}
+                  <p className="text-xs text-gray-500 text-center mt-2 px-4">
+                    {vaInfo.payment_type === "qris" 
+                      ? "Scan QR Code menggunakan aplikasi e-wallet atau mobile banking Anda."
+                      : "Scan QR Code atau klik tombol di atas jika Anda membuka lewat HP."}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">

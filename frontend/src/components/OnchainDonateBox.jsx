@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { donateOnChain } from "../services/blockchain/onchainDonation";
 import useDonorAuth from "../hooks/useDonorAuth";
-import useWallet from "../hooks/useWallet";
 import { showError, showSuccess, showInfo } from "../utils/notification";
 
 export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess }) {
   const { donorToken, donorWallets, addWalletAddress } = useDonorAuth();
-  const { address, connectWallet } = useWallet();
   const [amount, setAmount] = useState("");
   const [token, setToken] = useState("USDT");
   const [loading, setLoading] = useState(false);
@@ -20,18 +18,6 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
     
     try {
       setLoading(true);
-
-      // Pastikan wallet terhubung sebelum donasi
-      let currentAddress = address;
-      if (!currentAddress) {
-        currentAddress = await connectWallet();
-        if (!currentAddress) {
-          // User membatalkan koneksi
-          setLoading(false);
-          return;
-        }
-      }
-
       // Kirim string 'amount' apa adanya, biar service yang urus 18 desimalnya
       const txHash = await donateOnChain({
         campaignId: onchainCampaignId,
