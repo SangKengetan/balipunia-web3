@@ -18,10 +18,9 @@ export async function getProvider() {
         icons: [`${window.location.origin}/logo.png`],
       },
       showQrModal: true,
-      optionalChains: [1, 97],
+      chains: [97],
       rpcMap: {
         97: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-        1: "https://eth.llamarpc.com",
       },
     });
   } else {

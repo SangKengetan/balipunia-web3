@@ -27,10 +27,9 @@ export default function useWallet() {
             icons: [`${window.location.origin}/logo.png`],
           },
           showQrModal: true,
-          optionalChains: [1, 97], // Sediakan fallback Ethereum Mainnet (1) dan BSC Testnet (97)
+          chains: [97], // Wajib BSC Testnet
           rpcMap: {
             97: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-            1: "https://eth.llamarpc.com", // RPC publik untuk mainnet sekadar syarat WalletConnect
           },
         });
 
