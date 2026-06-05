@@ -21,7 +21,7 @@ async function getCampaignTimeline(campaignId) {
 
   timeline.push({
     type: 'ACTIVE',
-    title: 'Campaign dibuat & aktif',
+    title: 'Kegiatan dibuat & aktif',
     timestamp: campaign.created_at,
   });
 

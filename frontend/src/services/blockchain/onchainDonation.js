@@ -14,7 +14,7 @@ async function getProvider() {
       projectId, 
       metadata: {
         name: "BaliPunia",
-        description: "Platform Manajemen Pura dan Donasi",
+        description: "Platform Manajemen Pura dan Punia",
         url: window.location.origin, 
         icons: [`${window.location.origin}/logo.png`],
       },

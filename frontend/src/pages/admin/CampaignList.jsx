@@ -37,7 +37,7 @@ export default function CampaignList() {
         <p>Memuat data...</p>
       ) : campaigns.length === 0 ? (
         <div className="bg-white p-6 rounded shadow text-gray-600">
-          Belum ada campaign dibuat.
+          Belum ada kegiatan dibuat.
         </div>
       ) : (
         <div className="grid gap-4">

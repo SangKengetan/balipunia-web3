@@ -119,7 +119,7 @@ export default function DonorLogin() {
             Selamat Datang Kembali! 👋
           </h2>
           <p className="mt-2 text-sm text-gray-500 font-medium">
-            Masuk untuk memantau punia dan portofolio donasi Anda
+            Masuk untuk memantau punia dan portofolio punia Anda
           </p>
         </div>
 

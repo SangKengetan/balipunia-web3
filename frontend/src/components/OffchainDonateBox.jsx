@@ -164,7 +164,7 @@ export default function OffchainDonateBox({ campaignId }) {
   return (
     <div className="w-full bg-white rounded-xl border border-gray-200 overflow-hidden">
       <div className="p-5 md:p-6">
-        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Donasi Offchain</h3>
+        <h3 className="text-lg font-bold text-gray-800 mb-5 border-b border-gray-100 pb-3">Punia Tunai/Transfer</h3>
 
         {!vaInfo ? (
           <div className="space-y-5">
