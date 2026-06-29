@@ -162,9 +162,12 @@ export default function CreateFinanceReport() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Income Input */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                            Total Pemasukan <span className="text-emerald-600 text-xs font-bold">(Income)</span>
+                        <label className="block text-sm font-medium text-gray-700 mb-0.5">
+                            Total Pemasukan / Kas Saat Ini <span className="text-emerald-600 text-xs font-bold">(Income)</span>
                         </label>
+                        <p className="text-xs text-gray-500 mb-2">
+                            Termasuk akumulasi saldo kas Anda saat ini.
+                        </p>
                         <div className="relative group">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <span className="text-gray-400 font-bold text-sm group-focus-within:text-emerald-600">Rp</span>
@@ -216,7 +219,7 @@ export default function CreateFinanceReport() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className={`text-xs font-semibold ${isNegative ? 'text-red-600' : 'text-blue-600'}`}>
-                                        {isNegative ? '⚠️ Pengeluaran melebihi pemasukan!' : '💰 Kas Saat Ini (Preview)'}
+                                        {isNegative ? '⚠️ Pengeluaran melebihi pemasukan/kas!' : '💰 Sisa Kas Akhir (Preview)'}
                                     </p>
                                     <p className={`text-lg font-bold font-mono mt-1 ${isNegative ? 'text-red-700' : 'text-blue-700'}`}>
                                         Rp {new Intl.NumberFormat('id-ID').format(Math.abs(kas))}
