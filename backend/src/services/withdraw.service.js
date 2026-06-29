@@ -19,6 +19,8 @@ async function createWithdrawRequest({
       crypto_usdt = "0",
       crypto_usdc = "0",
       crypto_fee_idr = 0,
+      crypto_exchange_fee_idr = 0,
+      crypto_gas_fee_idr = 0,
       fiat_amount_idr = "0",
       fiat_fee_idr = 0,
       total_idr = "0",
@@ -117,6 +119,11 @@ async function createWithdrawRequest({
       amount_usdt: crypto_usdt,
       amount_usdc: crypto_usdc,
       fee_idr: Number(crypto_fee_idr),
+      fee_breakdown: {
+        exchange_fee_idr: Number(crypto_exchange_fee_idr),
+        gas_fee_idr: Number(crypto_gas_fee_idr),
+        total_fee_idr: Number(crypto_fee_idr),
+      },
     },
     fiat: {
       amount_idr: fiat_amount_idr,
@@ -299,6 +306,8 @@ async function createUnifiedWithdrawReport({
     crypto_usdt = "0",
     crypto_usdc = "0",
     crypto_fee_idr = 0,
+    crypto_exchange_fee_idr = 0,
+    crypto_gas_fee_idr = 0,
     fiat_amount_idr = "0",
     fiat_fee_idr = 0,
     total_idr = "0",
@@ -384,7 +393,16 @@ async function createUnifiedWithdrawReport({
 
     // 3. Amount Snapshot
     const amountSnapshot = JSON.stringify({
-      crypto: { amount_usdt: crypto_usdt, amount_usdc: crypto_usdc, fee_idr: Number(crypto_fee_idr) },
+      crypto: {
+        amount_usdt: crypto_usdt,
+        amount_usdc: crypto_usdc,
+        fee_idr: Number(crypto_fee_idr),
+        fee_breakdown: {
+          exchange_fee_idr: Number(crypto_exchange_fee_idr),
+          gas_fee_idr: Number(crypto_gas_fee_idr),
+          total_fee_idr: Number(crypto_fee_idr),
+        },
+      },
       fiat: { amount_idr: fiat_amount_idr, fee_idr: Number(fiat_fee_idr) },
       total_idr,
       locked_rate: {

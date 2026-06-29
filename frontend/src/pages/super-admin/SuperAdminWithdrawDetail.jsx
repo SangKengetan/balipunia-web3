@@ -245,10 +245,23 @@ export default function SuperAdminWithdrawDetail() {
                       <span className="text-gray-500">USDC</span>
                       <span className="font-mono font-medium text-gray-800">{formatCrypto(snap.crypto?.amount_usdc)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Estimasi Fee Kripto</span>
-                      <span className="font-mono text-red-500">-{formatRupiah(snap.crypto?.fee_idr)}</span>
-                    </div>
+                    {snap.crypto?.fee_breakdown ? (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Biaya Konversi Kripto → IDR</span>
+                          <span className="font-mono text-red-500">-{formatRupiah(snap.crypto.fee_breakdown.exchange_fee_idr)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Biaya Transaksi Blockchain (Gas)</span>
+                          <span className="font-mono text-red-500">-{formatRupiah(snap.crypto.fee_breakdown.gas_fee_idr)}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Biaya Kripto</span>
+                        <span className="font-mono text-red-500">-{formatRupiah(snap.crypto?.fee_idr)}</span>
+                      </div>
+                    )}
                     {snap.locked_rate && (snap.locked_rate.usdt_idr > 0 || snap.locked_rate.usdc_idr > 0) && (
                       <div className="pt-2.5 border-t border-gray-200">
                         <p className="text-xs font-bold text-indigo-700 mb-1 flex items-center gap-1">

@@ -30,6 +30,11 @@ async function createReport(req, res, next) {
       report,
     });
   } catch (err) {
+    if (err.message === "EXPENSE_EXCEEDS_INCOME") {
+      return res.status(400).json({
+        message: "Pengeluaran tidak boleh lebih besar dari pemasukan",
+      });
+    }
     next(err);
   }
 }

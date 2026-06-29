@@ -951,11 +951,28 @@ function WithdrawalHistory({ withdrawals }) {
                         <span className="text-rose-600 font-extrabold">-{formatRupiah(fiatFee)}</span>
                       </li>
                     )}
-                    {cryptoFee > 0 && (
-                      <li className="flex justify-between items-center bg-rose-50 px-4 py-3 rounded-xl border border-rose-100">
-                        <span className="text-rose-700 font-semibold">Biaya Admin Kripto</span>
-                        <span className="text-rose-600 font-extrabold">-{formatRupiah(cryptoFee)}</span>
-                      </li>
+                    {snapshot?.crypto?.fee_breakdown ? (
+                      <>
+                        {snapshot.crypto.fee_breakdown.exchange_fee_idr > 0 && (
+                          <li className="flex justify-between items-center bg-rose-50 px-4 py-3 rounded-xl border border-rose-100">
+                            <span className="text-rose-700 font-semibold">Biaya Konversi Kripto → IDR</span>
+                            <span className="text-rose-600 font-extrabold">-{formatRupiah(snapshot.crypto.fee_breakdown.exchange_fee_idr)}</span>
+                          </li>
+                        )}
+                        {snapshot.crypto.fee_breakdown.gas_fee_idr > 0 && (
+                          <li className="flex justify-between items-center bg-rose-50 px-4 py-3 rounded-xl border border-rose-100">
+                            <span className="text-rose-700 font-semibold">Biaya Transaksi Blockchain (Gas)</span>
+                            <span className="text-rose-600 font-extrabold">-{formatRupiah(snapshot.crypto.fee_breakdown.gas_fee_idr)}</span>
+                          </li>
+                        )}
+                      </>
+                    ) : (
+                      cryptoFee > 0 && (
+                        <li className="flex justify-between items-center bg-rose-50 px-4 py-3 rounded-xl border border-rose-100">
+                          <span className="text-rose-700 font-semibold">Biaya Kripto</span>
+                          <span className="text-rose-600 font-extrabold">-{formatRupiah(cryptoFee)}</span>
+                        </li>
+                      )
                     )}
                     {(fiatFee === 0 && cryptoFee === 0) && (
                       <li className="text-slate-400 font-medium italic px-4 py-3 bg-white rounded-xl border border-gray-100">

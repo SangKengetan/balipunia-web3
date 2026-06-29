@@ -7,6 +7,14 @@ async function createFinancialReport({ admin, payload, files }) {
     throw new Error("File bukti laporan wajib diunggah (minimal 1)");
   }
 
+  // 🔒 Validasi: Pengeluaran tidak boleh lebih besar dari pemasukan
+  const totalIncome = parseFloat(payload.total_income) || 0;
+  const totalExpense = parseFloat(payload.total_expense) || 0;
+
+  if (totalExpense > totalIncome) {
+    throw new Error("EXPENSE_EXCEEDS_INCOME");
+  }
+
   // Ensure media_files column exists
   try {
     await pool.query(`ALTER TABLE financial_reports ADD COLUMN IF NOT EXISTS media_files TEXT`);
@@ -28,8 +36,8 @@ async function createFinancialReport({ admin, payload, files }) {
   // 2️⃣ Create JSON metadata
   const metadata = {
     title: payload.title,
-    total_income: payload.total_income,
-    total_expense: payload.total_expense,
+    total_income: totalIncome,
+    total_expense: totalExpense,
     timestamp: new Date().toISOString(),
     files: uploadedFiles,
   };
@@ -60,24 +68,25 @@ async function createFinancialReport({ admin, payload, files }) {
     [
       admin.admin_pura_id,
       payload.title,
-      payload.total_income,
-      payload.total_expense,
+      totalIncome,
+      totalExpense,
       mainCid,
       tx.hash,
       mediaFilesJson
     ]
   );
 
-  // 4️⃣ Update Kas Pura (Saldo Operasional)
+  // 5️⃣ Update Kas Pura (Saldo Operasional)
+  // Kas saat ini = selisih income - expense dari laporan yang diupload (REPLACE, bukan akumulasi)
+  const kasSaatIni = totalIncome - totalExpense;
   await pool.query(
     `
     UPDATE admin_pura
-    SET saldo_operasional = saldo_operasional + $1 - $2
-    WHERE id = $3
+    SET saldo_operasional = $1
+    WHERE id = $2
     `,
     [
-      payload.total_income || 0,
-      payload.total_expense || 0,
+      kasSaatIni,
       admin.admin_pura_id
     ]
   );

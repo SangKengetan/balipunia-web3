@@ -99,7 +99,10 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
   const usdtRaw = formatCryptoRaw(onchain?.balances?.USDT);
   const usdcRaw = formatCryptoRaw(onchain?.balances?.USDC);
   const cryptoGrossIdr = (usdtRaw * rateUsdtIdr) + (usdcRaw * rateUsdcIdr);
-  const cryptoFeeIdr = (usdtRaw + usdcRaw) > 0 ? 10000 : 0; 
+  const hasCrypto = (usdtRaw + usdcRaw) > 0;
+  const cryptoExchangeFeeIdr = hasCrypto ? 5000 : 0; // Biaya konversi kripto ke IDR
+  const cryptoGasFeeIdr = hasCrypto ? 5000 : 0;      // Biaya transaksi blockchain (gas)
+  const cryptoFeeIdr = cryptoExchangeFeeIdr + cryptoGasFeeIdr; // Total biaya kripto
   const cryptoNetIdr = Math.max(0, cryptoGrossIdr - cryptoFeeIdr);
 
   const fiatGrossIdr = Number(offchain?.current_balance || 0);
@@ -167,6 +170,8 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
       formData.append("crypto_usdt", onchain?.balances?.USDT || "0");
       formData.append("crypto_usdc", onchain?.balances?.USDC || "0");
       formData.append("crypto_fee_idr", cryptoFeeIdr);
+      formData.append("crypto_exchange_fee_idr", cryptoExchangeFeeIdr);
+      formData.append("crypto_gas_fee_idr", cryptoGasFeeIdr);
       formData.append("fiat_amount_idr", fiatGrossIdr);
       formData.append("fiat_fee_idr", fiatFeeIdr);
       formData.append("total_idr", totalNetIdr);
@@ -303,8 +308,12 @@ export default function UnifiedWithdrawRequestForm({ campaignId, campaign, oncha
                     <span className="font-mono">{formatRupiah(cryptoGrossIdr)}</span>
                   </div>
                   <div className="flex justify-between text-red-500">
-                    <span>Est. Fee Jaringan</span>
-                    <span className="font-mono">-{formatRupiah(cryptoFeeIdr)}</span>
+                    <span>Biaya Konversi Kripto → IDR</span>
+                    <span className="font-mono">-{formatRupiah(cryptoExchangeFeeIdr)}</span>
+                  </div>
+                  <div className="flex justify-between text-red-500">
+                    <span>Biaya Transaksi Blockchain (Gas)</span>
+                    <span className="font-mono">-{formatRupiah(cryptoGasFeeIdr)}</span>
                   </div>
                   <div className="flex justify-between pt-2 font-bold text-gray-800">
                     <span>Bersih Crypto</span>

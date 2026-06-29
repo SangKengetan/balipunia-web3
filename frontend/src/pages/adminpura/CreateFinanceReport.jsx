@@ -62,6 +62,14 @@ export default function CreateFinanceReport() {
       return;
     }
 
+    // Validasi: Pengeluaran tidak boleh lebih besar dari pemasukan
+    const income = parseFloat(form.total_income) || 0;
+    const expense = parseFloat(form.total_expense) || 0;
+    if (expense > income) {
+      error("Pengeluaran tidak boleh lebih besar dari pemasukan");
+      return;
+    }
+
     try {
       setSubmitting(true);
       
@@ -196,6 +204,32 @@ export default function CreateFinanceReport() {
                         </div>
                     </div>
                 </div>
+
+                {/* Live Preview: Kas Saat Ini */}
+                {(form.total_income || form.total_expense) && (() => {
+                    const inc = parseFloat(form.total_income) || 0;
+                    const exp = parseFloat(form.total_expense) || 0;
+                    const kas = inc - exp;
+                    const isNegative = kas < 0;
+                    return (
+                        <div className={`mt-4 p-4 rounded-xl border ${isNegative ? 'border-red-200 bg-red-50' : 'border-blue-200 bg-blue-50'}`}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className={`text-xs font-semibold ${isNegative ? 'text-red-600' : 'text-blue-600'}`}>
+                                        {isNegative ? '⚠️ Pengeluaran melebihi pemasukan!' : '💰 Kas Saat Ini (Preview)'}
+                                    </p>
+                                    <p className={`text-lg font-bold font-mono mt-1 ${isNegative ? 'text-red-700' : 'text-blue-700'}`}>
+                                        Rp {new Intl.NumberFormat('id-ID').format(Math.abs(kas))}
+                                        {isNegative && <span className="text-xs ml-1">(defisit)</span>}
+                                    </p>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    Selisih pemasukan − pengeluaran
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* --- Section: Upload File --- */}

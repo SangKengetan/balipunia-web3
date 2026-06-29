@@ -236,14 +236,35 @@ export default function WithdrawTransfers() {
                                 {formatCrypto(snap.crypto?.amount_usdc)}
                               </span>
                             </div>
-                            <div className="flex justify-between gap-4">
-                              <span className="text-gray-500">
-                                Fee Crypto:
-                              </span>
-                              <span className="font-mono text-red-500">
-                                -{formatRupiah(snap.crypto?.fee_idr)}
-                              </span>
-                            </div>
+                            {snap.crypto?.fee_breakdown ? (
+                              <>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-500">
+                                    Konversi Kripto:
+                                  </span>
+                                  <span className="font-mono text-red-500">
+                                    -{formatRupiah(snap.crypto.fee_breakdown.exchange_fee_idr)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-gray-500">
+                                    Gas Blockchain:
+                                  </span>
+                                  <span className="font-mono text-red-500">
+                                    -{formatRupiah(snap.crypto.fee_breakdown.gas_fee_idr)}
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="flex justify-between gap-4">
+                                <span className="text-gray-500">
+                                  Biaya Kripto:
+                                </span>
+                                <span className="font-mono text-red-500">
+                                  -{formatRupiah(snap.crypto?.fee_idr)}
+                                </span>
+                              </div>
+                            )}
                             {snap.locked_rate && (snap.locked_rate.usdt_idr > 0 || snap.locked_rate.usdc_idr > 0) && (
                               <div className="flex justify-between gap-4 pt-1 border-t border-gray-100">
                                 <span className="text-indigo-600 flex items-center gap-0.5">
