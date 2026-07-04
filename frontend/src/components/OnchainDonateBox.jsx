@@ -106,7 +106,7 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
 
           <button
             onClick={handleDonate}
-            disabled={loading || !amount || parseFloat(amount) < 1}
+            disabled={loading || !amount}
             className="w-full py-3 bg-[#FBBF24] hover:bg-yellow-500 text-slate-900 font-bold rounded-lg transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
           >
             {loading ? "Memproses..." : "Kirim Punia"}

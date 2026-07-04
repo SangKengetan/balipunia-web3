@@ -16,15 +16,6 @@ const STATUS_CONFIG = {
       </svg>
     ),
   },
-  READY_FOR_VOTING: {
-    label: "Siap Voting",
-    style: "bg-blue-50 text-blue-700 border border-blue-200",
-    icon: (
-      <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
   VOTING_IN_PROGRESS: {
     label: "Sedang Voting",
     style: "bg-purple-50 text-purple-700 border border-purple-200",
@@ -34,7 +25,7 @@ const STATUS_CONFIG = {
       </svg>
     ),
   },
-  EXECUTED: {
+  COMPLETED: {
     label: "Selesai (Cair)",
     style: "bg-green-50 text-green-700 border border-green-200",
     icon: (
@@ -80,15 +71,16 @@ export default function TrusteeWithdrawDashboard() {
   const summary = useMemo(() => {
     const counts = {
       REQUESTED: 0,
-      READY_FOR_VOTING: 0,
       VOTING_IN_PROGRESS: 0,
-      EXECUTED: 0,
+      COMPLETED: 0,
       REJECTED: 0,
     };
     data.forEach((w) => {
-      if (counts[w.status] !== undefined) {
-        counts[w.status]++;
-      }
+      // Mapping back compatibility and logic combinations
+      if (w.status === "REQUESTED") counts.REQUESTED++;
+      else if (w.status === "READY_FOR_VOTING" || w.status === "VOTING_IN_PROGRESS") counts.VOTING_IN_PROGRESS++;
+      else if (w.status === "EXECUTED" || w.status === "COMPLETED") counts.COMPLETED++;
+      else if (w.status === "REJECTED") counts.REJECTED++;
     });
     return counts;
   }, [data]);
@@ -119,18 +111,12 @@ export default function TrusteeWithdrawDashboard() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-8">
           <SummaryCard
             label="Menunggu Review"
             value={summary.REQUESTED}
             colorClass="bg-yellow-500"
             icon={STATUS_CONFIG.REQUESTED.icon}
-          />
-          <SummaryCard
-            label="Siap Voting"
-            value={summary.READY_FOR_VOTING}
-            colorClass="bg-blue-500"
-            icon={STATUS_CONFIG.READY_FOR_VOTING.icon}
           />
           <SummaryCard
             label="Sedang Voting"
@@ -140,9 +126,9 @@ export default function TrusteeWithdrawDashboard() {
           />
           <SummaryCard
             label="Selesai (Cair)"
-            value={summary.EXECUTED}
+            value={summary.COMPLETED}
             colorClass="bg-green-500"
-            icon={STATUS_CONFIG.EXECUTED.icon}
+            icon={STATUS_CONFIG.COMPLETED.icon}
           />
           <SummaryCard
             label="Ditolak"

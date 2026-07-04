@@ -264,7 +264,7 @@ export default function OffchainDonateBox({ campaignId }) {
 
             <button
               onClick={handleDonate}
-              disabled={loading || !amount || parseInt(amount) < 10000}
+              disabled={loading || !amount}
               className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 flex justify-center items-center gap-2"
             >
               {loading ? "Memproses..." : "Lanjutkan Pembayaran"}
