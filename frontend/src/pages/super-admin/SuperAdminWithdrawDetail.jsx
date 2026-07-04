@@ -352,7 +352,7 @@ export default function SuperAdminWithdrawDetail() {
 
                   <button
                     onClick={handleSubmitTransfer}
-                    disabled={!file || submitting}
+                    disabled={submitting}
                     className="w-full flex items-center justify-center gap-2 py-3.5 bg-amber-500 text-white rounded-xl text-sm font-bold hover:bg-amber-600 shadow-lg shadow-amber-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-95"
                   >
                     {submitting ? (
