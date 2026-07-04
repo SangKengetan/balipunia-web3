@@ -84,6 +84,23 @@ async function handleMidtransWebhook(req, res) {
       RETURNING campaign_id, gross_amount, system_status
     `;
 
+    // Fetch existing raw_response to preserve actions (QR code URLs for QRIS/GoPay)
+    const existingResult = await db.query(
+      `SELECT raw_response FROM offchain_transactions WHERE order_id = $1`,
+      [order_id]
+    );
+    let mergedRawResponse = n;
+    if (existingResult.rows.length > 0 && existingResult.rows[0].raw_response) {
+      const existing = typeof existingResult.rows[0].raw_response === 'string'
+        ? JSON.parse(existingResult.rows[0].raw_response)
+        : existingResult.rows[0].raw_response;
+      // Preserve actions from original charge response (contains QR code URLs)
+      mergedRawResponse = { ...existing, ...n };
+      if (existing.actions && !n.actions) {
+        mergedRawResponse.actions = existing.actions;
+      }
+    }
+
     const params = [
       transaction_status,
       fraud_status || null,
@@ -92,7 +109,7 @@ async function handleMidtransWebhook(req, res) {
       payment_type || null,
       bank || null,
       card_type || null,
-      n,
+      mergedRawResponse,
       order_id,
     ];
 
