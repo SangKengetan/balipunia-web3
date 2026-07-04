@@ -99,6 +99,9 @@ export default function OnchainDonateBox({ onchainCampaignId, onDonateSuccess })
                 </select>
               </div>
             </div>
+            {amount !== "" && parseFloat(amount) < 1 && (
+              <p className="mt-1 text-sm text-red-500">⚠️ Minimal punia adalah 1 USDT/USDC</p>
+            )}
           </div>
 
           <button

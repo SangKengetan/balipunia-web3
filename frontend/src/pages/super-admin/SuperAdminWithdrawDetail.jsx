@@ -82,7 +82,10 @@ export default function SuperAdminWithdrawDetail() {
   };
 
   const handleSubmitTransfer = async () => {
-    if (!file) return;
+    if (!file) {
+      showError("Gagal Mengunggah", "Silakan pilih file bukti transfer terlebih dahulu.");
+      return;
+    }
     try {
       setSubmitting(true);
       const formData = new FormData();

@@ -186,6 +186,9 @@ export default function OffchainDonateBox({ campaignId }) {
                   }}
                 />
               </div>
+              {amount !== "" && parseInt(amount) < 10000 && (
+                <p className="mt-1 text-sm text-red-500">⚠️ Minimal punia adalah Rp 10.000</p>
+              )}
             </div>
 
             <div>

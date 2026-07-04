@@ -229,6 +229,11 @@ export default function DonorDashboard() {
             >
               {linking ? "Menghubungkan..." : "Kaitkan Wallet Baru"}
             </button>
+            {donorWallets.length >= 5 && (
+              <p className="mt-3 text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 leading-snug">
+                ⚠️ Batas maksimal 5 wallet telah tercapai. Hapus wallet yang tidak digunakan untuk menambahkan wallet baru.
+              </p>
+            )}
             {donorWallets.length === 0 && (
               <p className="mt-3 text-xs text-amber-600 bg-amber-50 p-2.5 rounded-lg border border-amber-100 leading-snug">
                 💡 <strong>Tips:</strong> Kaitkan MetaMask Anda agar sistem dapat memindai punia On-chain.
@@ -281,17 +286,28 @@ export default function DonorDashboard() {
                   </Link>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        <th className="pb-4">Kampanye</th>
-                        <th className="pb-4">Nominal</th>
-                        <th className="pb-4">Bank (VA)</th>
-                        <th className="pb-4">Status</th>
-                        <th className="pb-4">Waktu</th>
-                      </tr>
-                    </thead>
+                <div className="space-y-4">
+                  {donations.offchain.some(tx => tx.system_status === "PENDING_PAYMENT") && (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex items-start gap-3">
+                      <svg className="w-5 h-5 flex-shrink-0 mt-0.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                      <div>
+                        <h4 className="font-bold text-sm">Pembayaran Tertunda</h4>
+                        <p className="text-xs mt-1">Anda memiliki transaksi yang menunggu pembayaran. Segera selesaikan sebelum batas waktu habis.</p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                          <th className="pb-4">Kampanye</th>
+                          <th className="pb-4">Nominal</th>
+                          <th className="pb-4">Metode</th>
+                          <th className="pb-4">Status</th>
+                          <th className="pb-4">Waktu</th>
+                          <th className="pb-4 text-center">Aksi</th>
+                        </tr>
+                      </thead>
                     <tbody className="divide-y divide-gray-50 text-sm">
                       {donations.offchain.map((tx) => (
                         <tr key={tx.order_id} className="hover:bg-gray-50/50 transition-colors">
@@ -306,20 +322,10 @@ export default function DonorDashboard() {
                           <td className="py-4">
                             <div className="font-semibold uppercase text-gray-800">{tx.bank}</div>
                             {tx.raw_response?.va_numbers?.[0]?.va_number && (
-                              <div className="flex items-center gap-2 mt-1">
+                              <div className="mt-1">
                                 <span className="font-mono text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                   {tx.raw_response.va_numbers[0].va_number}
                                 </span>
-                                <button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(tx.raw_response.va_numbers[0].va_number);
-                                    alert("VA disalin!");
-                                  }}
-                                  className="text-xs text-gray-400 hover:text-amber-600"
-                                  title="Salin VA"
-                                >
-                                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
-                                </button>
                               </div>
                             )}
                           </td>
@@ -343,20 +349,51 @@ export default function DonorDashboard() {
                                 ? "GAGAL"
                                 : tx.system_status}
                             </span>
-                            {tx.system_status === "PENDING_PAYMENT" && tx.raw_response?.expiry_time && (
+                            {tx.system_status === "PENDING_PAYMENT" && (tx.raw_response?.expiry_time || tx.raw_response?.expires_at) && (
                               <div className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Exp: {new Date(tx.raw_response.expiry_time).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                Exp: {new Date(tx.raw_response.expiry_time || tx.raw_response.expires_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             )}
                           </td>
                           <td className="py-4 text-xs text-gray-400">
                             {new Date(tx.updated_at).toLocaleString("id-ID")}
                           </td>
+                          <td className="py-4 text-center align-middle">
+                            {tx.system_status === "PENDING_PAYMENT" ? (
+                              <div className="flex flex-col items-center justify-center gap-1.5">
+                                {tx.raw_response?.va_numbers?.[0]?.va_number && (
+                                  <button
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(tx.raw_response.va_numbers[0].va_number);
+                                      alert("VA disalin!");
+                                    }}
+                                    className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                    Salin VA
+                                  </button>
+                                )}
+                                {tx.raw_response?.actions && tx.raw_response.actions.find(a => a.name === 'generate-qr-code') && (
+                                  <a href={tx.raw_response.actions.find(a => a.name === 'generate-qr-code').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> Lihat QR
+                                  </a>
+                                )}
+                                {tx.raw_response?.actions && tx.raw_response.actions.find(a => a.name === 'deeplink-redirect') && (
+                                  <a href={tx.raw_response.actions.find(a => a.name === 'deeplink-redirect').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-[#00AED6] hover:bg-[#009bc0] text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Buka Gojek
+                                  </a>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-300">-</span>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
                 </div>
               )
             ) : (

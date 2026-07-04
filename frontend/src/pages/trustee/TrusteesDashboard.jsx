@@ -25,7 +25,7 @@ const STATUS_CONFIG = {
       </svg>
     ),
   },
-  VOTING: {
+  VOTING_IN_PROGRESS: {
     label: "Sedang Voting",
     style: "bg-purple-50 text-purple-700 border border-purple-200",
     icon: (
@@ -81,7 +81,9 @@ export default function TrusteeWithdrawDashboard() {
     const counts = {
       REQUESTED: 0,
       READY_FOR_VOTING: 0,
-      VOTING: 0,
+      VOTING_IN_PROGRESS: 0,
+      EXECUTED: 0,
+      REJECTED: 0,
     };
     data.forEach((w) => {
       if (counts[w.status] !== undefined) {
@@ -117,7 +119,7 @@ export default function TrusteeWithdrawDashboard() {
         </div>
 
         {/* SUMMARY CARDS */}
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-5 mb-8">
           <SummaryCard
             label="Menunggu Review"
             value={summary.REQUESTED}
@@ -132,9 +134,21 @@ export default function TrusteeWithdrawDashboard() {
           />
           <SummaryCard
             label="Sedang Voting"
-            value={summary.VOTING}
+            value={summary.VOTING_IN_PROGRESS}
             colorClass="bg-purple-500"
-            icon={STATUS_CONFIG.VOTING.icon}
+            icon={STATUS_CONFIG.VOTING_IN_PROGRESS.icon}
+          />
+          <SummaryCard
+            label="Selesai (Cair)"
+            value={summary.EXECUTED}
+            colorClass="bg-green-500"
+            icon={STATUS_CONFIG.EXECUTED.icon}
+          />
+          <SummaryCard
+            label="Ditolak"
+            value={summary.REJECTED}
+            colorClass="bg-red-500"
+            icon={STATUS_CONFIG.REJECTED.icon}
           />
         </div>
 
