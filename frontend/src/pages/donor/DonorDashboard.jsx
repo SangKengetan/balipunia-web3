@@ -309,7 +309,17 @@ export default function DonorDashboard() {
                         </tr>
                       </thead>
                     <tbody className="divide-y divide-gray-50 text-sm">
-                      {donations.offchain.map((tx) => (
+                      {donations.offchain.map((tx) => {
+                        let rawResp = tx.raw_response;
+                        if (typeof rawResp === 'string') {
+                          try {
+                            rawResp = JSON.parse(rawResp);
+                          } catch (e) {
+                            rawResp = {};
+                          }
+                        }
+
+                        return (
                         <tr key={tx.order_id} className="hover:bg-gray-50/50 transition-colors">
                           <td className="py-4 font-bold text-gray-900">
                             <Link to={`/campaign/${tx.campaign_id}`} className="hover:text-amber-600 transition-colors">
@@ -320,11 +330,13 @@ export default function DonorDashboard() {
                             {formatRupiah(tx.gross_amount)}
                           </td>
                           <td className="py-4">
-                            <div className="font-semibold uppercase text-gray-800">{tx.bank}</div>
-                            {tx.raw_response?.va_numbers?.[0]?.va_number && (
+                            <div className="font-semibold uppercase text-gray-800">
+                              {tx.bank ? `${tx.bank} (VA)` : tx.payment_type ? tx.payment_type : "QRIS/E-Wallet"}
+                            </div>
+                            {rawResp?.va_numbers?.[0]?.va_number && (
                               <div className="mt-1">
                                 <span className="font-mono text-sm font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
-                                  {tx.raw_response.va_numbers[0].va_number}
+                                  {rawResp.va_numbers[0].va_number}
                                 </span>
                               </div>
                             )}
@@ -349,10 +361,10 @@ export default function DonorDashboard() {
                                 ? "GAGAL"
                                 : tx.system_status}
                             </span>
-                            {tx.system_status === "PENDING_PAYMENT" && (tx.raw_response?.expiry_time || tx.raw_response?.expires_at) && (
+                            {tx.system_status === "PENDING_PAYMENT" && (rawResp?.expiry_time || rawResp?.expires_at) && (
                               <div className="mt-2 text-xs font-medium text-red-500 flex items-center gap-1">
                                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Exp: {new Date(tx.raw_response.expiry_time || tx.raw_response.expires_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                Exp: {new Date(rawResp.expiry_time || rawResp.expires_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
                               </div>
                             )}
                           </td>
@@ -362,10 +374,10 @@ export default function DonorDashboard() {
                           <td className="py-4 text-center align-middle">
                             {tx.system_status === "PENDING_PAYMENT" ? (
                               <div className="flex flex-col items-center justify-center gap-1.5">
-                                {tx.raw_response?.va_numbers?.[0]?.va_number && (
+                                {rawResp?.va_numbers?.[0]?.va_number && (
                                   <button
                                     onClick={() => {
-                                      navigator.clipboard.writeText(tx.raw_response.va_numbers[0].va_number);
+                                      navigator.clipboard.writeText(rawResp.va_numbers[0].va_number);
                                       alert("VA disalin!");
                                     }}
                                     className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap"
@@ -374,13 +386,13 @@ export default function DonorDashboard() {
                                     Salin VA
                                   </button>
                                 )}
-                                {tx.raw_response?.actions && tx.raw_response.actions.find(a => a.name === 'generate-qr-code') && (
-                                  <a href={tx.raw_response.actions.find(a => a.name === 'generate-qr-code').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                                {rawResp?.actions && rawResp.actions.find(a => a.name === 'generate-qr-code') && (
+                                  <a href={rawResp.actions.find(a => a.name === 'generate-qr-code').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg> Lihat QR
                                   </a>
                                 )}
-                                {tx.raw_response?.actions && tx.raw_response.actions.find(a => a.name === 'deeplink-redirect') && (
-                                  <a href={tx.raw_response.actions.find(a => a.name === 'deeplink-redirect').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-[#00AED6] hover:bg-[#009bc0] text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
+                                {rawResp?.actions && rawResp.actions.find(a => a.name === 'deeplink-redirect') && (
+                                  <a href={rawResp.actions.find(a => a.name === 'deeplink-redirect').url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 bg-[#00AED6] hover:bg-[#009bc0] text-white text-xs font-bold py-1.5 px-3 rounded-lg shadow-sm transition-colors whitespace-nowrap">
                                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> Buka Gojek
                                   </a>
                                 )}
@@ -390,7 +402,7 @@ export default function DonorDashboard() {
                             )}
                           </td>
                         </tr>
-                      ))}
+                      )})}
                     </tbody>
                   </table>
                 </div>

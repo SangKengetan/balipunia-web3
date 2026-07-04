@@ -14,6 +14,7 @@ async function getMyDonations(req, res) {
         ot.system_status,
         ot.updated_at,
         ot.bank,
+        ot.payment_type,
         ot.raw_response,
         c.title AS campaign_title,
         c.id AS campaign_id
